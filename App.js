@@ -1,8 +1,10 @@
+import './global.css';
 import React from 'react';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import HomeScreen from './src/screens/HomeScreen';
 import GroupsScreen from './src/screens/GroupsScreen';
@@ -62,12 +64,14 @@ function TabNavigator() {
 
 export default function App() {
   return (
-    <NavigationContainer theme={MyTheme}>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="MainTabs" component={TabNavigator} />
-        <Stack.Screen name="AddBook" component={AddBookScreen} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="Timer" component={TimerScreen} options={{ presentation: 'fullScreenModal' }} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <SafeAreaProvider>
+      <NavigationContainer theme={MyTheme}>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="MainTabs" component={TabNavigator} />
+          <Stack.Screen name="AddBook" component={AddBookScreen} options={{ presentation: 'modal' }} />
+          <Stack.Screen name="Timer" component={TimerScreen} options={{ presentation: 'fullScreenModal' }} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </SafeAreaProvider>
   );
 }
