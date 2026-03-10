@@ -7,11 +7,11 @@ const calculateStreak = (lastDateStr, newDateStr, currentStreak) => {
   if (!lastDateStr) return 1;
   const lastDate = new Date(lastDateStr);
   const newDate = new Date(newDateStr);
-  
+
   // Normalize to ms differences
-  const diffTime = Math.abs(newDate.setHours(0,0,0,0) - lastDate.setHours(0,0,0,0));
+  const diffTime = Math.abs(newDate.setHours(0, 0, 0, 0) - lastDate.setHours(0, 0, 0, 0));
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
+
   if (diffDays === 1) return currentStreak + 1; // Leitura consecutiva
   if (diffDays === 0) return currentStreak; // Já leu hoje, mantém.
   return 1; // Pulou dia, reseta para 1.
@@ -20,7 +20,7 @@ const calculateStreak = (lastDateStr, newDateStr, currentStreak) => {
 export const useBookStore = create(
   persist(
     (set, get) => ({
-      books: [], 
+      books: [],
       streak: 0,
       lastReadDate: null,
 
@@ -41,12 +41,12 @@ export const useBookStore = create(
       updateProgress: (bookId, newPage, timeSeconds) => set((state) => {
         const todayStr = new Date().toISOString().split('T')[0];
         const newStreak = calculateStreak(state.lastReadDate, todayStr, state.streak);
-        
+
         const updatedBooks = state.books.map((book) => {
           if (book.id === bookId) {
             const pagesReadToday = Math.max(0, newPage - book.currentPage);
             const isCompleted = newPage >= book.totalPages;
-            
+
             return {
               ...book,
               currentPage: newPage,
