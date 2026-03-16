@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { auth, db } from '../services/firebase';
+import { auth, db, googleProvider } from '../services/firebase';
 import {
   doc,
   setDoc,
@@ -15,7 +15,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
-  signInWithPopup,
+  signInWithCredential,
   GoogleAuthProvider
 } from 'firebase/auth';
 
@@ -78,10 +78,11 @@ export const useBookStore = create((set, get) => ({
     }
   },
 
-  signInWithGoogle: async () => {
+  signInWithGoogle: async (idToken) => {
     try {
       set({ loading: true, authError: null });
-      const result = await signInWithPopup(auth, googleProvider);
+      const credential = GoogleAuthProvider.credential(idToken);
+      const result = await signInWithCredential(auth, credential);
       const user = result.user;
 
       // Check if user document exists, if not, create it

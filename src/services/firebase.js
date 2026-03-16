@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
+import { initializeAuth, getReactNativePersistence, GoogleAuthProvider } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 
 // TODO: Replace with your actual Firebase config from the Firebase Console
 const firebaseConfig = {
@@ -16,13 +17,11 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase Auth
-export const auth = getAuth(app);
+// Initialize Firebase Auth with Persistence for React Native
+export const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+});
 export const googleProvider = new GoogleAuthProvider();
 
-// Initialize Firestore with Offline Persistence
-export const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({
-    tabManager: persistentMultipleTabManager() // Correct for web/hybrid, works for RN
-  })
-});
+// Initialize Firestore (Defaults to memory cache on React Native)
+export const db = getFirestore(app);

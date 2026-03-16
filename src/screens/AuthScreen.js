@@ -11,8 +11,13 @@ import {
     TouchableWithoutFeedback,
     Keyboard
 } from 'react-native';
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
 import { useBookStore } from '../store/useBookStore';
+import { useThemeStore } from '../store/useThemeStore';
 import { Ionicons } from '@expo/vector-icons';
+
+WebBrowser.maybeCompleteAuthSession();
 
 const AuthScreen = () => {
     const [isLogin, setIsLogin] = useState(true);
@@ -21,6 +26,20 @@ const AuthScreen = () => {
     const [showPassword, setShowPassword] = useState(false);
 
     const { signIn, signUp, signInWithGoogle, loading, authError } = useBookStore();
+    const { isDarkMode } = useThemeStore();
+
+    const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+        webClientId: '938992066464-mka61a63o33ltrr2fobm18qugoq35j7d.apps.googleusercontent.com',
+        androidClientId: '938992066464-mka61a63o33ltrr2fobm18qugoq35j7d.apps.googleusercontent.com',
+        iosClientId: '938992066464-mka61a63o33ltrr2fobm18qugoq35j7d.apps.googleusercontent.com',
+    });
+
+    useEffect(() => {
+        if (response?.type === 'success') {
+            const { id_token } = response.params;
+            signInWithGoogle(id_token);
+        }
+    }, [response]);
 
     useEffect(() => {
         if (authError) {
@@ -49,33 +68,45 @@ const AuthScreen = () => {
         }
     };
 
+    // Theme Variables
+    const bgColor = isDarkMode ? 'bg-[#000000]' : 'bg-[#FDFCF5]';
+    const textColor = isDarkMode ? 'text-[#E0E0E0]' : 'text-[#1A1A1A]';
+    const subTextColor = isDarkMode ? 'text-[#A3A3A3]' : 'text-[#71717A]';
+    const primaryColorHex = isDarkMode ? '#A7C9A7' : '#5B8C5A';
+    const primaryColorClass = isDarkMode ? 'text-[#A7C9A7]' : 'text-[#5B8C5A]';
+    
+    const inputBgColor = isDarkMode ? 'bg-[#171717]' : 'bg-[#FFFFFF]';
+    const inputBorderColor = isDarkMode ? 'border-[#262626]' : 'border-[#E5E7EB]';
+    const iconColor = isDarkMode ? '#A3A3A3' : '#A1A1AA';
+    const placeholderColor = isDarkMode ? '#52525B' : '#A1A1AA';
+
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                className="flex-1 bg-[#0F172A] justify-center px-8"
+                className={`flex-1 justify-center px-8 ${bgColor}`}
             >
                 <View className="items-center mb-10">
-                    <View className="bg-[#22C55E20] p-4 rounded-full mb-4 border border-[#22C55E40]">
-                        <Ionicons name="book" size={50} color="#22C55E" />
+                    <View className={`p-4 rounded-full mb-4 border`} style={{ backgroundColor: `${primaryColorHex}20`, borderColor: `${primaryColorHex}40` }}>
+                        <Ionicons name="book" size={50} color={primaryColorHex} />
                     </View>
-                    <Text className="text-4xl font-bold text-white tracking-widest">
-                        BOOK<Text className="text-[#22C55E]">RATS</Text>
+                    <Text className={`text-4xl font-bold tracking-widest ${textColor}`}>
+                        BOOK<Text className={primaryColorClass}>RATS</Text>
                     </Text>
-                    <Text className="text-[#94A3B8] mt-2 font-medium">
+                    <Text className={`mt-2 font-medium ${subTextColor}`}>
                         {isLogin ? 'Bem-vindo de volta, leitor!' : 'Comece sua jornada literária'}
                     </Text>
                 </View>
 
                 <View className="space-y-4">
                     <View>
-                        <Text className="text-[#94A3B8] mb-2 ml-1 text-sm font-semibold uppercase tracking-wider">E-mail</Text>
-                        <View className="flex-row items-center bg-[#1E293B] rounded-2xl px-4 border border-[#334155]">
-                            <Ionicons name="mail-outline" size={20} color="#94A3B8" />
+                        <Text className={`mb-2 ml-1 text-sm font-semibold uppercase tracking-wider ${subTextColor}`}>E-mail</Text>
+                        <View className={`flex-row items-center rounded-2xl px-4 border ${inputBgColor} ${inputBorderColor}`}>
+                            <Ionicons name="mail-outline" size={20} color={iconColor} />
                             <TextInput
-                                className="flex-1 h-14 text-white ml-3"
+                                className={`flex-1 h-14 ml-3 ${textColor}`}
                                 placeholder="seu@email.com"
-                                placeholderTextColor="#475569"
+                                placeholderTextColor={placeholderColor}
                                 value={email}
                                 onChangeText={setEmail}
                                 autoCapitalize="none"
@@ -85,13 +116,13 @@ const AuthScreen = () => {
                     </View>
 
                     <View>
-                        <Text className="text-[#94A3B8] mb-2 ml-1 text-sm font-semibold uppercase tracking-wider">Senha</Text>
-                        <View className="flex-row items-center bg-[#1E293B] rounded-2xl px-4 border border-[#334155]">
-                            <Ionicons name="lock-closed-outline" size={20} color="#94A3B8" />
+                        <Text className={`mb-2 ml-1 text-sm font-semibold uppercase tracking-wider ${subTextColor}`}>Senha</Text>
+                        <View className={`flex-row items-center rounded-2xl px-4 border ${inputBgColor} ${inputBorderColor}`}>
+                            <Ionicons name="lock-closed-outline" size={20} color={iconColor} />
                             <TextInput
-                                className="flex-1 h-14 text-white ml-3"
+                                className={`flex-1 h-14 ml-3 ${textColor}`}
                                 placeholder="••••••••"
-                                placeholderTextColor="#475569"
+                                placeholderTextColor={placeholderColor}
                                 value={password}
                                 onChangeText={setPassword}
                                 secureTextEntry={!showPassword}
@@ -100,7 +131,7 @@ const AuthScreen = () => {
                                 <Ionicons
                                     name={showPassword ? "eye-off-outline" : "eye-outline"}
                                     size={20}
-                                    color="#94A3B8"
+                                    color={iconColor}
                                 />
                             </TouchableOpacity>
                         </View>
@@ -108,43 +139,43 @@ const AuthScreen = () => {
 
                     <TouchableOpacity
                         className={`h-16 rounded-2xl flex-row items-center justify-center mt-4 border ${loading ? 'opacity-70' : ''}`}
-                        style={{ backgroundColor: '#22C55E', shadowColor: '#22C55E', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 8 }}
+                        style={{ backgroundColor: primaryColorHex, borderColor: primaryColorHex }}
                         onPress={handleAuth}
                         disabled={loading}
                     >
                         {loading ? (
-                            <ActivityIndicator color="#0F172A" />
+                            <ActivityIndicator color={isDarkMode ? '#000000' : '#FFFFFF'} />
                         ) : (
                             <>
-                                <Text className="text-[#0F172A] text-lg font-bold mr-2">
+                                <Text className={`text-lg font-bold mr-2 ${isDarkMode ? 'text-[#000000]' : 'text-[#FFFFFF]'}`}>
                                     {isLogin ? 'Entrar' : 'Criar Conta'}
                                 </Text>
-                                <Ionicons name="arrow-forward" size={20} color="#0F172A" />
+                                <Ionicons name="arrow-forward" size={20} color={isDarkMode ? '#000000' : '#FFFFFF'} />
                             </>
                         )}
                     </TouchableOpacity>
 
                     <View className="flex-row items-center my-6">
-                        <View className="flex-1 h-[1px] bg-[#334155]" />
-                        <Text className="text-[#94A3B8] mx-4 text-xs font-bold uppercase tracking-widest">Ou continue com</Text>
-                        <View className="flex-1 h-[1px] bg-[#334155]" />
+                        <View className={`flex-1 h-[1px] ${isDarkMode ? 'bg-[#262626]' : 'bg-[#E5E7EB]'}`} />
+                        <Text className={`mx-4 text-xs font-bold uppercase tracking-widest ${subTextColor}`}>Ou continue com</Text>
+                        <View className={`flex-1 h-[1px] ${isDarkMode ? 'bg-[#262626]' : 'bg-[#E5E7EB]'}`} />
                     </View>
 
                     <TouchableOpacity
-                        className="h-16 rounded-2xl flex-row items-center justify-center bg-[#1E293B] border border-[#334155]"
-                        onPress={() => signInWithGoogle()}
-                        disabled={loading}
+                        className={`h-16 rounded-2xl flex-row items-center justify-center border ${inputBgColor} ${inputBorderColor}`}
+                        onPress={() => promptAsync()}
+                        disabled={!request || loading}
                     >
-                        <Ionicons name="logo-google" size={20} color="#white" />
-                        <Text className="text-white text-lg font-bold ml-3">Google</Text>
+                        <Ionicons name="logo-google" size={20} color={iconColor} />
+                        <Text className={`text-lg font-bold ml-3 ${textColor}`}>Google</Text>
                     </TouchableOpacity>
 
                     <View className="flex-row justify-center items-center mt-6">
-                        <Text className="text-[#94A3B8]">
+                        <Text className={subTextColor}>
                             {isLogin ? 'Não tem uma conta?' : 'Já possui uma conta?'}
                         </Text>
                         <TouchableOpacity onPress={() => setIsLogin(!isLogin)}>
-                            <Text className="text-[#22C55E] font-bold ml-2">
+                            <Text className={`font-bold ml-2 ${primaryColorClass}`}>
                                 {isLogin ? 'Cadastre-se' : 'Faça Login'}
                             </Text>
                         </TouchableOpacity>
@@ -152,8 +183,8 @@ const AuthScreen = () => {
                 </View>
 
                 {!isLogin && (
-                    <Text className="text-[#475569] text-center text-xs mt-8 px-4">
-                        Ao criar uma conta, você concorda em manter seu hábito de leitura sempre ativo! 📚🔥
+                    <Text className={`text-center text-xs mt-8 px-4 ${isDarkMode ? 'text-[#71717A]' : 'text-[#A1A1AA]'}`}>
+                        Ao criar uma conta, você concorda em manter seu hábito de leitura sempre ativo! 📚☕
                     </Text>
                 )}
             </KeyboardAvoidingView>
@@ -162,3 +193,4 @@ const AuthScreen = () => {
 };
 
 export default AuthScreen;
+
