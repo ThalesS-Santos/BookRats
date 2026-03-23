@@ -1,6 +1,6 @@
 import './global.css';
 import React, { useEffect } from 'react';
-import { View, ActivityIndicator, Platform } from 'react-native';
+import { View, ActivityIndicator, Platform, AppState } from 'react-native';
 import * as NavigationBar from 'expo-navigation-bar';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -13,6 +13,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 
 import HomeScreen from './src/screens/HomeScreen';
 import GroupsScreen from './src/screens/GroupsScreen';
+import RankingScreen from './src/screens/RankingScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import AddBookScreen from './src/screens/AddBookScreen';
 import TimerScreen from './src/screens/TimerScreen';
@@ -36,13 +37,19 @@ function TabNavigator() {
         tabBarStyle: { backgroundColor: isDarkMode ? '#000000' : '#FDFCF5', borderTopColor: isDarkMode ? '#262626' : '#E5E7EB', height: 60, paddingBottom: 10 },
         tabBarActiveTintColor: isDarkMode ? '#A7C9A7' : '#5B8C5A',
         tabBarIcon: ({ color }) => {
-          let iconName = route.name === 'Início' ? 'book' : route.name === 'Grupos' ? 'library' : 'person';
+          let iconName = 'book';
+          if (route.name === 'Início') iconName = 'book';
+          else if (route.name === 'Ranking') iconName = 'trophy';
+          else if (route.name === 'Grupo') iconName = 'chatbubbles';
+          else if (route.name === 'Perfil') iconName = 'person';
+          
           return <Ionicons name={iconName} size={24} color={color} />;
         },
       })}
     >
       <Tab.Screen name="Início" component={HomeScreen} />
-      <Tab.Screen name="Grupos" component={GroupsScreen} />
+      <Tab.Screen name="Ranking" component={RankingScreen} />
+      <Tab.Screen name="Grupo" component={GroupsScreen} />
       <Tab.Screen name="Perfil" component={ProfileScreen} />
     </Tab.Navigator>
   );
@@ -78,23 +85,44 @@ export default function App() {
     return unsubscribe;
   }, []);
 
-  if (loading) return <LoadingScreen />;
+  useEffect(() => {
+    if (!user) return;
+
+    const updateStatus = (status) => {
+      useBookStore.getState().updatePresence(status);
+    };
+
+    updateStatus(true); // Online on mount
+
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      updateStatus(nextAppState === 'active');
+    });
+
+    return () => {
+      subscription.remove();
+      updateStatus(false); // Offline on unmount
+    };
+  }, [user]);
 
   return (
     <SafeAreaProvider>
       <StatusBar style={isDarkMode ? 'light' : 'dark'} />
       <NavigationContainer theme={isDarkMode ? BookDarkTheme : BookLightTheme}>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          {user ? (
-            <>
-              <Stack.Screen name="MainTabs" component={TabNavigator} />
-              <Stack.Screen name="AddBook" component={AddBookScreen} options={{ presentation: 'modal' }} />
-              <Stack.Screen name="Timer" component={TimerScreen} options={{ presentation: 'fullScreenModal' }} />
-            </>
-          ) : (
-            <Stack.Screen name="Auth" component={AuthScreen} />
-          )}
-        </Stack.Navigator>
+        {loading ? (
+          <LoadingScreen />
+        ) : (
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            {user ? (
+              <>
+                <Stack.Screen name="MainTabs" component={TabNavigator} />
+                <Stack.Screen name="AddBook" component={AddBookScreen} options={{ presentation: 'modal' }} />
+                <Stack.Screen name="Timer" component={TimerScreen} options={{ presentation: 'fullScreenModal' }} />
+              </>
+            ) : (
+              <Stack.Screen name="Auth" component={AuthScreen} />
+            )}
+          </Stack.Navigator>
+        )}
       </NavigationContainer>
     </SafeAreaProvider>
   );

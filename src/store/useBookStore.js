@@ -9,7 +9,9 @@ import {
   onSnapshot,
   query,
   serverTimestamp,
-  arrayUnion
+  arrayUnion,
+  addDoc,
+  orderBy
 } from 'firebase/firestore';
 import {
   createUserWithEmailAndPassword,
@@ -41,6 +43,10 @@ export const useBookStore = create((set, get) => ({
   totalPagesRead: 0,
   lastReadDate: null,
   authError: null,
+  users: [],
+  messages: [],
+  chatError: null,
+  rankingError: null,
 
   // Auth Actions
   setAuthUser: (user) => {
@@ -191,6 +197,15 @@ export const useBookStore = create((set, get) => ({
         current_streak: newStreak,
         last_reading_date: todayStr
       });
+
+      // Automated Group Notification
+      const userName = user.displayName || user.email.split('@')[0];
+      await get().sendMessage('squad-geral', {
+        text: `🔥 @${userName} acaba de ler ${pagesReadToday} páginas de "${book.title}"!`,
+        type: 'system_notification',
+        pagesRead: pagesReadToday,
+        bookTitle: book.title
+      });
     } catch (error) {
       console.error("Error updating progress:", error);
     }
@@ -205,6 +220,95 @@ export const useBookStore = create((set, get) => ({
       await updateDoc(bookRef, { status: 'dnf' });
     } catch (error) {
       console.error("Error marking as DNF:", error);
+    }
+  },
+
+  // Social & Presence Actions
+  updatePresence: async (isOnline) => {
+    const { user } = get();
+    if (!user) return;
+    try {
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, {
+        isOnline,
+        lastActive: serverTimestamp()
+      });
+    } catch (error) {
+      console.error("Error updating presence:", error);
+    }
+  },
+
+  updateReadingStatus: async (bookTitle) => {
+    const { user } = get();
+    if (!user) return;
+    try {
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, {
+        currentReadingBook: bookTitle || null
+      });
+    } catch (error) {
+      console.error("Error updating reading status:", error);
+    }
+  },
+
+  subscribeToGroupMessages: (groupId = 'squad-geral') => {
+    const messagesRef = collection(db, 'groups', groupId, 'messages');
+    const q = query(messagesRef, orderBy('timestamp', 'desc'));
+    
+    set({ chatError: null }); // Reset
+    const unsub = onSnapshot(q, (snapshot) => {
+      const messagesList = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      set({ messages: messagesList, chatError: null });
+    }, (error) => {
+      set({ chatError: error.message });
+      console.log("Firestore (Group Messages):", error.message);
+    });
+
+    return unsub;
+  },
+
+  subscribeToUsers: () => {
+    const usersRef = collection(db, 'users');
+    set({ rankingError: null }); // Reset
+    const unsub = onSnapshot(usersRef, (snapshot) => {
+      const usersList = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      set({ users: usersList, rankingError: null });
+    }, (error) => {
+      set({ rankingError: error.message });
+      console.log("Firestore (Users):", error.message);
+    });
+
+    return unsub;
+  },
+
+  sendMessage: async (groupId = 'squad-geral', messageData) => {
+    const { user } = get();
+    if (!user) return;
+
+    try {
+      const messagesRef = collection(db, 'groups', groupId, 'messages');
+      const senderName = user.displayName || user.email.split('@')[0];
+      
+      const isString = typeof messageData === 'string';
+      const text = isString ? messageData : messageData.text;
+      const type = isString ? 'text' : (messageData.type || 'text');
+
+      await addDoc(messagesRef, {
+        text,
+        senderId: user.uid,
+        senderName: senderName,
+        timestamp: serverTimestamp(),
+        type,
+        ...(isString ? {} : messageData)
+      });
+    } catch (error) {
+      console.error("Error sending message:", error);
     }
   },
 }));
