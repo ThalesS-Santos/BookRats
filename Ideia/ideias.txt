@@ -1,0 +1,34 @@
+Backend e Banco de Dados (Segurança e Escalabilidade)
+Urgência: Regras de Segurança do Firestore: No momento, seu frontend 
+(useBookStore.js) tem permissão total para ditar os dados. 
+Se as regras no console do Firebase não estiverem configuradas, 
+qualquer um com sua apiKey pode apagar o banco inteiro.
+
+Melhoria: Implemente regras que validem se o auth.uid corresponde ao 
+dono do documento e se o campo pagesRead não é negativo.
+
+Agregação de Dados para Ranking: Atualmente, para fazer um ranking, 
+você teria que baixar os dados de todos os usuários, o que custa caro 
+e é lento.
+
+Solução: Use Firebase Cloud Functions. Crie uma função que, 
+sempre que um usuário terminar de ler, atualize um documento de 
+"Leaderboard Global". O app lê apenas esse documento, 
+economizando processamento.
+
+
+Busca de Livros (API externa): Digitar o título e o número de páginas manualmente é um atrito para o usuário.
+
+Melhoria: Integre a Google Books API. O usuário digita o nome, 
+você mostra a capa e já puxa o total de páginas automaticamente. 
+Isso eleva muito o nível de profissionalismo do app.
+
+
+Notificações Push (Engajamento)
+
+Atualmente, o app só "avisa" o usuário se ele abrir. 
+
+Melhoria: Use Firebase Cloud Messaging (FCM). 
+Configure um lembrete diário (ex: "Já leu hoje?") 
+ou uma notificação quando ele atingir uma meta. 
+Isso aumenta drasticamente a retenção.

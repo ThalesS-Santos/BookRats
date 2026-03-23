@@ -15,6 +15,7 @@ export default function TimerScreen({ route, navigation }) {
   const books = useBookStore(state => state.books);
   const updateProgress = useBookStore(state => state.updateProgress);
   const markAsDNF = useBookStore(state => state.markAsDNF);
+  const updateReadingStatus = useBookStore(state => state.updateReadingStatus);
 
   const book = books.find(b => b.id === bookId);
 
@@ -30,6 +31,18 @@ export default function TimerScreen({ route, navigation }) {
     }
     return () => clearInterval(interval);
   }, [isActive]);
+
+  // Update Reading Status in Firestore
+  useEffect(() => {
+    if (isActive && book) {
+      updateReadingStatus(book.title);
+    } else {
+      updateReadingStatus(null);
+    }
+    return () => {
+      updateReadingStatus(null);
+    };
+  }, [isActive, book, updateReadingStatus]);
 
   const formatTime = (totalSeconds) => {
     const hrs = Math.floor(totalSeconds / 3600);
