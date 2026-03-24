@@ -18,6 +18,7 @@ import ProfileScreen from './src/screens/ProfileScreen';
 import AddBookScreen from './src/screens/AddBookScreen';
 import TimerScreen from './src/screens/TimerScreen';
 import AuthScreen from './src/screens/AuthScreen';
+import GroupChatScreen from './src/screens/GroupChatScreen';
 import { useThemeStore } from './src/store/useThemeStore';
 import { useBookStore } from './src/store/useBookStore';
 import { auth } from './src/services/firebase';
@@ -117,6 +118,7 @@ export default function App() {
                 <Stack.Screen name="MainTabs" component={TabNavigator} />
                 <Stack.Screen name="AddBook" component={AddBookScreen} options={{ presentation: 'modal' }} />
                 <Stack.Screen name="Timer" component={TimerScreen} options={{ presentation: 'fullScreenModal' }} />
+                <Stack.Screen name="GroupChat" component={GroupChatScreen} />
               </>
             ) : (
               <Stack.Screen name="Auth" component={AuthScreen} />

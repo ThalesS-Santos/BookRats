@@ -62,9 +62,12 @@ export const useBookStore = create((set, get) => ({
     try {
       set({ loading: true, authError: null });
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const username = email.split('@')[0];
       // Initialize user document in Firestore
       await setDoc(doc(db, 'users', userCredential.user.uid), {
         email,
+        username,
+        username_lowercase: username.toLowerCase(),
         total_pages_read: 0,
         current_streak: 0,
         last_reading_date: null,
@@ -96,8 +99,11 @@ export const useBookStore = create((set, get) => ({
       const userDoc = await getDoc(userDocRef);
 
       if (!userDoc.exists()) {
+        const username = user.displayName || user.email.split('@')[0];
         await setDoc(userDocRef, {
           email: user.email,
+          username,
+          username_lowercase: username.toLowerCase(),
           total_pages_read: 0,
           current_streak: 0,
           last_reading_date: null,
