@@ -13,27 +13,8 @@ import {
   addDoc,
   orderBy
 } from 'firebase/firestore';
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut as firebaseSignOut,
-  signInWithCredential,
-  GoogleAuthProvider
-} from 'firebase/auth';
-
-// Helper for streak logic
-const calculateStreak = (lastDateStr, newDateStr, currentStreak) => {
-  if (!lastDateStr) return 1;
-  const lastDate = new Date(lastDateStr);
-  const newDate = new Date(newDateStr);
-
-  const diffTime = Math.abs(newDate.setHours(0, 0, 0, 0) - lastDate.setHours(0, 0, 0, 0));
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 1) return currentStreak + 1;
-  if (diffDays === 0) return currentStreak;
-  return 1;
-};
+import { signUp as apiSignUp, signIn as apiSignIn, signInWithGoogle as apiSignInWithGoogle, signOut as apiSignOut, updatePresence as apiUpdatePresence, updateReadingStatus as apiUpdateReadingStatus } from '../api/auth';
+import { addBook as apiAddBook, updateBookProgress, markAsDNF as apiMarkAsDNF } from '../api/books';
 
 export const useBookStore = create((set, get) => ({
   books: [],
@@ -61,18 +42,7 @@ export const useBookStore = create((set, get) => ({
   signUp: async (email, password) => {
     try {
       set({ loading: true, authError: null });
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const username = email.split('@')[0];
-      // Initialize user document in Firestore
-      await setDoc(doc(db, 'users', userCredential.user.uid), {
-        email,
-        username,
-        username_lowercase: username.toLowerCase(),
-        total_pages_read: 0,
-        current_streak: 0,
-        last_reading_date: null,
-        createdAt: serverTimestamp()
-      });
+      await apiSignUp(email, password);
     } catch (error) {
       set({ authError: error.message, loading: false });
     }
@@ -81,7 +51,7 @@ export const useBookStore = create((set, get) => ({
   signIn: async (email, password) => {
     try {
       set({ loading: true, authError: null });
-      await signInWithEmailAndPassword(auth, email, password);
+      await apiSignIn(email, password);
     } catch (error) {
       set({ authError: error.message, loading: false });
     }
@@ -90,26 +60,7 @@ export const useBookStore = create((set, get) => ({
   signInWithGoogle: async (idToken) => {
     try {
       set({ loading: true, authError: null });
-      const credential = GoogleAuthProvider.credential(idToken);
-      const result = await signInWithCredential(auth, credential);
-      const user = result.user;
-
-      // Check if user document exists, if not, create it
-      const userDocRef = doc(db, 'users', user.uid);
-      const userDoc = await getDoc(userDocRef);
-
-      if (!userDoc.exists()) {
-        const username = user.displayName || user.email.split('@')[0];
-        await setDoc(userDocRef, {
-          email: user.email,
-          username,
-          username_lowercase: username.toLowerCase(),
-          total_pages_read: 0,
-          current_streak: 0,
-          last_reading_date: null,
-          createdAt: serverTimestamp()
-        });
-      }
+      await apiSignInWithGoogle(idToken);
     } catch (error) {
       set({ authError: error.message, loading: false });
     }
@@ -117,7 +68,7 @@ export const useBookStore = create((set, get) => ({
 
   signOut: async () => {
     try {
-      await firebaseSignOut(auth);
+      await apiSignOut();
     } catch (error) {
       console.error("Sign out error:", error);
     }
@@ -154,19 +105,10 @@ export const useBookStore = create((set, get) => ({
   addBook: async (title, totalPages) => {
     const { user } = get();
     if (!user) return;
-
     try {
-      const bookRef = doc(collection(db, 'users', user.uid, 'books'));
-      await setDoc(bookRef, {
-        title,
-        totalPages: parseInt(totalPages, 10),
-        currentPage: 0,
-        status: 'reading',
-        logs: [],
-        createdAt: serverTimestamp()
-      });
+      await apiAddBook(user.uid, title, totalPages);
     } catch (error) {
-      console.error("Error adding book:", error);
+      console.error(error.message);
     }
   },
 
@@ -177,41 +119,26 @@ export const useBookStore = create((set, get) => ({
     const book = books.find(b => b.id === bookId);
     if (!book) return;
 
-    const todayStr = new Date().toISOString().split('T')[0];
-    const newStreak = calculateStreak(lastReadDate, todayStr, streak);
-    const pagesReadToday = Math.max(0, newPage - book.currentPage);
-    const isCompleted = newPage >= book.totalPages;
-
     try {
-      // Update book progress
-      const bookRef = doc(db, 'users', user.uid, 'books', bookId);
-      await updateDoc(bookRef, {
-        currentPage: newPage,
-        status: isCompleted ? 'completed' : book.status,
-        logs: arrayUnion({
-          date: todayStr,
-          pagesRead: pagesReadToday,
-          timeSeconds,
-          pagesPerHour: timeSeconds > 0 ? Math.round((pagesReadToday / timeSeconds) * 3600) : 0
-        })
-      });
-
-      // Update user stats
-      const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, {
-        total_pages_read: totalPagesRead + pagesReadToday,
-        current_streak: newStreak,
-        last_reading_date: todayStr
-      });
-
+      const res = await updateBookProgress(user.uid, book, newPage, timeSeconds, { streak, lastReadDate, totalPagesRead });
+      
       // Automated Group Notification
-      const userName = user.displayName || user.email.split('@')[0];
-      await get().sendMessage('squad-geral', {
-        text: `🔥 @${userName} acaba de ler ${pagesReadToday} páginas de "${book.title}"!`,
-        type: 'system_notification',
-        pagesRead: pagesReadToday,
-        bookTitle: book.title
-      });
+      try {
+        const { useSocialStore } = require('./useSocialStore');
+        const groups = useSocialStore.getState().groups || [];
+        const userName = user.displayName || user.email.split('@')[0];
+
+        for (const group of groups) {
+          await get().sendMessage(group.id, {
+            text: `🔥 @${userName} acaba de ler ${res.pagesReadToday} páginas de "${book.title}"!`,
+            type: 'system_notification',
+            pagesRead: res.pagesReadToday,
+            bookTitle: book.title
+          });
+        }
+      } catch (e) {
+        console.warn("Could not send group notification:", e.message);
+      }
     } catch (error) {
       console.error("Error updating progress:", error);
     }
@@ -220,12 +147,10 @@ export const useBookStore = create((set, get) => ({
   markAsDNF: async (bookId) => {
     const { user } = get();
     if (!user) return;
-
     try {
-      const bookRef = doc(db, 'users', user.uid, 'books', bookId);
-      await updateDoc(bookRef, { status: 'dnf' });
+      await apiMarkAsDNF(user.uid, bookId);
     } catch (error) {
-      console.error("Error marking as DNF:", error);
+      console.error(error.message);
     }
   },
 
@@ -234,11 +159,7 @@ export const useBookStore = create((set, get) => ({
     const { user } = get();
     if (!user) return;
     try {
-      const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, {
-        isOnline,
-        lastActive: serverTimestamp()
-      });
+      await apiUpdatePresence(user.uid, isOnline);
     } catch (error) {
       console.error("Error updating presence:", error);
     }
@@ -248,10 +169,7 @@ export const useBookStore = create((set, get) => ({
     const { user } = get();
     if (!user) return;
     try {
-      const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, {
-        currentReadingBook: bookTitle || null
-      });
+      await apiUpdateReadingStatus(user.uid, bookTitle);
     } catch (error) {
       console.error("Error updating reading status:", error);
     }

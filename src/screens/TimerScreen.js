@@ -4,6 +4,9 @@ import { useKeepAwake } from 'expo-keep-awake';
 import { Ionicons } from '@expo/vector-icons';
 import { useBookStore } from '../store/useBookStore';
 import { useThemeStore } from '../store/useThemeStore';
+import { addAnnotation } from '../api/books';
+import { useTimer } from '../hooks/useTimer';
+import { usePopupStore } from '../store/usePopupStore';
 
 const { width } = Dimensions.get('window');
 
@@ -11,26 +14,20 @@ export default function TimerScreen({ route, navigation }) {
   useKeepAwake();
   const { bookId } = route.params;
   const { isDarkMode } = useThemeStore();
-
   const books = useBookStore(state => state.books);
+  const { showPopup } = usePopupStore();
+  const user = useBookStore(state => state.user);
   const updateProgress = useBookStore(state => state.updateProgress);
   const markAsDNF = useBookStore(state => state.markAsDNF);
   const updateReadingStatus = useBookStore(state => state.updateReadingStatus);
 
   const book = books.find(b => b.id === bookId);
 
-  const [seconds, setSeconds] = useState(0);
-  const [isActive, setIsActive] = useState(true);
+  const { seconds, setSeconds, isActive, setIsActive, resetTimer } = useTimer(true);
   const [showFinishForm, setShowFinishForm] = useState(false);
   const [endPage, setEndPage] = useState(book ? book.currentPage.toString() : '0');
-
-  useEffect(() => {
-    let interval = null;
-    if (isActive) {
-      interval = setInterval(() => setSeconds(s => s + 1), 1000);
-    }
-    return () => clearInterval(interval);
-  }, [isActive]);
+  const [annotation, setAnnotation] = useState('');
+  const [isPublic, setIsPublic] = useState(true);
 
   // Update Reading Status in Firestore
   useEffect(() => {
@@ -60,12 +57,22 @@ export default function TimerScreen({ route, navigation }) {
     setShowFinishForm(true);
   };
 
-  const handleSaveProgress = () => {
+  const handleSaveProgress = async () => {
     const newPage = parseInt(endPage, 10);
     if (isNaN(newPage) || newPage < book.currentPage || newPage > book.totalPages) {
-      Alert.alert('Erro', `Insira uma página válida (entre ${book.currentPage} e ${book.totalPages}).`);
+      showPopup({ title: 'Aviso', message: `Insira uma página válida (entre ${book.currentPage} e ${book.totalPages}).`, type: 'error' });
       return;
     }
+    
+    // Salva anotação se houver
+    if (annotation.trim() && user?.uid) {
+      try {
+        await addAnnotation(user.uid, bookId, newPage, annotation.trim(), isPublic);
+      } catch (error) {
+        console.error("Erro ao salvar anotação:", error);
+      }
+    }
+
     updateProgress(bookId, newPage, seconds);
     navigation.goBack();
   };
@@ -140,10 +147,12 @@ export default function TimerScreen({ route, navigation }) {
             <TouchableOpacity
               className="w-16 h-16 rounded-full items-center justify-center bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark"
               onPress={() => {
-                Alert.alert('Zerar', 'Deseja realmente zerar o cronômetro?', [
-                  { text: 'Não', style: 'cancel' },
-                  { text: 'Sim', onPress: () => setSeconds(0) }
-                ]);
+                showPopup({
+                  title: 'Zerar',
+                  message: 'Deseja realmente zerar o cronômetro?',
+                  type: 'confirm',
+                  onConfirm: () => setSeconds(0)
+                });
               }}
             >
               <Ionicons name="refresh" size={24} color={mutedTextColor} />
@@ -167,14 +176,34 @@ export default function TimerScreen({ route, navigation }) {
 
           <Text className="text-text-muted-light dark:text-text-muted-dark mb-3 ml-2">Página atual:</Text>
           <TextInput
-            className="bg-card-light dark:bg-card-dark text-text-light dark:text-text-dark p-5 rounded-2xl text-2xl font-bold border border-border-light dark:border-border-dark mb-10"
+            className="bg-card-light dark:bg-card-dark text-text-light dark:text-text-dark p-4 rounded-2xl text-xl font-bold border border-border-light dark:border-border-dark mb-4"
             keyboardType="numeric"
             value={endPage}
             onChangeText={setEndPage}
             placeholder={`Pág. ${book.currentPage}`}
             placeholderTextColor={mutedTextColor}
-            autoFocus
           />
+
+          <Text className="text-text-muted-light dark:text-text-muted-dark mb-3 ml-2">Anotação / Pensamento:</Text>
+          <TextInput
+            className="bg-card-light dark:bg-card-dark text-text-light dark:text-text-dark p-4 rounded-2xl text-sm border border-border-light dark:border-border-dark mb-4 font-serif italic"
+            value={annotation}
+            onChangeText={setAnnotation}
+            placeholder="O que você achou dessa leitura?"
+            placeholderTextColor={mutedTextColor}
+            multiline
+            numberOfLines={3}
+          />
+
+          <TouchableOpacity 
+            onPress={() => setIsPublic(!isPublic)} 
+            className="flex-row items-center mb-6 ml-2"
+          >
+            <Ionicons name={isPublic ? "globe-outline" : "lock-closed-outline"} size={18} color={accentColor} className="mr-2" />
+            <Text className="text-text-muted-light dark:text-text-muted-dark text-xs">
+              {isPublic ? 'Pública para Amigos' : 'Privada (Só eu)'}
+            </Text>
+          </TouchableOpacity>
 
           <TouchableOpacity
             className="bg-primary dark:bg-primary-dark p-5 rounded-2xl items-center shadow-lg"

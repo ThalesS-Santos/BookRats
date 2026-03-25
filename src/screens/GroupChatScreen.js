@@ -41,12 +41,15 @@ export default function GroupChatScreen({ route, navigation }) {
         >
           <Ionicons name="arrow-back" size={20} color={isDarkMode ? '#E1E1E1' : '#1A1A1A'} />
         </TouchableOpacity>
-        <View className="flex-1">
+        <TouchableOpacity 
+          className="flex-1" 
+          onPress={() => navigation.navigate('GroupDetails', { groupId })}
+        >
           <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-1">Grupo de Leitura</Text>
           <Text className="text-text-light dark:text-text-dark text-xl font-serif font-bold" numberOfLines={1}>
             {groupName || 'Chat'}
           </Text>
-        </View>
+        </TouchableOpacity>
       </View>
 
       {chatError && (

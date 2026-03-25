@@ -11,58 +11,36 @@ import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'nativewind';
 import { onAuthStateChanged } from 'firebase/auth';
 
-import HomeScreen from './src/screens/HomeScreen';
-import GroupsScreen from './src/screens/GroupsScreen';
-import RankingScreen from './src/screens/RankingScreen';
-import ProfileScreen from './src/screens/ProfileScreen';
-import AddBookScreen from './src/screens/AddBookScreen';
-import TimerScreen from './src/screens/TimerScreen';
-import AuthScreen from './src/screens/AuthScreen';
-import GroupChatScreen from './src/screens/GroupChatScreen';
+import AppNavigator from './src/navigation/AppNavigator';
 import { useThemeStore } from './src/store/useThemeStore';
 import { useBookStore } from './src/store/useBookStore';
 import { auth } from './src/services/firebase';
 
-const Tab = createBottomTabNavigator();
-const Stack = createNativeStackNavigator();
+import { COLORS } from './src/constants/colors';
+import CustomPopup from './src/components/CustomPopup';
 
-const BookLightTheme = { ...DefaultTheme, colors: { ...DefaultTheme.colors, background: '#FDFCF5', card: '#FDFCF5', text: '#1A1A1A', primary: '#5B8C5A', border: '#E5E7EB' } };
-const BookDarkTheme = { ...DarkTheme, colors: { ...DarkTheme.colors, background: '#000000', card: '#000000', text: '#E0E0E0', primary: '#A7C9A7', border: '#262626' } };
-
-function TabNavigator() {
-  const { isDarkMode } = useThemeStore();
-  return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        headerStyle: { backgroundColor: isDarkMode ? '#000000' : '#FDFCF5', borderBottomColor: isDarkMode ? '#262626' : '#E5E7EB' },
-        tabBarStyle: { backgroundColor: isDarkMode ? '#000000' : '#FDFCF5', borderTopColor: isDarkMode ? '#262626' : '#E5E7EB', height: 60, paddingBottom: 10 },
-        tabBarActiveTintColor: isDarkMode ? '#A7C9A7' : '#5B8C5A',
-        tabBarIcon: ({ color }) => {
-          let iconName = 'book';
-          if (route.name === 'Início') iconName = 'book';
-          else if (route.name === 'Ranking') iconName = 'trophy';
-          else if (route.name === 'Grupo') iconName = 'chatbubbles';
-          else if (route.name === 'Perfil') iconName = 'person';
-          
-          return <Ionicons name={iconName} size={24} color={color} />;
-        },
-      })}
-    >
-      <Tab.Screen name="Início" component={HomeScreen} />
-      <Tab.Screen name="Ranking" component={RankingScreen} />
-      <Tab.Screen name="Grupo" component={GroupsScreen} />
-      <Tab.Screen name="Perfil" component={ProfileScreen} />
-    </Tab.Navigator>
-  );
-}
-
-function LoadingScreen() {
-  return (
-    <View className="flex-1 bg-[#0F172A] justify-center items-center">
-      <ActivityIndicator size="large" color="#22C55E" />
-    </View>
-  );
-}
+const BookLightTheme = { 
+  ...DefaultTheme, 
+  colors: { 
+    ...DefaultTheme.colors, 
+    background: COLORS.background.light, 
+    card: COLORS.background.light, 
+    text: COLORS.text.light, 
+    primary: COLORS.primary.light, 
+    border: COLORS.border.light 
+  } 
+};
+const BookDarkTheme = { 
+  ...DarkTheme, 
+  colors: { 
+    ...DarkTheme.colors, 
+    background: COLORS.background.dark, 
+    card: COLORS.background.dark, 
+    text: COLORS.text.dark, 
+    primary: COLORS.primary.dark, 
+    border: COLORS.border.dark 
+  } 
+};
 
 export default function App() {
   const { isDarkMode } = useThemeStore();
@@ -109,23 +87,9 @@ export default function App() {
     <SafeAreaProvider>
       <StatusBar style={isDarkMode ? 'light' : 'dark'} />
       <NavigationContainer theme={isDarkMode ? BookDarkTheme : BookLightTheme}>
-        {loading ? (
-          <LoadingScreen />
-        ) : (
-          <Stack.Navigator screenOptions={{ headerShown: false }}>
-            {user ? (
-              <>
-                <Stack.Screen name="MainTabs" component={TabNavigator} />
-                <Stack.Screen name="AddBook" component={AddBookScreen} options={{ presentation: 'modal' }} />
-                <Stack.Screen name="Timer" component={TimerScreen} options={{ presentation: 'fullScreenModal' }} />
-                <Stack.Screen name="GroupChat" component={GroupChatScreen} />
-              </>
-            ) : (
-              <Stack.Screen name="Auth" component={AuthScreen} />
-            )}
-          </Stack.Navigator>
-        )}
+        <AppNavigator />
       </NavigationContainer>
+      <CustomPopup />
     </SafeAreaProvider>
   );
 }

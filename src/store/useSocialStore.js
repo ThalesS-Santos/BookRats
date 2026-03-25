@@ -1,24 +1,23 @@
 import { create } from 'zustand';
-import { db } from '../services/firebase';
-import { useBookStore } from './useBookStore'; // Importar useBookStore
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-  getDoc,
-  onSnapshot,
-  serverTimestamp,
-  arrayUnion
-} from 'firebase/firestore';
+import { useBookStore } from './useBookStore';
+import { 
+  searchUsers as apiSearchUsers, 
+  sendFriendRequest as apiSendFriendRequest, 
+  acceptFriendRequest as apiAcceptFriendRequest, 
+  rejectFriendRequest as apiRejectFriendRequest, 
+  createGroup as apiCreateGroup,
+  subscribeToSentRequests,
+  subscribeToReceivedRequests,
+  subscribeToGroups,
+  getUserDetails,
+  removeFriendship as apiRemoveFriendship,
+  leaveGroup as apiLeaveGroup
+} from '../api/social';
 
 export const useSocialStore = create((set, get) => ({
   friends: [],
   pendingRequests: [], // Requests received
+  allReceived: [], // All received requests for resolution
   sentRequests: [], // Requests sent
   groups: [],
   searchResults: [],
@@ -34,14 +33,12 @@ export const useSocialStore = create((set, get) => ({
     
     try {
       // 🚀 Fallback Robusto: Usar dados locais do Ranking ou baixar todos como fallback
-      // para garantir que usuários sem o index (antigos) sejam encontrados.
       const { users: localUsers } = useBookStore.getState();
       let searchSource = localUsers;
 
       if (!searchSource || searchSource.length === 0) {
-        // Se não houver cache do ranking, baixa a lista para busca local
-        const snapshot = await getDocs(collection(db, 'users'));
-        searchSource = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // Se não houver cache do ranking, busca da API
+        searchSource = await apiSearchUsers(queryText);
       }
 
       const filtered = searchSource.filter(u => 
@@ -59,21 +56,7 @@ export const useSocialStore = create((set, get) => ({
   sendFriendRequest: async (senderUid, receiverUid) => {
     if (senderUid === receiverUid) return;
     try {
-      // Check if already exists to prevent duplicates
-      const q = query(
-        collection(db, 'friendships'),
-        where('senderId', '==', senderUid),
-        where('receiverId', '==', receiverUid)
-      );
-      const snapshot = await getDocs(q);
-      if (!snapshot.empty) return; // Already requested
-
-      await addDoc(collection(db, 'friendships'), {
-        senderId: senderUid,
-        receiverId: receiverUid,
-        status: 'pending',
-        timestamp: serverTimestamp()
-      });
+      await apiSendFriendRequest(senderUid, receiverUid);
     } catch (error) {
       console.error("Error sending friend request:", error);
     }
@@ -81,8 +64,7 @@ export const useSocialStore = create((set, get) => ({
 
   acceptFriendRequest: async (requestId) => {
     try {
-      const docRef = doc(db, 'friendships', requestId);
-      await updateDoc(docRef, { status: 'accepted' });
+      await apiAcceptFriendRequest(requestId);
     } catch (error) {
       console.error("Error accepting friend request:", error);
     }
@@ -90,8 +72,7 @@ export const useSocialStore = create((set, get) => ({
 
   rejectFriendRequest: async (requestId) => {
     try {
-      const docRef = doc(db, 'friendships', requestId);
-      await updateDoc(docRef, { status: 'rejected' });
+      await apiRejectFriendRequest(requestId);
     } catch (error) {
       console.error("Error rejecting friend request:", error);
     }
@@ -99,13 +80,7 @@ export const useSocialStore = create((set, get) => ({
 
   createGroup: async (name, adminId, memberIds) => {
     try {
-      const groupRef = await addDoc(collection(db, 'groups'), {
-        name,
-        adminId,
-        members: [adminId, ...memberIds],
-        createdAt: serverTimestamp()
-      });
-      return groupRef.id;
+      return await apiCreateGroup(name, adminId, memberIds);
     } catch (error) {
       console.error("Error creating group:", error);
       return null;
@@ -116,25 +91,22 @@ export const useSocialStore = create((set, get) => ({
     if (!uid) return () => {};
 
     // 1. Sent Requests
-    const qSent = query(collection(db, 'friendships'), where('senderId', '==', uid));
-    const unsubSent = onSnapshot(qSent, async (snapshot) => {
-      const reqs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const unsubSent = subscribeToSentRequests(uid, (reqs) => {
       set({ sentRequests: reqs });
       get().resolveFriendships(uid);
     });
 
     // 2. Received Requests
-    const qReceived = query(collection(db, 'friendships'), where('receiverId', '==', uid));
-    const unsubReceived = onSnapshot(qReceived, async (snapshot) => {
-      const reqs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      set({ pendingRequests: reqs.filter(r => r.status === 'pending') });
+    const unsubReceived = subscribeToReceivedRequests(uid, (reqs) => {
+      set({ 
+        pendingRequests: reqs.filter(r => r.status === 'pending'),
+        allReceived: reqs 
+      });
       get().resolveFriendships(uid);
     });
 
     // 3. Groups
-    const qGroups = query(collection(db, 'groups'), where('members', 'array-contains', uid));
-    const unsubGroups = onSnapshot(qGroups, (snapshot) => {
-      const groupsList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const unsubGroups = subscribeToGroups(uid, (groupsList) => {
       set({ groups: groupsList });
     });
 
@@ -147,8 +119,8 @@ export const useSocialStore = create((set, get) => ({
 
   // Helper to fetch user details for friendships
   resolveFriendships: async (uid) => {
-    const { sentRequests, pendingRequests } = get();
-    const allRequests = [...sentRequests, ...pendingRequests];
+    const { sentRequests, allReceived = [] } = get();
+    const allRequests = [...sentRequests, ...allReceived];
     const acceptedRequests = allRequests.filter(r => r.status === 'accepted');
 
     // Get unique friend IDs
@@ -157,27 +129,42 @@ export const useSocialStore = create((set, get) => ({
     // Fetch details
     const friendsData = [];
     for (const fid of friendIds) {
-      try {
-        const docSnap = await getDoc(doc(db, 'users', fid));
-        if (docSnap.exists()) {
-          friendsData.push({ id: fid, ...docSnap.data() });
-        }
-      } catch (error) {
-        console.error("Error resolving friend user:", fid, error);
+      const details = await getUserDetails(fid);
+      if (details) {
+        friendsData.push(details);
       }
     }
     set({ friends: friendsData });
 
     // Also resolve names for pending requests (who sent them)
+    const { pendingRequests } = get();
     const pendingWithDetails = [];
     for (const req of pendingRequests) {
-      if (req.status === 'pending') {
-        const docSnap = await getDoc(doc(db, 'users', req.senderId));
-        if (docSnap.exists()) {
-          pendingWithDetails.push({ ...req, senderName: docSnap.data().username || docSnap.data().email.split('@')[0] });
-        }
+      const details = await getUserDetails(req.senderId);
+      if (details) {
+        pendingWithDetails.push({ ...req, senderName: details.username || details.email.split('@')[0] });
       }
     }
     set({ pendingRequests: pendingWithDetails });
+  },
+
+  removeFriend: async (friendId) => {
+    const { user } = useBookStore.getState();
+    if (!user) return;
+    try {
+      await apiRemoveFriendship(user.uid, friendId);
+    } catch (error) {
+      console.error("Error removing friend:", error);
+    }
+  },
+
+  leaveGroup: async (groupId) => {
+    const { user } = useBookStore.getState();
+    if (!user) return;
+    try {
+      await apiLeaveGroup(groupId, user.uid);
+    } catch (error) {
+      console.error("Error leaving group:", error);
+    }
   }
 }));
