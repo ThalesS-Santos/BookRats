@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet, Dimensions, Animated, Easing } from 'react-native';
 
 const { width } = Dimensions.get('window');
@@ -18,141 +18,183 @@ const CURIOSITIES = [
 
 const BookLoader = ({ isVisible = true }) => {
   const [curiosity, setCuriosity] = useState("");
+  
+  // Animation Values
   const fadeAnim = useRef(new Animated.Value(isVisible ? 1 : 0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  const pageFlipAnim = useRef(new Animated.Value(0)).current;
+  const textOpacity = useRef(new Animated.Value(0)).current;
+  
+  // Three distinct page animations for asymmetric flutter
+  const page1Anim = useRef(new Animated.Value(0)).current;
+  const page2Anim = useRef(new Animated.Value(0)).current;
+  const page3Anim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Set a random curiosity
     setCuriosity(CURIOSITIES[Math.floor(Math.random() * CURIOSITIES.length)]);
 
     // Initial Fade In
     Animated.timing(fadeAnim, {
       toValue: isVisible ? 1 : 0,
-      duration: 400,
+      duration: 500,
       useNativeDriver: true,
     }).start();
 
-    // Pulse animation
-    const pulseSequence = Animated.loop(
+    // Subtle Book Pulse (Covers)
+    const pulse = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
-          toValue: 1.1,
-          duration: 1000,
+          toValue: 1.03,
+          duration: 1500,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
-          duration: 1000,
+          duration: 1500,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
       ])
     );
 
-    // Page flip animation
-    const flipSequence = Animated.loop(
+    // Curiosity Text Loop (5s)
+    const textLoop = Animated.loop(
       Animated.sequence([
-        Animated.timing(pageFlipAnim, {
-          toValue: 1,
-          duration: 800,
-          easing: Easing.bezier(0.4, 0, 0.2, 1),
-          useNativeDriver: true,
-        }),
+        Animated.timing(textOpacity, { toValue: 1, duration: 800, useNativeDriver: true }),
+        Animated.delay(3400),
+        Animated.timing(textOpacity, { toValue: 0, duration: 800, useNativeDriver: true }),
       ])
     );
 
-    pulseSequence.start();
-    flipSequence.start();
+    // Physics-based page loops with asymmetry
+    const createPageAnimation = (anim, duration, delay) => {
+      return Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(anim, {
+            toValue: 1,
+            duration: duration,
+            easing: Easing.out(Easing.back(1.5)), // Overshoot flutter
+            useNativeDriver: true,
+          }),
+          Animated.timing(anim, {
+            toValue: 0,
+            duration: 100, // Snap back for the loop feel
+            useNativeDriver: true,
+          })
+        ])
+      );
+    };
+
+    const p1 = createPageAnimation(page1Anim, 850, 0);
+    const p2 = createPageAnimation(page2Anim, 700, 200);   // Staggered delay
+    const p3 = createPageAnimation(page3Anim, 950, 450);   // Different speed/delay
+
+    pulse.start();
+    textLoop.start();
+    p1.start();
+    p2.start();
+    p3.start();
 
     return () => {
-      pulseSequence.stop();
-      flipSequence.stop();
+      pulse.stop();
+      textLoop.stop();
+      p1.stop();
+      p2.stop();
+      p3.stop();
     };
   }, [isVisible]);
 
-  const getPageStyle = (index) => {
-    // Standard Animated API doesn't have % in interpolate output, so we work around it
-    const rotateY = pageFlipAnim.interpolate({
-      inputRange: [0, 0.5, 1],
-      outputRange: ['0deg', '-180deg', '0deg'],
+  // Transform factory for realistic paper flutter
+  const getPageTransform = (anim, maxRot = 180, skewMax = 15) => {
+    // 1. RotateY (Main Flip)
+    const rotateY = anim.interpolate({
+      inputRange: [0, 1],
+      outputRange: ['0deg', `-${maxRot}deg`],
     });
 
-    // Stagger effect is harder with basic Animated, so we can use a simpler approach
-    // or just leave it as one main flipping page to keep it clean and robust.
-    return {
-      transform: [
-        { perspective: 1000 },
-        { rotateY: rotateY }
-      ],
-      // Standard Animated API doesn't support transformOrigin easily, 
-      // but in standard transform we pivot on the center. 
-      // To pivot on the left, we need to shift the center.
-      // But standard View transformOrigin is experimental. 
-      // Alternate: use translateX/Y to simulate pivot.
-    };
+    // 2. SkewX (Bending physics) - Peaks at 90 degrees (progress 0.5)
+    const skewX = anim.interpolate({
+      inputRange: [0, 0.5, 1],
+      outputRange: ['0deg', `${skewMax}deg`, '0deg'],
+    });
+
+    // 3. RotateZ (Wind turbulence) - Slight tilt
+    const rotateZ = anim.interpolate({
+      inputRange: [0, 0.5, 1],
+      outputRange: ['0deg', '-5deg', '0deg'],
+    });
+
+    // 4. Opacity & Lighting
+    const opacity = anim.interpolate({
+      inputRange: [0, 0.5, 1],
+      outputRange: [0.7, 1, 0.7],
+    });
+
+    // 5. Simulated Shadow (Dark overlay on internal fold)
+    const shadowOpacity = anim.interpolate({
+      inputRange: [0, 0.45, 0.5, 0.55, 1],
+      outputRange: [0, 0.2, 0.5, 0.2, 0],
+    });
+
+    return { rotateY, skewX, rotateZ, opacity, shadowOpacity };
+  };
+
+  const Page = ({ anim, maxRot, zIndex }) => {
+    const { rotateY, skewX, rotateZ, opacity, shadowOpacity } = useMemo(() => getPageTransform(anim, maxRot), [anim, maxRot]);
+    
+    return (
+      <Animated.View 
+        style={[
+          styles.flippingPage, 
+          {
+            zIndex,
+            opacity,
+            transform: [
+              { perspective: 1200 },
+              { translateX: -27.5 }, // Shift pivot to spine
+              { rotateY },
+              { rotateZ },
+              { skewX },
+              { translateX: 27.5 }
+            ]
+          }
+        ]}
+      >
+        {/* Internal Shadow Overlay for depth */}
+        <Animated.View style={[styles.pageShadow, { opacity: shadowOpacity }]} />
+      </Animated.View>
+    );
   };
 
   if (!isVisible && fadeAnim._value === 0) return null;
 
   return (
-    <Animated.View 
-      style={[
-        styles.container, 
-        { opacity: fadeAnim }
-      ]}
-    >
+    <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
       <View style={styles.content}>
-        {/* Book Container */}
-        <Animated.View 
-          style={[
-            styles.bookWrapper, 
-            { 
-              transform: [{ scale: pulseAnim }],
-              opacity: pulseAnim.interpolate({
-                inputRange: [1, 1.1],
-                outputRange: [0.8, 1]
-              })
-            }
-          ]}
-        >
-          {/* Left Cover */}
-          <View style={[styles.cover, styles.leftCover]} />
+        
+        {/* Central Book - Wind Blown Area */}
+        <Animated.View style={[styles.bookWrapper, { transform: [{ scale: pulseAnim }] }]}>
           
-          {/* Right Cover */}
+          {/* Static Elements: Covers & Spine */}
+          <View style={[styles.cover, styles.leftCover]} />
           <View style={[styles.cover, styles.rightCover]} />
-
-          {/* Static Pages (the stack) */}
+          <View style={styles.spine} />
           <View style={styles.pageStack} />
 
-          {/* Flipping Page */}
-          <Animated.View 
-            style={[
-              styles.flippingPage, 
-              {
-                transform: [
-                  { perspective: 1000 },
-                  { translateX: -27.5 }, // Half width to shift pivot
-                  { rotateY: pageFlipAnim.interpolate({
-                    inputRange: [0, 0.5, 1],
-                    outputRange: ['0deg', '-180deg', '0deg']
-                  })},
-                  { translateX: 27.5 }
-                ]
-              }
-            ]} 
-          />
-          
-          {/* Spine Detail */}
-          <View style={styles.spine} />
+          {/* Asymmetric Fluttering Pages */}
+          <Page anim={page1Anim} maxRot={185} zIndex={30} />
+          <Page anim={page2Anim} maxRot={170} zIndex={20} />
+          <Page anim={page3Anim} maxRot={195} zIndex={10} />
+
         </Animated.View>
 
-        {/* Curiosity Text */}
-        <View style={styles.textContainer}>
-          <Text style={styles.curiosityTitle}>DID YOU KNOW?</Text>
+        {/* Dynamic Atmospheric Curiosity */}
+        <Animated.View style={[styles.textContainer, { opacity: textOpacity }]}>
+          <Text style={styles.curiosityTitle}>LITERARY INSIGHT</Text>
           <Text style={styles.curiosityText}>{curiosity}</Text>
-        </View>
+        </Animated.View>
+        
       </View>
     </Animated.View>
   );
@@ -168,81 +210,87 @@ const styles = StyleSheet.create({
   },
   content: {
     alignItems: 'center',
-    width: '80%',
+    width: '85%',
   },
   bookWrapper: {
-    width: 120,
-    height: 80,
-    flexDirection: 'row',
+    width: 140,
+    height: 90,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 60,
   },
   cover: {
     position: 'absolute',
-    width: 60,
-    height: 80,
-    borderWidth: 2,
+    width: 70,
+    height: 90,
+    borderWidth: 3,
     borderColor: '#22C55E',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#1E293B', // Richer inner color
   },
   leftCover: {
     left: 0,
-    borderTopLeftRadius: 4,
-    borderBottomLeftRadius: 4,
+    borderTopLeftRadius: 6,
+    borderBottomLeftRadius: 6,
     borderRightWidth: 0,
   },
   rightCover: {
     right: 0,
-    borderTopRightRadius: 4,
-    borderBottomRightRadius: 4,
+    borderTopRightRadius: 6,
+    borderBottomRightRadius: 6,
     borderLeftWidth: 0,
   },
+  spine: {
+    position: 'absolute',
+    width: 6,
+    height: 94,
+    backgroundColor: '#22C55E',
+    borderRadius: 3,
+    zIndex: 100,
+  },
   pageStack: {
-    width: 110,
-    height: 70,
+    width: 130,
+    height: 80,
     backgroundColor: '#0F172A',
     borderWidth: 1,
-    borderColor: '#22C55E55',
+    borderColor: 'rgba(34, 197, 94, 0.2)',
     borderRadius: 2,
   },
   flippingPage: {
     position: 'absolute',
-    left: 60,
-    width: 55,
-    height: 74,
-    backgroundColor: '#0F172A',
-    borderWidth: 2,
-    borderColor: '#22C55E',
-    borderLeftWidth: 1,
-    borderTopRightRadius: 2,
-    borderBottomRightRadius: 2,
+    left: 70, // Start from spine
+    width: 65,
+    height: 84,
+    backgroundColor: '#1E293B',
+    borderWidth: 0.5,
+    borderColor: 'rgba(34, 197, 94, 0.6)',
+    borderLeftWidth: 2,
+    borderLeftColor: '#22C55E',
+    borderTopRightRadius: 3,
+    borderBottomRightRadius: 3,
   },
-  spine: {
-    position: 'absolute',
-    width: 4,
-    height: 80,
-    backgroundColor: '#22C55E',
-    borderRadius: 2,
+  pageShadow: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#000000',
   },
   textContainer: {
     alignItems: 'center',
-    marginTop: 20,
+    minHeight: 80,
   },
   curiosityTitle: {
     color: '#22C55E',
-    fontSize: 10,
-    fontWeight: 'bold',
-    letterSpacing: 2,
-    marginBottom: 8,
-    opacity: 0.8,
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 3,
+    marginBottom: 12,
+    opacity: 0.9,
   },
   curiosityText: {
-    color: '#64748B',
-    fontSize: 12,
+    color: '#94A3B8',
+    fontSize: 13,
     textAlign: 'center',
     fontStyle: 'italic',
-    lineHeight: 18,
+    lineHeight: 20,
+    maxWidth: 280,
   },
 });
 
