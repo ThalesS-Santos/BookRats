@@ -68,16 +68,16 @@ const AuthScreen = () => {
     };
 
     // Theme Variables
-    const bgColor = isDarkMode ? 'bg-[#000000]' : 'bg-[#FDFCF5]';
-    const textColor = isDarkMode ? 'text-[#E0E0E0]' : 'text-[#1A1A1A]';
-    const subTextColor = isDarkMode ? 'text-[#A3A3A3]' : 'text-[#71717A]';
+    const bgColor = isDarkMode ? 'bg-background-dark' : 'bg-background-light';
+    const textColor = isDarkMode ? 'text-text-dark' : 'text-text-light';
+    const subTextColor = isDarkMode ? 'text-text-muted-dark' : 'text-text-muted-light';
     const primaryColorHex = isDarkMode ? '#A7C9A7' : '#5B8C5A';
-    const primaryColorClass = isDarkMode ? 'text-[#A7C9A7]' : 'text-[#5B8C5A]';
+    const primaryColorClass = isDarkMode ? 'text-primary-dark' : 'text-primary';
     
-    const inputBgColor = isDarkMode ? 'bg-[#171717]' : 'bg-[#FFFFFF]';
-    const inputBorderColor = isDarkMode ? 'border-[#262626]' : 'border-[#E5E7EB]';
-    const iconColor = isDarkMode ? '#A3A3A3' : '#A1A1AA';
-    const placeholderColor = isDarkMode ? '#52525B' : '#A1A1AA';
+    const inputBgColor = isDarkMode ? 'bg-card-dark' : 'bg-white';
+    const inputBorderColor = isDarkMode ? 'border-border-dark' : 'border-border-light';
+    const iconColor = isDarkMode ? '#9CA3AF' : '#6B7280';
+    const placeholderColor = isDarkMode ? '#4B5563' : '#9CA3AF';
 
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>

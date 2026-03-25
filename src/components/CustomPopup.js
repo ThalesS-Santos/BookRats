@@ -36,7 +36,7 @@ export default function CustomPopup() {
       <View className="flex-1 justify-center items-center bg-black/70 px-6">
         <View className="bg-card-light dark:bg-card-dark w-full rounded-3xl p-6 border border-border-light dark:border-border-dark shadow-2xl">
           <View className="items-center mb-4">
-            <View className="p-3 rounded-full bg-primary/10 dark:bg-primary-dark/10 mb-3">
+            <View className={`p-3 rounded-full ${isDarkMode ? 'bg-primary-dark/10' : 'bg-primary/10'} mb-3`}>
               <Ionicons name={iconData.name} size={40} color={iconData.color} />
             </View>
             <Text className="text-text-light dark:text-text-dark text-xl font-serif font-bold text-center">
@@ -52,9 +52,9 @@ export default function CustomPopup() {
             {type === 'confirm' && (
               <TouchableOpacity 
                 onPress={handleCancel}
-                className="flex-1 bg-gray-200 dark:bg-gray-800 p-3 rounded-xl items-center border border-gray-300 dark:border-gray-700"
+                className="flex-1 bg-gray-100 dark:bg-gray-800 p-3 rounded-xl items-center border border-border-light dark:border-border-dark"
               >
-                <Text className="text-gray-700 dark:text-gray-300 font-bold">Cancelar</Text>
+                <Text className="text-text-muted-light dark:text-text-muted-dark font-bold">Cancelar</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity 

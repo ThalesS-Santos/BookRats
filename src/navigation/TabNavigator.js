@@ -19,47 +19,47 @@ const TABS = [
   { name: 'Perfil', icon: 'person', component: ProfileScreen },
 ];
 
-const BookFlipPage = ({ children, index, scrollX }) => {
+const BookFlipPage = ({ children, index, scrollX, activeIndex }) => {
   const inputRange = [
     (index - 1) * SCREEN_WIDTH,
     index * SCREEN_WIDTH,
     (index + 1) * SCREEN_WIDTH,
   ];
 
+  // Rotate from -90 to 0 (and 0 to 90)
   const rotateY = scrollX.interpolate({
     inputRange,
-    outputRange: ['90deg', '0deg', '-90deg'],
+    outputRange: ['-90deg', '0deg', '90deg'],
     extrapolate: 'clamp',
   });
 
-  const translateX = scrollX.interpolate({
-    inputRange,
-    outputRange: [SCREEN_WIDTH / 2, 0, -SCREEN_WIDTH / 2],
-    extrapolate: 'clamp',
-  });
-
+  // Opacity: Only visible when near the active index
   const opacity = scrollX.interpolate({
-    inputRange,
+    inputRange: [
+        (index - 0.9) * SCREEN_WIDTH,
+        index * SCREEN_WIDTH,
+        (index + 0.9) * SCREEN_WIDTH,
+    ],
     outputRange: [0, 1, 0],
     extrapolate: 'clamp',
   });
 
   return (
-    <Animated.View style={[
-      styles.pageContainer, 
-      { 
-        opacity,
-        transform: [
-          { perspective: 1200 },
-          { translateX },
-          { rotateY },
-          { translateX: translateX.interpolate({
-            inputRange: [-1000, 1000],
-            outputRange: [1000, -1000] 
-          })},
-        ] 
-      }
-    ]}>
+    <Animated.View 
+      collapsable={false}
+      style={[
+        styles.pageContainer, 
+        { 
+          opacity,
+          zIndex: activeIndex === index ? 10 : 1, // Ensure active page is on top for touches
+          transform: [
+            { perspective: 1200 },
+            { rotateY },
+          ],
+          transformOrigin: '50% 50%', 
+        }
+      ]}
+    >
       <SafeAreaView edges={['top']} style={{ flex: 1 }}>
         {children}
       </SafeAreaView>
@@ -67,7 +67,7 @@ const BookFlipPage = ({ children, index, scrollX }) => {
   );
 };
 
-export default function TabNavigator() {
+export default function TabNavigator({ navigation, route }) {
   const { isDarkMode } = useThemeStore();
   const scrollRef = useRef(null);
   const scrollX = useRef(new Animated.Value(0)).current;
@@ -88,35 +88,42 @@ export default function TabNavigator() {
   return (
     <View style={[styles.container, { backgroundColor: isDarkMode ? COLORS.background.dark : COLORS.background.light }]}>
       
-      {/* Animated ScrollView based Pager (Standard Animated API) */}
-      <Animated.ScrollView
-        ref={scrollRef}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        scrollEventThrottle={16}
-        onMomentumScrollEnd={handleScroll}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-          { useNativeDriver: true }
-        )}
-        style={styles.pager}
-      >
-        {TABS.map((tab, index) => (
-          <BookFlipPage key={tab.name} index={index} scrollX={scrollX}>
-            <tab.component />
-          </BookFlipPage>
-        ))}
-      </Animated.ScrollView>
+        <Animated.ScrollView
+          ref={scrollRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          scrollEventThrottle={16}
+          onMomentumScrollEnd={handleScroll}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+            { useNativeDriver: true }
+          )}
+          style={styles.pager}
+          keyboardShouldPersistTaps="handled"
+        >
+          {TABS.map((tab, index) => (
+            <BookFlipPage 
+              key={tab.name} 
+              index={index} 
+              scrollX={scrollX}
+              activeIndex={activeIndex}
+            >
+              <tab.component navigation={navigation} route={route} />
+            </BookFlipPage>
+          ))}
+        </Animated.ScrollView>
 
       {/* Custom Bottom Tab Bar */}
-      <View style={{ backgroundColor: isDarkMode ? COLORS.background.dark : COLORS.background.light }}>
-        <SafeAreaView edges={['bottom']} style={[
-          styles.tabBar, 
-          { 
-            borderTopColor: isDarkMode ? COLORS.border.dark : COLORS.border.light 
-          }
-        ]}>
+      <View style={[
+        styles.tabBarContainer,
+        { 
+          backgroundColor: isDarkMode ? COLORS.background.dark : COLORS.background.light,
+          borderTopColor: isDarkMode ? COLORS.border.dark : '#F1F1E6', // Subtler border for Light mode
+          borderTopWidth: 1.5,
+        }
+      ]}>
+        <SafeAreaView edges={['bottom']} style={styles.tabBar}>
           {TABS.map((tab, index) => {
             const isActive = activeIndex === index;
             const color = isActive 
@@ -155,16 +162,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backfaceVisibility: 'hidden',
   },
+  tabBarContainer: {
+    paddingBottom: 0,
+    // Use a very subtle top border instead of a shadow to avoid the "boxy" look
+    borderTopWidth: 1,
+  },
   tabBar: {
     flexDirection: 'row',
-    height: 65,
-    borderTopWidth: 1,
-    paddingBottom: 10,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    height: 60,
   },
   tabItem: {
     flex: 1,
