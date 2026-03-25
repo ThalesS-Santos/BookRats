@@ -18,6 +18,7 @@ export default function GroupsScreen({ navigation }) {
   const {
     friends,
     pendingRequests,
+    sentRequests,
     groups,
     searchResults,
     loadingSearch,
@@ -26,7 +27,9 @@ export default function GroupsScreen({ navigation }) {
     acceptFriendRequest,
     rejectFriendRequest,
     createGroup,
-    subscribeToSocialData
+    subscribeToSocialData,
+    removeFriend,
+    leaveGroup
   } = useSocialStore();
 
   const accentColor = isDarkMode ? '#A7C9A7' : '#5B8C5A';
@@ -91,15 +94,18 @@ export default function GroupsScreen({ navigation }) {
   );
 
   const renderFriendItem = ({ item }) => (
-    <View className="bg-card-light dark:bg-card-dark p-4 rounded-2xl mb-2 flex-row items-center justify-between border border-border-light dark:border-border-dark">
+    <TouchableOpacity 
+      onPress={() => navigation.navigate('UserProfile', { userId: item.id })}
+      className="bg-card-light dark:bg-card-dark p-4 rounded-2xl mb-2 flex-row items-center justify-between border border-border-light dark:border-border-dark"
+    >
       <View className="flex-row items-center">
         <View className="w-10 h-10 bg-primary/20 rounded-full items-center justify-center mr-3">
           <Ionicons name="person" size={20} color={accentColor} />
         </View>
-        <Text className="text-text-light dark:text-text-dark font-bold">{item.username}</Text>
+        <Text className="text-text-light dark:text-text-dark font-bold">{item.username || item.email.split('@')[0]}</Text>
       </View>
-      <Ionicons name="checkmark-circle" size={22} color="#22C55E" />
-    </View>
+      <Ionicons name="chevron-forward" size={20} color={isDarkMode ? '#6B7280' : '#9CA3AF'} />
+    </TouchableOpacity>
   );
 
   return (
@@ -172,20 +178,30 @@ export default function GroupsScreen({ navigation }) {
               ) : searchResults.length === 0 ? (
                 <Text className="text-text-muted-light dark:text-text-muted-dark text-sm">Nenhum usuário encontrado.</Text>
               ) : (
-                searchResults.map(item => (
-                  <View key={item.id} className="flex-row items-center justify-between mb-2">
-                    <Text className="text-text-light dark:text-text-dark font-bold">{item.username || item.email.split('@')[0]}</Text>
-                    <TouchableOpacity
-                      onPress={() => {
-                        sendFriendRequest(user.uid, item.id);
-                        Alert.alert('Sucesso', 'Solicitação de amizade enviada!');
-                      }}
-                      className="bg-primary p-2 rounded-lg"
-                    >
-                      <Text className="text-white text-xs font-bold">Adicionar</Text>
-                    </TouchableOpacity>
-                  </View>
-                ))
+                searchResults.map(item => {
+                  const isFriend = friends.some(f => f.id === item.id);
+                  const isSent = sentRequests.some(r => r.receiverId === item.id);
+                  return (
+                    <View key={item.id} className="flex-row items-center justify-between mb-2">
+                      <Text className="text-text-light dark:text-text-dark font-bold">{item.username || item.email.split('@')[0]}</Text>
+                      {isFriend ? (
+                        <Text className="text-[#22C55E] text-xs font-bold">Amigo</Text>
+                      ) : isSent ? (
+                        <Text className="text-yellow-500 text-xs font-bold">Pendente</Text>
+                      ) : (
+                        <TouchableOpacity
+                          onPress={() => {
+                            sendFriendRequest(user.uid, item.id);
+                            Alert.alert('Sucesso', 'Solicitação de amizade enviada!');
+                          }}
+                          className="bg-primary p-2 rounded-lg"
+                        >
+                          <Text className="text-white text-xs font-bold">Adicionar</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  );
+                })
               )}
             </View>
           )}
