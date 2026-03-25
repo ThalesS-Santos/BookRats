@@ -3,6 +3,7 @@ import { View, StyleSheet, Dimensions, Text, TouchableOpacity, Animated } from '
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeStore } from '../store/useThemeStore';
 import { COLORS } from '../constants/colors';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import HomeScreen from '../screens/HomeScreen';
 import RankingScreen from '../screens/RankingScreen';
@@ -54,12 +55,14 @@ const BookFlipPage = ({ children, index, scrollX }) => {
           { rotateY },
           { translateX: translateX.interpolate({
             inputRange: [-1000, 1000],
-            outputRange: [1000, -1000] // Negates the translation for the center pivot
+            outputRange: [1000, -1000] 
           })},
         ] 
       }
     ]}>
-      {children}
+      <SafeAreaView edges={['top']} style={{ flex: 1 }}>
+        {children}
+      </SafeAreaView>
     </Animated.View>
   );
 };
@@ -107,33 +110,34 @@ export default function TabNavigator() {
       </Animated.ScrollView>
 
       {/* Custom Bottom Tab Bar */}
-      <View style={[
-        styles.tabBar, 
-        { 
-          backgroundColor: isDarkMode ? COLORS.background.dark : COLORS.background.light,
-          borderTopColor: isDarkMode ? COLORS.border.dark : COLORS.border.light 
-        }
-      ]}>
-        {TABS.map((tab, index) => {
-          const isActive = activeIndex === index;
-          const color = isActive 
-            ? (isDarkMode ? COLORS.primary.dark : COLORS.primary.light)
-            : (isDarkMode ? '#64748B' : '#94A3B8');
+      <View style={{ backgroundColor: isDarkMode ? COLORS.background.dark : COLORS.background.light }}>
+        <SafeAreaView edges={['bottom']} style={[
+          styles.tabBar, 
+          { 
+            borderTopColor: isDarkMode ? COLORS.border.dark : COLORS.border.light 
+          }
+        ]}>
+          {TABS.map((tab, index) => {
+            const isActive = activeIndex === index;
+            const color = isActive 
+              ? (isDarkMode ? COLORS.primary.dark : COLORS.primary.light)
+              : (isDarkMode ? '#64748B' : '#94A3B8');
 
-          return (
-            <TouchableOpacity 
-              key={tab.name} 
-              onPress={() => onTabPress(index)}
-              style={styles.tabItem}
-              activeOpacity={0.7}
-            >
-              <Ionicons name={tab.icon} size={24} color={color} />
-              <Text style={[styles.tabLabel, { color }]}>
-                {tab.name}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
+            return (
+              <TouchableOpacity 
+                key={tab.name} 
+                onPress={() => onTabPress(index)}
+                style={styles.tabItem}
+                activeOpacity={0.7}
+              >
+                <Ionicons name={tab.icon} size={24} color={color} />
+                <Text style={[styles.tabLabel, { color }]}>
+                  {tab.name}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </SafeAreaView>
       </View>
     </View>
   );
