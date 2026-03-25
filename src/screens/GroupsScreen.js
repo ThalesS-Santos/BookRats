@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TextInput, TouchableOpacity, Modal, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, TextInput, TouchableOpacity, Modal, ScrollView, Alert } from 'react-native';
+import BookLoader from '../components/BookLoader';
 import { useSocialStore } from '../store/useSocialStore';
 import { useBookStore } from '../store/useBookStore';
 import { useThemeStore } from '../store/useThemeStore';
@@ -174,7 +175,9 @@ export default function GroupsScreen({ navigation }) {
             <View className="mb-6 bg-card-light dark:bg-card-dark p-4 rounded-2xl border border-border-light dark:border-border-dark">
               <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-3">Resultados</Text>
               {loadingSearch ? (
-                <ActivityIndicator size="small" color={accentColor} />
+                <View style={{ height: 40, justifyContent: 'center' }}>
+                  <BookLoader isVisible={loadingSearch} />
+                </View>
               ) : searchResults.length === 0 ? (
                 <Text className="text-text-muted-light dark:text-text-muted-dark text-sm">Nenhum usuário encontrado.</Text>
               ) : (

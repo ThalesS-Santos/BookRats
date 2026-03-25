@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Alert, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import BookLoader from '../components/BookLoader';
 import { Ionicons } from '@expo/vector-icons';
 import { getGroupDetails, updateGroupDetails, removeGroupMember, searchUsers, addGroupMember } from '../api/social';
 import { useSocialStore } from '../store/useSocialStore';
@@ -124,11 +125,7 @@ export default function GroupDetailsScreen({ route, navigation }) {
   };
 
   if (loading) {
-    return (
-      <View className="flex-1 bg-background-light dark:bg-background-dark justify-center items-center">
-        <ActivityIndicator size="large" color="#22C55E" />
-      </View>
-    );
+    return <BookLoader isVisible={loading} />;
   }
 
   if (!group) return null;
@@ -197,7 +194,9 @@ export default function GroupDetailsScreen({ route, navigation }) {
             className="p-2 bg-card-light dark:bg-card-dark rounded-xl border border-border-light dark:border-border-dark"
           >
             {updating ? (
-              <ActivityIndicator size="small" color="#22C55E" />
+              <View style={{ width: 22, height: 22 }}>
+                <BookLoader isVisible={updating} />
+              </View>
             ) : (
               <Ionicons name={isEditing ? "checkmark" : "create-outline"} size={22} color="#22C55E" />
             )}
@@ -288,7 +287,9 @@ export default function GroupDetailsScreen({ route, navigation }) {
             </View>
 
             {searching ? (
-              <ActivityIndicator size="small" color="#22C55E" />
+              <View style={{ height: 40, justifyContent: 'center' }}>
+                <BookLoader isVisible={searching} />
+              </View>
             ) : (
               <ScrollView>
                 {searchResults.map(u => (

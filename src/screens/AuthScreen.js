@@ -7,10 +7,9 @@ import {
     KeyboardAvoidingView,
     Platform,
     Alert,
-    ActivityIndicator,
     TouchableWithoutFeedback,
-    Keyboard
-} from 'react-native';
+    Keyboard } from 'react-native';
+import BookLoader from '../components/BookLoader';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import { useBookStore } from '../store/useBookStore';
@@ -144,7 +143,9 @@ const AuthScreen = () => {
                         disabled={loading}
                     >
                         {loading ? (
-                            <ActivityIndicator color={isDarkMode ? '#000000' : '#FFFFFF'} />
+                            <View style={{ width: 24, height: 24 }}>
+                                <BookLoader isVisible={loading} />
+                            </View>
                         ) : (
                             <>
                                 <Text className={`text-lg font-bold mr-2 ${isDarkMode ? 'text-[#000000]' : 'text-[#FFFFFF]'}`}>

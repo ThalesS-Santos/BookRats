@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { View } from 'react-native';
+import BookLoader from '../components/BookLoader';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useBookStore } from '../store/useBookStore';
 
@@ -16,11 +17,7 @@ import { COLORS } from '../constants/colors';
 const Stack = createNativeStackNavigator();
 
 function LoadingScreen() {
-  return (
-    <View style={{ backgroundColor: COLORS.loading }} className="flex-1 justify-center items-center">
-      <ActivityIndicator size="large" color="#22C55E" />
-    </View>
-  );
+  return <BookLoader isVisible={true} />;
 }
 
 export default function AppNavigator() {

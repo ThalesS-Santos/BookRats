@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Alert, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import BookLoader from '../components/BookLoader';
 import { Ionicons } from '@expo/vector-icons';
 import { getUserBooks, getUserAnnotations } from '../api/books';
 import { getUserDetails } from '../api/social';
@@ -66,11 +67,7 @@ export default function UserProfileScreen({ route, navigation }) {
   };
 
   if (loading) {
-    return (
-      <View className="flex-1 bg-background-light dark:bg-background-dark justify-center items-center">
-        <ActivityIndicator size="large" color="#22C55E" />
-      </View>
-    );
+    return <BookLoader isVisible={loading} />;
   }
 
   if (!friend) return null;

@@ -1,6 +1,6 @@
 import './global.css';
 import React, { useEffect } from 'react';
-import { View, ActivityIndicator, Platform, AppState } from 'react-native';
+import { View, Platform, AppState } from 'react-native';
 import * as NavigationBar from 'expo-navigation-bar';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
