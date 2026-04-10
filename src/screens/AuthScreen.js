@@ -6,14 +6,14 @@ import {
     TouchableOpacity,
     KeyboardAvoidingView,
     Platform,
-    Alert,
-    TouchableWithoutFeedback,
+    ScrollView,
     Keyboard } from 'react-native';
 import BookLoader from '../components/BookLoader';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import { useBookStore } from '../store/useBookStore';
 import { useThemeStore } from '../store/useThemeStore';
+import { usePopupStore } from '../store/usePopupStore';
 import { Ionicons } from '@expo/vector-icons';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -26,6 +26,7 @@ const AuthScreen = () => {
 
     const { signIn, signUp, signInWithGoogle, loading, authError } = useBookStore();
     const { isDarkMode } = useThemeStore();
+    const { showPopup } = usePopupStore();
 
     const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
         webClientId: '938992066464-mka61a63o33ltrr2fobm18qugoq35j7d.apps.googleusercontent.com',
@@ -42,7 +43,7 @@ const AuthScreen = () => {
 
     useEffect(() => {
         if (authError) {
-            Alert.alert('Erro de Autenticação', authError);
+            showPopup({ title: 'Erro de Autenticação', message: authError, type: 'error' });
         }
     }, [authError]);
 
@@ -52,11 +53,11 @@ const AuthScreen = () => {
 
     const handleAuth = async () => {
         if (!validateEmail(email)) {
-            Alert.alert('Erro', 'Por favor, insira um e-mail válido.');
+            showPopup({ title: 'Aviso', message: 'Por favor, insira um e-mail válido.', type: 'error' });
             return;
         }
         if (password.length < 6) {
-            Alert.alert('Erro', 'A senha deve ter pelo menos 6 caracteres.');
+            showPopup({ title: 'Aviso', message: 'A senha deve ter pelo menos 6 caracteres.', type: 'error' });
             return;
         }
 
@@ -80,10 +81,14 @@ const AuthScreen = () => {
     const placeholderColor = isDarkMode ? '#4B5563' : '#9CA3AF';
 
     return (
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                className={`flex-1 justify-center px-8 ${bgColor}`}
+        <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            className={`flex-1 ${bgColor}`}
+        >
+            <ScrollView 
+                contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingHorizontal: 32 }}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
             >
                 <View className="items-center mb-10">
                     <View className={`p-4 rounded-full mb-4 border`} style={{ backgroundColor: `${primaryColorHex}20`, borderColor: `${primaryColorHex}40` }}>
@@ -188,8 +193,8 @@ const AuthScreen = () => {
                         Ao criar uma conta, você concorda em manter seu hábito de leitura sempre ativo! 📚☕
                     </Text>
                 )}
-            </KeyboardAvoidingView>
-        </TouchableWithoutFeedback>
+            </ScrollView>
+        </KeyboardAvoidingView>
     );
 };
 

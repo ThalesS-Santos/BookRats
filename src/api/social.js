@@ -16,8 +16,13 @@ import {
 } from 'firebase/firestore';
 
 export const searchUsers = async (queryText) => {
+  if (!queryText) return [];
   try {
-    const q = query(collection(db, 'users'));
+    const q = query(
+      collection(db, 'users'),
+      where('username_lowercase', '>=', queryText.toLowerCase()),
+      where('username_lowercase', '<=', queryText.toLowerCase() + '\uf8ff')
+    );
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
@@ -152,13 +157,13 @@ export const getGroupDetails = async (groupId) => {
     if (!snap.exists()) return null;
     
     const data = snap.data();
-    const members = [];
-    for (const uid of (data.members || [])) {
+    // Paraleliza a busca de detalhes dos membros 🚀
+    const memberPromises = (data.members || []).map(async (uid) => {
        const userSnap = await getDoc(doc(db, 'users', uid));
-       if (userSnap.exists()) {
-          members.push({ id: uid, ...userSnap.data() });
-       }
-    }
+       return userSnap.exists() ? { id: uid, ...userSnap.data() } : null;
+    });
+    
+    const members = (await Promise.all(memberPromises)).filter(Boolean);
     return { id: groupId, ...data, members };
   } catch (error) {
     console.error("Error getting group details:", error);

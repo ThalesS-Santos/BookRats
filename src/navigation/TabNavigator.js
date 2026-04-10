@@ -19,28 +19,15 @@ const TABS = [
   { name: 'Perfil', icon: 'person', component: ProfileScreen },
 ];
 
-const BookFlipPage = ({ children, index, scrollX, activeIndex }) => {
-  const inputRange = [
-    (index - 1) * SCREEN_WIDTH,
-    index * SCREEN_WIDTH,
-    (index + 1) * SCREEN_WIDTH,
-  ];
-
-  // Rotate from -90 to 0 (and 0 to 90)
-  const rotateY = scrollX.interpolate({
-    inputRange,
-    outputRange: ['-90deg', '0deg', '90deg'],
-    extrapolate: 'clamp',
-  });
-
-  // Opacity: Only visible when near the active index
+const BookFlipPage = ({ children, index, scrollX }) => {
+  // Opacity: Creates a slight fade effect while swiping left/right
   const opacity = scrollX.interpolate({
     inputRange: [
         (index - 0.9) * SCREEN_WIDTH,
         index * SCREEN_WIDTH,
         (index + 0.9) * SCREEN_WIDTH,
     ],
-    outputRange: [0, 1, 0],
+    outputRange: [0.3, 1, 0.3],
     extrapolate: 'clamp',
   });
 
@@ -51,12 +38,6 @@ const BookFlipPage = ({ children, index, scrollX, activeIndex }) => {
         styles.pageContainer, 
         { 
           opacity,
-          zIndex: activeIndex === index ? 10 : 1, // Ensure active page is on top for touches
-          transform: [
-            { perspective: 1200 },
-            { rotateY },
-          ],
-          transformOrigin: '50% 50%', 
         }
       ]}
     >
@@ -107,7 +88,6 @@ export default function TabNavigator({ navigation, route }) {
               key={tab.name} 
               index={index} 
               scrollX={scrollX}
-              activeIndex={activeIndex}
             >
               <tab.component navigation={navigation} route={route} />
             </BookFlipPage>
