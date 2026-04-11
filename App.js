@@ -66,20 +66,22 @@ export default function App() {
 
   useEffect(() => {
     if (!user) return;
+    const currentUid = user.uid;
 
     const updateStatus = (status) => {
-      useBookStore.getState().updatePresence(status);
+      useBookStore.getState().updatePresence(status, currentUid);
     };
 
     updateStatus(true); // Online on mount
 
     const subscription = AppState.addEventListener('change', nextAppState => {
+      // Deixa offline se não estiver 'active' (funciona para background e inactive)
       updateStatus(nextAppState === 'active');
     });
 
     return () => {
       subscription.remove();
-      updateStatus(false); // Offline on unmount
+      updateStatus(false); // Offline on unmount/cleanup
     };
   }, [user]);
 

@@ -68,6 +68,10 @@ export const useBookStore = create((set, get) => ({
 
   signOut: async () => {
     try {
+      const uid = get().user?.uid;
+      if (uid) {
+        await get().updatePresence(false, uid);
+      }
       await apiSignOut();
     } catch (error) {
       console.error("Sign out error:", error);
@@ -155,11 +159,11 @@ export const useBookStore = create((set, get) => ({
   },
 
   // Social & Presence Actions
-  updatePresence: async (isOnline) => {
-    const { user } = get();
-    if (!user) return;
+  updatePresence: async (isOnline, overrideUid = null) => {
+    const targetUid = overrideUid || get().user?.uid;
+    if (!targetUid) return;
     try {
-      await apiUpdatePresence(user.uid, isOnline);
+      await apiUpdatePresence(targetUid, isOnline);
     } catch (error) {
       console.error("Error updating presence:", error);
     }
