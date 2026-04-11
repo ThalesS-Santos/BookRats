@@ -57,10 +57,34 @@ export default function TimerScreen({ route, navigation }) {
     setShowFinishForm(true);
   };
 
+  const handlePageInputChange = (text) => {
+    // 1. Whitelist: Apenas números
+    let cleaned = text.replace(/[^0-9]/g, '');
+
+    // 2. Remoção de zeros à esquerda (ex: "05" -> "5", mas "0" continua "0")
+    if (cleaned.length > 1 && cleaned.startsWith('0')) {
+      cleaned = cleaned.replace(/^0+/, '');
+    }
+
+    // 3. Capping Logic: Não ultrapassar o total do livro
+    const numericValue = parseInt(cleaned, 10);
+    if (!isNaN(numericValue) && numericValue > book.totalPages) {
+      cleaned = book.totalPages.toString();
+    }
+
+    setEndPage(cleaned);
+  };
+
   const handleSaveProgress = async () => {
     const newPage = parseInt(endPage, 10);
-    if (isNaN(newPage) || newPage < book.currentPage || newPage > book.totalPages) {
-      showPopup({ title: 'Aviso', message: `Insira uma página válida (entre ${book.currentPage} e ${book.totalPages}).`, type: 'error' });
+
+    // Defensive Guard: Validar se houve progresso real ou se o número é inválido
+    if (isNaN(newPage) || newPage < book.currentPage || (newPage === book.currentPage && newPage !== book.totalPages)) {
+      showPopup({ 
+        title: 'Valor Inválido', 
+        message: 'Insira a página atual para salvar o progresso.', 
+        type: 'error' 
+      });
       return;
     }
     
@@ -179,7 +203,7 @@ export default function TimerScreen({ route, navigation }) {
             className="bg-card-light dark:bg-card-dark text-text-light dark:text-text-dark p-4 rounded-2xl text-xl font-bold border border-border-light dark:border-border-dark mb-4"
             keyboardType="numeric"
             value={endPage}
-            onChangeText={setEndPage}
+            onChangeText={handlePageInputChange}
             placeholder={`Pág. ${book.currentPage}`}
             placeholderTextColor={mutedTextColor}
           />

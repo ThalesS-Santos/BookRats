@@ -12,8 +12,41 @@ import {
   onSnapshot,
   serverTimestamp,
   arrayRemove,
-  arrayUnion
+  arrayUnion,
+  orderBy,
+  limit,
+  startAfter
 } from 'firebase/firestore';
+import { mapFirebaseError } from '../utils/errorMapper';
+
+export const getPaginatedRanking = async (lastVisibleDoc = null, pageSize = 20) => {
+  try {
+    let q;
+    if (lastVisibleDoc) {
+      q = query(
+        collection(db, 'users'),
+        orderBy('total_pages_read', 'desc'),
+        startAfter(lastVisibleDoc),
+        limit(pageSize)
+      );
+    } else {
+      q = query(
+        collection(db, 'users'),
+        orderBy('total_pages_read', 'desc'),
+        limit(pageSize)
+      );
+    }
+
+    const snapshot = await getDocs(q);
+    const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const lastDoc = snapshot.docs[snapshot.docs.length - 1];
+
+    return { users, lastDoc, hasMore: users.length === pageSize };
+  } catch (error) {
+    console.error("Error getting paginated ranking:", error);
+    throw new Error(mapFirebaseError(error));
+  }
+};
 
 export const searchUsers = async (queryText) => {
   if (!queryText) return [];
@@ -27,7 +60,7 @@ export const searchUsers = async (queryText) => {
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
     console.error("Search users error:", error);
-    throw new Error("Erro ao buscar usuários.");
+    throw new Error(mapFirebaseError(error));
   }
 };
 
@@ -49,7 +82,7 @@ export const sendFriendRequest = async (senderUid, receiverUid) => {
     });
   } catch (error) {
     console.error("Send friend request error:", error);
-    throw new Error("Erro ao enviar solicitação.");
+    throw new Error(mapFirebaseError(error));
   }
 };
 
@@ -59,7 +92,7 @@ export const acceptFriendRequest = async (requestId) => {
     await updateDoc(docRef, { status: 'accepted' });
   } catch (error) {
     console.error("Accept friend request error:", error);
-    throw new Error("Erro ao aceitar solicitação.");
+    throw new Error(mapFirebaseError(error));
   }
 };
 
@@ -69,7 +102,7 @@ export const rejectFriendRequest = async (requestId) => {
     await updateDoc(docRef, { status: 'rejected' });
   } catch (error) {
     console.error("Reject friend request error:", error);
-    throw new Error("Erro ao recusar solicitação.");
+    throw new Error(mapFirebaseError(error));
   }
 };
 
@@ -84,7 +117,7 @@ export const createGroup = async (name, adminId, memberIds) => {
     return groupRef.id;
   } catch (error) {
     console.error("Create group error:", error);
-    throw new Error("Erro ao criar grupo.");
+    throw new Error(mapFirebaseError(error));
   }
 };
 
@@ -134,7 +167,7 @@ export const removeFriendship = async (uid, friendId) => {
     }
   } catch (error) {
     console.error("Error removing friendship:", error);
-    throw new Error("Erro ao desfazer amizade.");
+    throw new Error(mapFirebaseError(error));
   }
 };
 
@@ -146,7 +179,7 @@ export const leaveGroup = async (groupId, uid) => {
     });
   } catch (error) {
     console.error("Error leaving group:", error);
-    throw new Error("Erro ao sair do grupo.");
+    throw new Error(mapFirebaseError(error));
   }
 };
 
@@ -167,7 +200,7 @@ export const getGroupDetails = async (groupId) => {
     return { id: groupId, ...data, members };
   } catch (error) {
     console.error("Error getting group details:", error);
-    throw new Error("Erro ao carregar detalhes do grupo.");
+    throw new Error(mapFirebaseError(error));
   }
 };
 
@@ -177,7 +210,7 @@ export const updateGroupDetails = async (groupId, name, description) => {
     await updateDoc(groupRef, { name, description });
   } catch (error) {
     console.error("Error updating group details:", error);
-    throw new Error("Erro ao atualizar grupo.");
+    throw new Error(mapFirebaseError(error));
   }
 };
 
@@ -189,7 +222,7 @@ export const addGroupMember = async (groupId, userId) => {
     });
   } catch (error) {
     console.error("Error adding group member:", error);
-    throw new Error("Erro ao adicionar membro.");
+    throw new Error(mapFirebaseError(error));
   }
 };
 
@@ -201,6 +234,6 @@ export const removeGroupMember = async (groupId, userId) => {
     });
   } catch (error) {
     console.error("Error removing group member:", error);
-    throw new Error("Erro ao remover membro.");
+    throw new Error(mapFirebaseError(error));
   }
 };

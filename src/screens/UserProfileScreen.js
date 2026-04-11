@@ -10,6 +10,14 @@ import { usePopupStore } from '../store/usePopupStore';
 import { COLORS } from '../constants/colors';
 import { ALL_BADGES } from '../constants/badges';
 
+const formatDuration = (totalSeconds) => {
+  if (!totalSeconds) return "---";
+  const hrs = Math.floor(totalSeconds / 3600);
+  const min = Math.floor((totalSeconds % 3600) / 60);
+  if (hrs > 0) return `${hrs}h ${min}m`;
+  return `${min}m`;
+};
+
 export default function UserProfileScreen({ route, navigation }) {
   const { userId } = route.params;
   const { isDarkMode } = useThemeStore();
@@ -33,11 +41,11 @@ export default function UserProfileScreen({ route, navigation }) {
         const allNotes = [];
         for (const book of userBooks) {
           const annots = await getUserAnnotations(userId, book.id);
-          // Filtra Notas Públicas se não for você mesmo (ou se quiser seguir isPublic)
+          // Only show public notes
           const publicAnnots = annots.filter(a => a.isPublic === true);
           allNotes.push(...publicAnnots.map(a => ({ ...a, bookTitle: book.title })));
         }
-        // Ordena por timestamp se houver
+        // Sort by timestamp
         allNotes.sort((a,b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
         setNotes(allNotes);
       } catch (bookError) {
@@ -61,7 +69,7 @@ export default function UserProfileScreen({ route, navigation }) {
       type: 'confirm',
       onConfirm: async () => {
         await removeFriend(userId);
-        navigation.navigate('MainTabs', { screen: 'Grupo' });
+        navigation.goBack();
       }
     });
   };
@@ -83,9 +91,9 @@ export default function UserProfileScreen({ route, navigation }) {
   };
 
   return (
-    <ScrollView className="flex-1 bg-background-light dark:bg-background-dark p-6">
-      <TouchableOpacity onPress={() => navigation.goBack()} className="mt-12 mb-4">
-        <Ionicons name="chevron-back" size={28} color={isDarkMode ? '#E0E0E0' : '#1A1A1A'} />
+    <ScrollView className="flex-1 bg-background-light dark:bg-background-dark p-6" showsVerticalScrollIndicator={false}>
+      <TouchableOpacity onPress={() => navigation.goBack()} className="mt-12 mb-4 w-10 h-10 items-center justify-center rounded-full bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark">
+        <Ionicons name="chevron-back" size={24} color={isDarkMode ? '#E0E0E0' : '#1A1A1A'} />
       </TouchableOpacity>
 
       {/* Profile Header */}
@@ -101,29 +109,41 @@ export default function UserProfileScreen({ route, navigation }) {
         </Text>
       </View>
 
-      {/* Stats Cards */}
-      <View className="flex-row justify-between mb-8">
+      {/* Stats Cards Row 1 */}
+      <View className="flex-row justify-between mb-4">
         <View className="bg-card-light dark:bg-card-dark p-4 rounded-xl border border-border-light dark:border-border-dark flex-1 mr-2 items-center">
           <Text className="text-primary font-bold text-2xl">{friend.total_pages_read || 0}</Text>
-          <Text className="text-text-muted-light dark:text-text-muted-dark text-xs uppercase">Páginas</Text>
+          <Text className="text-text-muted-light dark:text-text-muted-dark text-[10px] uppercase">Páginas Totais</Text>
         </View>
         <View className="bg-card-light dark:bg-card-dark p-4 rounded-xl border border-border-light dark:border-border-dark flex-1 ml-2 items-center">
           <Text style={{ color: COLORS.streak }} className="font-bold text-2xl">{friend.current_streak || 0}🔥</Text>
-          <Text className="text-text-muted-light dark:text-text-muted-dark text-xs uppercase">Streak</Text>
+          <Text className="text-text-muted-light dark:text-text-muted-dark text-[10px] uppercase">Streak Atual</Text>
         </View>
       </View>
 
-      {/* Trophy Wall (Badges) */}
+      {/* Stats Cards Row 2 (Performance Metrics) */}
+      <View className="flex-row justify-between mb-8">
+        <View className="bg-card-light dark:bg-card-dark p-4 rounded-xl border border-border-light dark:border-border-dark flex-1 mr-2 items-center">
+          <Text className="text-text-light dark:text-text-dark font-bold text-xl">{friend.total_books_completed || 0}</Text>
+          <Text className="text-text-muted-light dark:text-text-muted-dark text-[10px] uppercase font-bold">Livros Lidos</Text>
+        </View>
+        <View className="bg-card-light dark:bg-card-dark p-4 rounded-xl border border-border-light dark:border-border-dark flex-1 ml-2 items-center">
+          <Text className="text-primary dark:text-primary-dark font-bold text-xl">{formatDuration(friend.max_reading_session)}</Text>
+          <Text className="text-text-muted-light dark:text-text-muted-dark text-[10px] uppercase font-bold text-center">Recorde de Fôlego</Text>
+        </View>
+      </View>
+
+      {/* Trophy Wall */}
       <View className="mb-8">
-        <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-3 ml-2">Mural de Troféus</Text>
-        <View className="flex-row flex-wrap">
+        <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-4 ml-2">Mural de Troféus</Text>
+        <View className="flex-row flex-wrap justify-between">
           {ALL_BADGES.map(badge => {
             const isUnlocked = badge.check(userData);
             return (
               <TouchableOpacity 
                 key={badge.id} 
                 onPress={() => Alert.alert(badge.title, `Missão: ${badge.mission}`)}
-                className={`p-3 rounded-xl border items-center mr-2 mb-2 w-[30%] ${
+                className={`p-3 rounded-xl border items-center mb-2 w-[31%] ${
                   isUnlocked 
                     ? 'bg-card-light dark:bg-card-dark border-primary/20 dark:border-primary-dark/20' 
                     : 'bg-card-light dark:bg-card-dark border-dashed border-gray-400 dark:border-gray-600 opacity-40'
@@ -144,15 +164,15 @@ export default function UserProfileScreen({ route, navigation }) {
         </View>
       </View>
 
-      {/* Books List */}
-      <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-3 ml-2">Livros lendo ({books.filter(b => b.status === 'reading').length})</Text>
+      {/* Reading Progress */}
+      <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-3 ml-2">Livros Ativos ({books.filter(b => b.status === 'reading').length})</Text>
       {books.filter(b => b.status === 'reading').map(book => (
         <View key={book.id} className="bg-card-light dark:bg-card-dark p-4 rounded-xl border border-border-light dark:border-border-dark mb-2 flex-row items-center justify-between">
           <View className="flex-1">
             <Text className="text-text-light dark:text-text-dark font-bold">{book.title}</Text>
             <Text className="text-text-muted-light dark:text-text-muted-dark text-xs">{book.currentPage} / {book.totalPages} pág.</Text>
           </View>
-          <View className="bg-primary/20 p-1.5 rounded-lg">
+          <View className="bg-primary/20 p-2 rounded-lg">
             <Text className="text-primary dark:text-primary-dark font-bold text-xs">
               {book.totalPages ? Math.round((book.currentPage / book.totalPages) * 100) : 0}%
             </Text>
@@ -160,32 +180,32 @@ export default function UserProfileScreen({ route, navigation }) {
         </View>
       ))}
 
-      {/* Mural de Anotações (Post-it Style) */}
+      {/* Public Notes */}
       <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-3 mt-6 ml-2">Mural de Notas ({notes.length})</Text>
-      {notes.map(note => (
-        <View key={note.id} className="bg-card-light/40 dark:bg-card-dark/40 p-4 rounded-2xl border border-primary/20 dark:border-primary-dark/20 mb-3 shadow-sm">
+      {notes.map((note, idx) => (
+        <View key={idx} className="bg-card-light/40 dark:bg-card-dark/40 p-4 rounded-2xl border border-primary/20 dark:border-primary-dark/20 mb-3 shadow-sm">
           <View className="flex-row justify-between mb-2">
             <Text className="text-primary dark:text-primary-dark font-bold text-xs" numberOfLines={1}>{note.bookTitle}</Text>
             <Text className="text-text-muted-light dark:text-text-muted-dark text-[10px]">pág. {note.page}</Text>
           </View>
           <Text className="text-text-light dark:text-text-dark font-serif italic text-sm leading-5">"{note.text}"</Text>
           <View className="flex-row items-center mt-2">
-            <Ionicons name="globe-outline" size={12} color="#6B7280" className="mr-1" />
-            <Text className="text-text-muted-light dark:text-text-muted-dark text-[9px]">Pública</Text>
+            <Ionicons name="globe-outline" size={12} color="#6B7280" />
+            <Text className="text-text-muted-light dark:text-text-muted-dark text-[9px] ml-1">Público</Text>
           </View>
         </View>
       ))}
       {notes.length === 0 && (
-        <Text className="text-text-muted-light dark:text-text-muted-dark text-xs ml-2">Nenhuma anotação pública.</Text>
+        <Text className="text-text-muted-light dark:text-text-muted-dark text-xs italic text-center py-4">Nenhuma nota pública disponível.</Text>
       )}
 
       {/* Danger Zone */}
       <TouchableOpacity 
         onPress={handleRemoveFriend}
-        className="bg-red-500/10 border border-red-500/30 p-4 rounded-xl items-center mt-8 mb-12 flex-row justify-center"
+        className="bg-red-500/10 border border-red-500/30 p-4 rounded-xl items-center mt-8 mb-20 flex-row justify-center"
       >
-        <Ionicons name="trash-outline" size={20} color="#EF4444" className="mr-2" />
-        <Text className="text-red-500 font-bold">Desfazer Amizade</Text>
+        <Ionicons name="trash-outline" size={20} color="#EF4444" />
+        <Text className="text-red-500 font-bold ml-2">Desfazer Amizade</Text>
       </TouchableOpacity>
     </ScrollView>
   );

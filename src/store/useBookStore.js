@@ -15,6 +15,7 @@ import {
 } from 'firebase/firestore';
 import { signUp as apiSignUp, signIn as apiSignIn, signInWithGoogle as apiSignInWithGoogle, signOut as apiSignOut, updatePresence as apiUpdatePresence, updateReadingStatus as apiUpdateReadingStatus } from '../api/auth';
 import { addBook as apiAddBook, updateBookProgress, markAsDNF as apiMarkAsDNF } from '../api/books';
+import { usePopupStore } from './usePopupStore';
 
 export const useBookStore = create((set, get) => ({
   books: [],
@@ -28,6 +29,9 @@ export const useBookStore = create((set, get) => ({
   messages: [],
   chatError: null,
   rankingError: null,
+  maxReadingSession: 0,
+  lastReadingSession: 0,
+  totalBooksCompleted: 0,
 
   // Auth Actions
   setAuthUser: (user) => {
@@ -45,6 +49,11 @@ export const useBookStore = create((set, get) => ({
       await apiSignUp(email, password);
     } catch (error) {
       set({ authError: error.message, loading: false });
+      usePopupStore.getState().showPopup({
+        title: 'Erro no Cadastro',
+        message: error.message,
+        type: 'error'
+      });
     }
   },
 
@@ -54,6 +63,11 @@ export const useBookStore = create((set, get) => ({
       await apiSignIn(email, password);
     } catch (error) {
       set({ authError: error.message, loading: false });
+      usePopupStore.getState().showPopup({
+        title: 'Erro no Login',
+        message: error.message,
+        type: 'error'
+      });
     }
   },
 
@@ -63,6 +77,11 @@ export const useBookStore = create((set, get) => ({
       await apiSignInWithGoogle(idToken);
     } catch (error) {
       set({ authError: error.message, loading: false });
+      usePopupStore.getState().showPopup({
+        title: 'Erro no Google',
+        message: error.message,
+        type: 'error'
+      });
     }
   },
 
@@ -88,7 +107,10 @@ export const useBookStore = create((set, get) => ({
         set({
           streak: data.current_streak || 0,
           totalPagesRead: data.total_pages_read || 0,
-          lastReadDate: data.last_reading_date || null
+          lastReadDate: data.last_reading_date || null,
+          maxReadingSession: data.max_reading_session || 0,
+          lastReadingSession: data.last_reading_session || 0,
+          totalBooksCompleted: data.total_books_completed || 0
         });
       }
     });
@@ -117,7 +139,11 @@ export const useBookStore = create((set, get) => ({
     try {
       await apiAddBook(user.uid, title, totalPages);
     } catch (error) {
-      console.error(error.message);
+      usePopupStore.getState().showPopup({
+        title: 'Erro ao Adicionar',
+        message: error.message,
+        type: 'error'
+      });
     }
   },
 
@@ -129,7 +155,13 @@ export const useBookStore = create((set, get) => ({
     if (!book) return;
 
     try {
-      const res = await updateBookProgress(user.uid, book, newPage, timeSeconds, { streak, lastReadDate, totalPagesRead });
+      const res = await updateBookProgress(user.uid, book, newPage, timeSeconds, { 
+        streak, 
+        lastReadDate, 
+        totalPagesRead,
+        maxReadingSession: get().maxReadingSession,
+        totalBooksCompleted: get().totalBooksCompleted
+      });
       
       // Automated Group Notification
       try {
@@ -149,7 +181,11 @@ export const useBookStore = create((set, get) => ({
         console.warn("Could not send group notification:", e.message);
       }
     } catch (error) {
-      console.error("Error updating progress:", error);
+      usePopupStore.getState().showPopup({
+        title: 'Erro ao Salvar',
+        message: error.message,
+        type: 'error'
+      });
     }
   },
 
@@ -241,7 +277,11 @@ export const useBookStore = create((set, get) => ({
         ...(isString ? {} : messageData)
       });
     } catch (error) {
-      console.error("Error sending message:", error);
+      usePopupStore.getState().showPopup({
+        title: 'Erro no Chat',
+        message: error.message,
+        type: 'error'
+      });
     }
   },
 }));

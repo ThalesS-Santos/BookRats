@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { View, Text, FlatList, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import BookLoader from '../components/BookLoader';
 import { Ionicons } from '@expo/vector-icons';
-import { getGroupDetails, updateGroupDetails, removeGroupMember, searchUsers, addGroupMember } from '../api/social';
+import { getGroupDetails, updateGroupDetails, removeGroupMember, addGroupMember } from '../api/social';
+import { debounce } from '../utils/debounce';
 import { useSocialStore } from '../store/useSocialStore';
 import { useBookStore } from '../store/useBookStore';
 import { useThemeStore } from '../store/useThemeStore';
@@ -12,7 +13,7 @@ import { Modal, TextInput as RNTextInput } from 'react-native';
 export default function GroupDetailsScreen({ route, navigation }) {
   const { groupId } = route.params;
   const { isDarkMode } = useThemeStore();
-  const { leaveGroup } = useSocialStore();
+  const { leaveGroup, searchUsers, searchResults: storeSearchResults, loadingSearch } = useSocialStore();
   const user = useBookStore(state => state.user);
   const { showPopup } = usePopupStore();
   
@@ -22,12 +23,11 @@ export default function GroupDetailsScreen({ route, navigation }) {
   const [editName, setEditName] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [updating, setUpdating] = useState(false);
+  const [isDebouncing, setIsDebouncing] = useState(false);
 
   // Add Member State
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [searching, setSearching] = useState(false);
 
   const isAdmin = group?.adminId === user?.uid;
 
@@ -95,22 +95,30 @@ export default function GroupDetailsScreen({ route, navigation }) {
     });
   };
 
-  const handleSearchUsers = async (text) => {
+  const filteredSearchResults = useMemo(() => {
+    return storeSearchResults.filter(u => !(group?.members || []).some(m => m.id === u.id));
+  }, [storeSearchResults, group?.members]);
+
+  const debouncedSearch = useCallback(
+    debounce((text) => {
+      searchUsers(text, user.uid);
+      setIsDebouncing(false);
+    }, 500),
+    [searchUsers, user.uid]
+  );
+
+  useEffect(() => {
+    return () => debouncedSearch.cancel();
+  }, [debouncedSearch]);
+
+  const handleSearchUsers = (text) => {
     setSearchQuery(text);
-    if (text.trim().length > 1) {
-      setSearching(true);
-      try {
-        const users = await searchUsers(text);
-        // Filtra para remover quem já está no grupo
-        const filtered = users.filter(u => !(group?.members || []).some(m => m.id === u.id));
-        setSearchResults(filtered);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setSearching(false);
-      }
+    if (text.trim().length >= 3) {
+      setIsDebouncing(true);
+      debouncedSearch(text);
     } else {
-      setSearchResults([]);
+      setIsDebouncing(false);
+      debouncedSearch.cancel();
     }
   };
 
@@ -286,13 +294,13 @@ export default function GroupDetailsScreen({ route, navigation }) {
               />
             </View>
 
-            {searching ? (
-              <View style={{ height: 40, justifyContent: 'center' }}>
-                <BookLoader isVisible={searching} />
+            {(loadingSearch || isDebouncing) ? (
+              <View style={{ height: 40, justifyContent: 'center', alignItems: 'center' }}>
+                <ActivityIndicator size="small" color="#22C55E" />
               </View>
             ) : (
               <ScrollView>
-                {searchResults.map(u => (
+                {filteredSearchResults.map(u => (
                   <TouchableOpacity 
                     key={u.id} 
                     onPress={() => { handleAddMember(u.id); setShowAddModal(false); }}
@@ -302,7 +310,7 @@ export default function GroupDetailsScreen({ route, navigation }) {
                     <Ionicons name="add-circle-outline" size={24} color="#22C55E" />
                   </TouchableOpacity>
                 ))}
-                {searchQuery.trim().length > 1 && searchResults.length === 0 && (
+                {searchQuery.trim().length >= 3 && filteredSearchResults.length === 0 && (
                   <Text className="text-text-muted-light dark:text-text-muted-dark text-center mt-4">Nenhum resultado.</Text>
                 )}
               </ScrollView>

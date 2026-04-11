@@ -18,6 +18,7 @@ import { auth } from './src/services/firebase';
 
 import { COLORS } from './src/constants/colors';
 import CustomPopup from './src/components/CustomPopup';
+import LoadingScreen from './src/components/LoadingScreen';
 
 const BookLightTheme = { 
   ...DefaultTheme, 
@@ -88,10 +89,14 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style={isDarkMode ? 'light' : 'dark'} />
-      <NavigationContainer theme={isDarkMode ? BookDarkTheme : BookLightTheme}>
-        <AppNavigator />
-      </NavigationContainer>
-      <CustomPopup />
+      {loading ? (
+        <LoadingScreen />
+      ) : (
+        <NavigationContainer theme={isDarkMode ? BookDarkTheme : BookLightTheme}>
+          <AppNavigator />
+          <CustomPopup />
+        </NavigationContainer>
+      )}
     </SafeAreaProvider>
   );
 }

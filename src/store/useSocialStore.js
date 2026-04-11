@@ -11,8 +11,10 @@ import {
   subscribeToGroups,
   getUserDetails,
   removeFriendship as apiRemoveFriendship,
-  leaveGroup as apiLeaveGroup
+  leaveGroup as apiLeaveGroup,
+  getPaginatedRanking as apiGetPaginatedRanking
 } from '../api/social';
+import { usePopupStore } from './usePopupStore';
 
 export const useSocialStore = create((set, get) => ({
   friends: [],
@@ -23,6 +25,55 @@ export const useSocialStore = create((set, get) => ({
   searchResults: [],
   loadingSearch: false,
   errorSearch: null,
+
+  // Ranking Pagination State
+  rankingList: [],
+  lastDoc: null,
+  hasMore: true,
+  loadingRanking: false,
+
+  fetchInitialRanking: async () => {
+    set({ loadingRanking: true, rankingList: [], lastDoc: null, hasMore: true });
+    try {
+      const { users, lastDoc, hasMore } = await apiGetPaginatedRanking(null, 15);
+      set({ rankingList: users, lastDoc, hasMore, loadingRanking: false });
+    } catch (error) {
+      set({ loadingRanking: false });
+      usePopupStore.getState().showPopup({
+        title: 'Erro no Ranking',
+        message: error.message,
+        type: 'error'
+      });
+    }
+  },
+
+  fetchMoreRanking: async () => {
+    const { lastDoc, hasMore, loadingRanking, rankingList } = get();
+    // Guard: Prevent calling if already loading, no more data, or missing cursor
+    if (!hasMore || loadingRanking || !lastDoc) return;
+
+    set({ loadingRanking: true });
+    try {
+      const { users, lastDoc: nextLastDoc, hasMore: nextHasMore } = await apiGetPaginatedRanking(lastDoc, 5);
+      
+      // Evitar duplicatas por precaução
+      const newUsers = users.filter(u => !rankingList.some(existing => existing.id === u.id));
+      
+      set({ 
+        rankingList: [...rankingList, ...newUsers], 
+        lastDoc: nextLastDoc, 
+        hasMore: nextHasMore, 
+        loadingRanking: false 
+      });
+    } catch (error) {
+      set({ loadingRanking: false });
+      usePopupStore.getState().showPopup({
+        title: 'Erro ao Carregar Mais',
+        message: error.message,
+        type: 'error'
+      });
+    }
+  },
 
   searchUsers: async (queryText, currentUserId) => {
     if (!queryText.trim()) {
@@ -51,6 +102,11 @@ export const useSocialStore = create((set, get) => ({
       set({ searchResults: filtered, loadingSearch: false });
     } catch (error) {
       set({ errorSearch: error.message, loadingSearch: false });
+      usePopupStore.getState().showPopup({
+        title: 'Erro na Busca',
+        message: error.message,
+        type: 'error'
+      });
     }
   },
 
@@ -60,6 +116,11 @@ export const useSocialStore = create((set, get) => ({
       await apiSendFriendRequest(senderUid, receiverUid);
     } catch (error) {
       console.error("Error sending friend request:", error);
+      usePopupStore.getState().showPopup({
+        title: 'Erro na Solicitação',
+        message: error.message,
+        type: 'error'
+      });
     }
   },
 
@@ -68,6 +129,11 @@ export const useSocialStore = create((set, get) => ({
       await apiAcceptFriendRequest(requestId);
     } catch (error) {
       console.error("Error accepting friend request:", error);
+      usePopupStore.getState().showPopup({
+        title: 'Erro ao Aceitar',
+        message: error.message,
+        type: 'error'
+      });
     }
   },
 
@@ -76,6 +142,11 @@ export const useSocialStore = create((set, get) => ({
       await apiRejectFriendRequest(requestId);
     } catch (error) {
       console.error("Error rejecting friend request:", error);
+      usePopupStore.getState().showPopup({
+        title: 'Erro ao Recusar',
+        message: error.message,
+        type: 'error'
+      });
     }
   },
 
@@ -84,6 +155,11 @@ export const useSocialStore = create((set, get) => ({
       return await apiCreateGroup(name, adminId, memberIds);
     } catch (error) {
       console.error("Error creating group:", error);
+      usePopupStore.getState().showPopup({
+        title: 'Erro ao Criar Grupo',
+        message: error.message,
+        type: 'error'
+      });
       return null;
     }
   },
@@ -148,6 +224,11 @@ export const useSocialStore = create((set, get) => ({
       await apiRemoveFriendship(user.uid, friendId);
     } catch (error) {
       console.error("Error removing friend:", error);
+      usePopupStore.getState().showPopup({
+        title: 'Erro ao Remover',
+        message: error.message,
+        type: 'error'
+      });
     }
   },
 
@@ -158,6 +239,11 @@ export const useSocialStore = create((set, get) => ({
       await apiLeaveGroup(groupId, user.uid);
     } catch (error) {
       console.error("Error leaving group:", error);
+      usePopupStore.getState().showPopup({
+        title: 'Erro ao Sair',
+        message: error.message,
+        type: 'error'
+      });
     }
   }
 }));

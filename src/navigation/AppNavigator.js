@@ -11,21 +11,16 @@ import GroupChatScreen from '../screens/GroupChatScreen';
 import GroupDetailsScreen from '../screens/GroupDetailsScreen';
 import UserProfileScreen from '../screens/UserProfileScreen';
 import TabNavigator from './TabNavigator';
+import LoadingScreen from '../components/LoadingScreen';
 
 import { COLORS } from '../constants/colors';
 
 const Stack = createNativeStackNavigator();
 
-function LoadingScreen() {
-  return <BookLoader isVisible={true} />;
-}
+// LoadingScreen is now exported from its own file or handled in App.js
 
 export default function AppNavigator() {
-  const { user, loading } = useBookStore();
-
-  if (loading) {
-    return <LoadingScreen />;
-  }
+  const { user } = useBookStore();
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>

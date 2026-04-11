@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TextInput, TouchableOpacity, Modal, ScrollView } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, FlatList, TextInput, TouchableOpacity, Modal, ScrollView, ActivityIndicator } from 'react-native';
 import BookLoader from '../components/BookLoader';
 import { useSocialStore } from '../store/useSocialStore';
 import { useBookStore } from '../store/useBookStore';
 import { useThemeStore } from '../store/useThemeStore';
 import { usePopupStore } from '../store/usePopupStore';
 import { Ionicons } from '@expo/vector-icons';
+import { debounce } from '../utils/debounce';
 
 export default function GroupsScreen({ navigation }) {
   const [activeTab, setActiveTab] = useState('groups'); // 'groups' | 'friends'
@@ -13,6 +14,7 @@ export default function GroupsScreen({ navigation }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [selectedFriends, setSelectedFriends] = useState([]);
+  const [isDebouncing, setIsDebouncing] = useState(false);
 
   const { isDarkMode } = useThemeStore();
   const user = useBookStore(state => state.user);
@@ -45,10 +47,28 @@ export default function GroupsScreen({ navigation }) {
     return () => unsub();
   }, [user?.uid]);
 
+  // Memoize a versão debounced da busca
+  const debouncedSearch = useCallback(
+    debounce((text, uid) => {
+      searchUsers(text, uid);
+      setIsDebouncing(false);
+    }, 500),
+    [searchUsers]
+  );
+
+  // Limpeza do timer ao desmontar
+  useEffect(() => {
+    return () => debouncedSearch.cancel();
+  }, [debouncedSearch]);
+
   const handleSearch = (text) => {
     setSearchText(text);
-    if (text.trim().length > 1) {
-      searchUsers(text, user.uid);
+    if (text.trim().length >= 3) {
+      setIsDebouncing(true);
+      debouncedSearch(text, user.uid);
+    } else {
+      setIsDebouncing(false);
+      debouncedSearch.cancel();
     }
   };
 
@@ -176,9 +196,9 @@ export default function GroupsScreen({ navigation }) {
           {searchText.trim().length > 1 && (
             <View className="mb-6 bg-card-light dark:bg-card-dark p-4 rounded-2xl border border-border-light dark:border-border-dark">
               <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-3">Resultados</Text>
-              {loadingSearch ? (
-                <View style={{ height: 40, justifyContent: 'center' }}>
-                  <BookLoader isVisible={loadingSearch} />
+              {(loadingSearch || isDebouncing) ? (
+                <View style={{ height: 40, justifyContent: 'center', alignItems: 'center' }}>
+                  <ActivityIndicator size="small" color="#22C55E" />
                 </View>
               ) : searchResults.length === 0 ? (
                 <Text className="text-text-muted-light dark:text-text-muted-dark text-sm">Nenhum usuário encontrado.</Text>
