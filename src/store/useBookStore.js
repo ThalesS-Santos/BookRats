@@ -97,7 +97,12 @@ export const useBookStore = create((set, get) => ({
     const booksColRef = collection(db, 'users', uid, 'books');
     const unsubBooks = onSnapshot(booksColRef, (querySnap) => {
       const booksList = querySnap.docs.map(d => ({ id: d.id, ...d.data() }));
-      set({ books: booksList });
+      // Ordena livros por data de criação / mais recentes primeiro
+      const sortedBooks = booksList.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+      set({ books: sortedBooks, loading: false });
+    }, (error) => {
+      console.error("Error fetching books:", error);
+      set({ loading: false });
     });
 
     return () => {
@@ -191,7 +196,7 @@ export const useBookStore = create((set, get) => ({
       }));
       set({ messages: messagesList, chatError: null });
     }, (error) => {
-      set({ chatError: error.message });
+      set({ chatError: "Erro ao carregar mensagens. Verifique se você é membro deste grupo e as regras do Firestore." });
       console.log("Firestore (Group Messages):", error.message);
     });
 

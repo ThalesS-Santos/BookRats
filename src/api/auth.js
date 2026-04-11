@@ -81,10 +81,10 @@ export const signOut = async () => {
 export const updatePresence = async (uid, isOnline) => {
   try {
     const userRef = doc(db, 'users', uid);
-    await updateDoc(userRef, {
+    await setDoc(userRef, {
       isOnline,
       lastActive: serverTimestamp()
-    });
+    }, { merge: true });
   } catch (error) {
     console.error("Presence update error:", error);
   }
@@ -93,9 +93,9 @@ export const updatePresence = async (uid, isOnline) => {
 export const updateReadingStatus = async (uid, bookTitle) => {
   try {
     const userRef = doc(db, 'users', uid);
-    await updateDoc(userRef, {
+    await setDoc(userRef, {
       currentReadingBook: bookTitle || null
-    });
+    }, { merge: true });
   } catch (error) {
     console.error("Reading status update error:", error);
   }

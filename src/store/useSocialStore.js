@@ -32,21 +32,22 @@ export const useSocialStore = create((set, get) => ({
     set({ loadingSearch: true, errorSearch: null });
     
     try {
-      // 🚀 Fallback Robusto: Usar dados locais do Ranking ou baixar todos como fallback
+      // 🚀 Fallback Robusto: Usar dados locais do Ranking ou buscar da API com filtro
       const { users: localUsers } = useBookStore.getState();
       let searchSource = localUsers;
 
       if (!searchSource || searchSource.length === 0) {
-        // Se não houver cache do ranking, busca da API
+        // Se não houver cache do ranking, busca da API (agora com filtro direto no Firestore)
         searchSource = await apiSearchUsers(queryText);
+      } else {
+        // Se houver dados locais, filtra localmente
+        searchSource = searchSource.filter(u => 
+          ((u.username && u.username.toLowerCase().includes(queryText.toLowerCase())) || 
+           (u.email && u.email.toLowerCase().includes(queryText.toLowerCase())))
+        );
       }
 
-      const filtered = searchSource.filter(u => 
-        u.id !== currentUserId && 
-        ((u.username && u.username.toLowerCase().includes(queryText.toLowerCase())) || 
-         (u.email && u.email.toLowerCase().includes(queryText.toLowerCase())))
-      );
-
+      const filtered = searchSource.filter(u => u.id !== currentUserId);
       set({ searchResults: filtered, loadingSearch: false });
     } catch (error) {
       set({ errorSearch: error.message, loadingSearch: false });
@@ -126,26 +127,18 @@ export const useSocialStore = create((set, get) => ({
     // Get unique friend IDs
     const friendIds = [...new Set(acceptedRequests.map(r => r.senderId === uid ? r.receiverId : r.senderId))];
 
-    // Fetch details
-    const friendsData = [];
-    for (const fid of friendIds) {
-      const details = await getUserDetails(fid);
-      if (details) {
-        friendsData.push(details);
-      }
-    }
+    // Fetch details in parallel 🚀
+    const friendsData = (await Promise.all(friendIds.map(fid => getUserDetails(fid)))).filter(Boolean);
     set({ friends: friendsData });
 
-    // Also resolve names for pending requests (who sent them)
+    // Also resolve names for pending requests (who sent them) in parallel 🚀
     const { pendingRequests } = get();
-    const pendingWithDetails = [];
-    for (const req of pendingRequests) {
+    const pendingWithDetails = await Promise.all(pendingRequests.map(async (req) => {
       const details = await getUserDetails(req.senderId);
-      if (details) {
-        pendingWithDetails.push({ ...req, senderName: details.username || details.email.split('@')[0] });
-      }
-    }
-    set({ pendingRequests: pendingWithDetails });
+      return details ? { ...req, senderName: details.username || details.email.split('@')[0] } : null;
+    }));
+    
+    set({ pendingRequests: pendingWithDetails.filter(Boolean) });
   },
 
   removeFriend: async (friendId) => {

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TextInput, TouchableOpacity, Modal, ScrollView, Alert } from 'react-native';
+import { View, Text, FlatList, TextInput, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import BookLoader from '../components/BookLoader';
 import { useSocialStore } from '../store/useSocialStore';
 import { useBookStore } from '../store/useBookStore';
 import { useThemeStore } from '../store/useThemeStore';
+import { usePopupStore } from '../store/usePopupStore';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function GroupsScreen({ navigation }) {
@@ -15,6 +16,7 @@ export default function GroupsScreen({ navigation }) {
 
   const { isDarkMode } = useThemeStore();
   const user = useBookStore(state => state.user);
+  const { showPopup } = usePopupStore();
   
   const {
     friends,
@@ -52,7 +54,7 @@ export default function GroupsScreen({ navigation }) {
 
   const handleCreateGroup = async () => {
     if (!newGroupName.trim()) {
-      Alert.alert('Erro', 'O nome do grupo não pode ser vazio.');
+      showPopup({ title: 'Aviso', message: 'O nome do grupo não pode ser vazio.', type: 'error' });
       return;
     }
     const groupId = await createGroup(newGroupName, user.uid, selectedFriends);
@@ -195,7 +197,7 @@ export default function GroupsScreen({ navigation }) {
                         <TouchableOpacity
                           onPress={() => {
                             sendFriendRequest(user.uid, item.id);
-                            Alert.alert('Sucesso', 'Solicitação de amizade enviada!');
+                            showPopup({ title: 'Sucesso', message: 'Solicitação de amizade enviada!', type: 'success' });
                           }}
                           className="bg-primary p-2 rounded-lg"
                         >
