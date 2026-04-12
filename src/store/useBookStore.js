@@ -32,6 +32,8 @@ export const useBookStore = create((set, get) => ({
   maxReadingSession: 0,
   lastReadingSession: 0,
   totalBooksCompleted: 0,
+  repairLocked: false,
+
 
   // Auth Actions
   setAuthUser: (user) => {
@@ -112,6 +114,41 @@ export const useBookStore = create((set, get) => ({
           lastReadingSession: data.last_reading_session || 0,
           totalBooksCompleted: data.total_books_completed || 0
         });
+
+        // 🩺 Self-Healing Consistency Check (Session-locked to prevent loops)
+        if (get().repairLocked) return;
+
+        const summary = data.socialSummary || {};
+        const dbTotal = Number(data.total_pages_read || 0);
+        const dbStreak = Number(data.current_streak || 0);
+        const sumTotal = Number(summary.totalPagesRead || 0);
+        const sumStreak = Number(summary.currentStreak || 0);
+
+        const isMissingSummary = !data.socialSummary;
+        const needsRepair = isMissingSummary || 
+                            sumTotal !== dbTotal || 
+                            sumStreak !== dbStreak;
+
+        if (needsRepair) {
+          set({ repairLocked: true }); // Lock for this session
+          
+          updateDoc(userDocRef, {
+            total_pages_read: data.total_pages_read ?? 0,
+            current_streak: data.current_streak ?? 0,
+            socialSummary: {
+              totalPagesRead: dbTotal,
+              currentStreak: dbStreak,
+              lastBookTitle: summary.lastBookTitle || "Recém chegado",
+              lastActive: data.last_reading_date || new Date().toISOString().split('T')[0],
+              profilePic: data.profilePic || null
+            }
+          }).then(() => {
+            // Repair successful (silent for production)
+          }).catch(err => {
+            console.error("🩺 Repair error:", err);
+            set({ repairLocked: false }); // Retry next time if failed
+          });
+        }
       }
     });
 
@@ -233,7 +270,7 @@ export const useBookStore = create((set, get) => ({
       set({ messages: messagesList, chatError: null });
     }, (error) => {
       set({ chatError: "Erro ao carregar mensagens. Verifique se você é membro deste grupo e as regras do Firestore." });
-      console.log("Firestore (Group Messages):", error.message);
+      console.error("Firestore (Group Messages):", error.message);
     });
 
     return unsub;
@@ -250,7 +287,7 @@ export const useBookStore = create((set, get) => ({
       set({ users: usersList, rankingError: null });
     }, (error) => {
       set({ rankingError: error.message });
-      console.log("Firestore (Users):", error.message);
+      console.error("Firestore (Users):", error.message);
     });
 
     return unsub;

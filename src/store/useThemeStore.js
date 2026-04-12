@@ -6,7 +6,9 @@ export const useThemeStore = create(
   persist(
     (set) => ({
       isDarkMode: true,
+      hapticsEnabled: true,
       toggleTheme: () => set((state) => ({ isDarkMode: !state.isDarkMode })),
+      toggleHaptics: () => set((state) => ({ hapticsEnabled: !state.hapticsEnabled })),
       setDarkMode: (value) => set({ isDarkMode: value }),
     }),
     {

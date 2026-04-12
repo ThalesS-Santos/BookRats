@@ -10,6 +10,7 @@ import {
   subscribeToReceivedRequests,
   subscribeToGroups,
   getUserDetails,
+  getUsersByIds,
   removeFriendship as apiRemoveFriendship,
   leaveGroup as apiLeaveGroup,
   getPaginatedRanking as apiGetPaginatedRanking
@@ -194,27 +195,29 @@ export const useSocialStore = create((set, get) => ({
     };
   },
 
-  // Helper to fetch user details for friendships
   resolveFriendships: async (uid) => {
     const { sentRequests, allReceived = [] } = get();
     const allRequests = [...sentRequests, ...allReceived];
     const acceptedRequests = allRequests.filter(r => r.status === 'accepted');
 
-    // Get unique friend IDs
+    // 1. Get unique friend IDs
     const friendIds = [...new Set(acceptedRequests.map(r => r.senderId === uid ? r.receiverId : r.senderId))];
 
-    // Fetch details in parallel 🚀
-    const friendsData = (await Promise.all(friendIds.map(fid => getUserDetails(fid)))).filter(Boolean);
+    // 2. Fetch friend details in batch ⚡
+    const friendsData = await getUsersByIds(friendIds);
     set({ friends: friendsData });
 
-    // Also resolve names for pending requests (who sent them) in parallel 🚀
+    // 3. Resolve names for pending requests in batch ⚡
     const { pendingRequests } = get();
-    const pendingWithDetails = await Promise.all(pendingRequests.map(async (req) => {
-      const details = await getUserDetails(req.senderId);
-      return details ? { ...req, senderName: details.username || details.email.split('@')[0] } : null;
-    }));
+    const pendingSenderIds = pendingRequests.map(req => req.senderId);
+    const pendingSendersDetails = await getUsersByIds(pendingSenderIds);
     
-    set({ pendingRequests: pendingWithDetails.filter(Boolean) });
+    const pendingWithDetails = pendingRequests.map(req => {
+      const details = pendingSendersDetails.find(d => d.id === req.senderId);
+      return details ? { ...req, senderName: details.username || details.email.split('@')[0] } : null;
+    }).filter(Boolean);
+    
+    set({ pendingRequests: pendingWithDetails });
   },
 
   removeFriend: async (friendId) => {

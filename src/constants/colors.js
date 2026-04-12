@@ -25,4 +25,6 @@ export const COLORS = {
   },
   loading: '#0F172A',
   streak: '#D97706',
+  dark_blue: '#020617',  // Solid background for transitions
+  neon_green: '#5B8C5A', // Consistent with primary but optimized for indicator
 };

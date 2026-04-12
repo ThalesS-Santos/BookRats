@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { View, Text, Switch, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { View, Text, Switch, TouchableOpacity, ScrollView } from 'react-native';
 import { useThemeStore } from '../store/useThemeStore';
-import { Ionicons } from '@expo/vector-icons';
 import { useBookStore } from '../store/useBookStore';
-import { ALL_BADGES } from '../constants/badges';
 import { usePopupStore } from '../store/usePopupStore';
+import { ALL_BADGES } from '../constants/badges';
+import * as Haptics from 'expo-haptics';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import FastAvatar from '../components/FastAvatar';
 
 export default function ProfileScreen() {
-  const { isDarkMode, toggleTheme } = useThemeStore();
+  const { isDarkMode, toggleTheme, hapticsEnabled, toggleHaptics } = useThemeStore();
   const [showCompleted, setShowCompleted] = useState(false);
   const books = useBookStore(state => state.books);
   const streak = useBookStore(state => state.streak);
@@ -15,8 +17,9 @@ export default function ProfileScreen() {
   const user = useBookStore(state => state.user);
   const signOut = useBookStore(state => state.signOut);
   const { showPopup } = usePopupStore();
+  const { COLORS } = require('../constants/colors');
 
-  const accentColor = isDarkMode ? '#A7C9A7' : '#5B8C5A';
+  const accentColor = isDarkMode ? COLORS.primary.dark : COLORS.primary.light;
   const completedBooks = books.filter(b => b.status === 'completed').length;
   const readingBooks = books.filter(b => b.status === 'reading').length;
 
@@ -59,15 +62,18 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView className="flex-1 bg-background-light dark:bg-background-dark p-6" showsVerticalScrollIndicator={false}>
-      <View className="items-center mt-12 mb-12">
-        <View className="w-24 h-24 bg-primary dark:bg-primary-dark rounded-full items-center justify-center shadow-xl mb-4">
-          <Ionicons name="person" size={50} color="white" />
-        </View>
+      <View className="items-center mt-12 mb-10">
+        <FastAvatar 
+          source={user?.profilePic} 
+          size={100} 
+          style={{ marginBottom: 16 }} 
+          border 
+        />
         <Text className="text-text-light dark:text-text-dark text-3xl font-serif font-bold" numberOfLines={1}>
           {user?.email?.split('@')[0] || 'Leitor Rat'}
         </Text>
         <View className="flex-row items-center mt-1">
-          <Ionicons name="flame" size={18} color="#D97706" />
+          <Ionicons name="flame" size={18} color={COLORS.streak} />
           <Text className="text-streak font-bold font-mono ml-1">Streak: {streak} dias</Text>
         </View>
       </View>
@@ -88,6 +94,21 @@ export default function ProfileScreen() {
             thumbColor={'#ffffff'}
           />
         </View>
+
+        <View className="flex-row items-center justify-between p-5 bg-card-light dark:bg-card-dark rounded-2xl border border-border-light dark:border-border-dark mt-4 shadow-sm">
+          <View className="flex-row items-center">
+            <View className="bg-primary/10 dark:bg-primary-dark/10 p-2 rounded-lg mr-4">
+              <MaterialCommunityIcons name="vibrate" size={22} color={accentColor} />
+            </View>
+            <Text className="text-text-light dark:text-text-dark font-serif font-bold text-lg">Feedback Tátil</Text>
+          </View>
+          <Switch
+            value={hapticsEnabled}
+            onValueChange={toggleHaptics}
+            trackColor={{ false: '#CBD5E1', true: accentColor }}
+            thumbColor={'#ffffff'}
+          />
+        </View>
       </View>
 
       <View className="mb-10">
@@ -98,7 +119,10 @@ export default function ProfileScreen() {
             return (
               <TouchableOpacity 
                 key={badge.id} 
-                onPress={() => showPopup({ title: badge.title, message: `Missão: ${badge.mission}`, type: isUnlocked ? 'success' : 'info' })}
+                onPress={() => {
+                  if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                  showPopup({ title: badge.title, message: `Missão: ${badge.mission}`, type: isUnlocked ? 'success' : 'info' });
+                }}
                 className={`p-3 rounded-xl border items-center mr-2 mb-2 w-[30%] ${
                   isUnlocked 
                     ? 'bg-card-light dark:bg-card-dark border-primary/20 dark:border-primary-dark/20' 

@@ -1,5 +1,6 @@
-import React, { useRef, useState } from 'react';
-import { View, StyleSheet, Dimensions, Text, TouchableOpacity, Animated } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeStore } from '../store/useThemeStore';
 import { COLORS } from '../constants/colors';
@@ -10,7 +11,7 @@ import RankingScreen from '../screens/RankingScreen';
 import GroupsScreen from '../screens/GroupsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const Tab = createMaterialTopTabNavigator();
 
 const TABS = [
   { name: 'Início', icon: 'book', component: HomeScreen },
@@ -19,147 +20,131 @@ const TABS = [
   { name: 'Perfil', icon: 'person', component: ProfileScreen },
 ];
 
-const BookFlipPage = ({ children, index, scrollX }) => {
-  // Opacity: Creates a slight fade effect while swiping left/right
-  const opacity = scrollX.interpolate({
-    inputRange: [
-        (index - 0.9) * SCREEN_WIDTH,
-        index * SCREEN_WIDTH,
-        (index + 0.9) * SCREEN_WIDTH,
-    ],
-    outputRange: [0.3, 1, 0.3],
-    extrapolate: 'clamp',
-  });
+function CustomTabBar({ state, descriptors, navigation, isDarkMode }) {
+  const activeColor = isDarkMode ? COLORS.primary.dark : COLORS.primary.light;
+  const inactiveColor = isDarkMode ? '#64748B' : '#94A3B8';
 
   return (
-    <Animated.View 
-      collapsable={false}
-      style={[
-        styles.pageContainer, 
-        { 
-          opacity,
-        }
-      ]}
-    >
-      <SafeAreaView edges={['top']} style={{ flex: 1 }}>
-        {children}
-      </SafeAreaView>
-    </Animated.View>
-  );
-};
+    <View style={[
+      styles.tabBarContainer,
+      { 
+        backgroundColor: isDarkMode ? COLORS.background.dark : COLORS.background.light,
+        borderTopColor: isDarkMode ? COLORS.border.dark : '#F1F1E6',
+      }
+    ]}>
+      <SafeAreaView edges={['bottom']} style={styles.tabBar}>
+        {state.routes.map((route, index) => {
+          const { options } = descriptors[route.key];
+          const isFocused = state.index === index;
+          const tabConfig = TABS[index];
 
-export default function TabNavigator({ navigation, route }) {
-  const { isDarkMode } = useThemeStore();
-  const scrollRef = useRef(null);
-  const scrollX = useRef(new Animated.Value(0)).current;
-  const [activeIndex, setActiveIndex] = useState(0);
+          const onPress = () => {
+            const event = navigation.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
 
-  const onTabPress = (index) => {
-    scrollRef.current?.scrollTo({ x: index * SCREEN_WIDTH, animated: true });
-    setActiveIndex(index);
-  };
+            if (!isFocused && !event.defaultPrevented) {
+              navigation.navigate(route.name);
+            }
+          };
 
-  const handleScroll = (event) => {
-    const index = Math.round(event.nativeEvent.contentOffset.x / SCREEN_WIDTH);
-    if (index !== activeIndex) {
-      setActiveIndex(index);
-    }
-  };
+          const color = isFocused ? activeColor : inactiveColor;
 
-  return (
-    <View style={[styles.container, { backgroundColor: isDarkMode ? COLORS.background.dark : COLORS.background.light }]}>
-      
-        <Animated.ScrollView
-          ref={scrollRef}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          scrollEventThrottle={16}
-          onMomentumScrollEnd={handleScroll}
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-            { useNativeDriver: true }
-          )}
-          style={styles.pager}
-          keyboardShouldPersistTaps="handled"
-        >
-          {TABS.map((tab, index) => (
-            <BookFlipPage 
-              key={tab.name} 
-              index={index} 
-              scrollX={scrollX}
+          return (
+            <TouchableOpacity
+              key={route.key}
+              onPress={onPress}
+              style={styles.tabItem}
+              activeOpacity={0.7}
             >
-              <tab.component navigation={navigation} route={route} />
-            </BookFlipPage>
-          ))}
-        </Animated.ScrollView>
-
-      {/* Custom Bottom Tab Bar */}
-      <View style={[
-        styles.tabBarContainer,
-        { 
-          backgroundColor: isDarkMode ? COLORS.background.dark : COLORS.background.light,
-          borderTopColor: isDarkMode ? COLORS.border.dark : '#F1F1E6', // Subtler border for Light mode
-          borderTopWidth: 1.5,
-        }
-      ]}>
-        <SafeAreaView edges={['bottom']} style={styles.tabBar}>
-          {TABS.map((tab, index) => {
-            const isActive = activeIndex === index;
-            const color = isActive 
-              ? (isDarkMode ? COLORS.primary.dark : COLORS.primary.light)
-              : (isDarkMode ? '#64748B' : '#94A3B8');
-
-            return (
-              <TouchableOpacity 
-                key={tab.name} 
-                onPress={() => onTabPress(index)}
-                style={styles.tabItem}
-                activeOpacity={0.7}
-              >
-                <Ionicons name={tab.icon} size={24} color={color} />
-                <Text style={[styles.tabLabel, { color }]}>
-                  {tab.name}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </SafeAreaView>
-      </View>
+              <Ionicons name={tabConfig.icon} size={24} color={color} />
+              <Text style={[styles.tabLabel, { color }]}>
+                {tabConfig.name}
+              </Text>
+              {isFocused && (
+                <View style={[styles.indicator, { backgroundColor: COLORS.neon_green }]} />
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </SafeAreaView>
     </View>
   );
 }
 
+export default function TabNavigator({ navigation, route }) {
+  const { isDarkMode } = useThemeStore();
+
+  // 🛰️ Tab Switch Listener (Handles navigation from child screens via param)
+  useEffect(() => {
+    const targetIdx = route.params?.tabIndex;
+    if (typeof targetIdx === 'number' && targetIdx >= 0 && targetIdx < TABS.length) {
+      const routeName = TABS[targetIdx].name;
+      navigation.navigate(routeName);
+      // Clear param to avoid re-triggering
+      navigation.setParams({ tabIndex: undefined });
+    }
+  }, [route.params?.tabIndex]);
+
+  return (
+    <Tab.Navigator
+      tabBarPosition="bottom"
+      tabBar={(props) => <CustomTabBar {...props} isDarkMode={isDarkMode} />}
+      initialRouteName="Início"
+      screenOptions={{
+        tabBarShowLabel: true,
+        animationEnabled: true,
+        swipeEnabled: true,
+        lazy: true,
+        tabBarPressColor: 'transparent',
+        tabBarIndicatorStyle: {
+          backgroundColor: COLORS.neon_green,
+          height: 3,
+          bottom: 0,
+        },
+        sceneContainerStyle: { 
+          backgroundColor: COLORS.dark_blue 
+        },
+      }}
+    >
+      {TABS.map((tab) => (
+        <Tab.Screen 
+          key={tab.name} 
+          name={tab.name} 
+          component={tab.component} 
+        />
+      ))}
+    </Tab.Navigator>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  pager: {
-    flex: 1,
-  },
-  pageContainer: {
-    width: SCREEN_WIDTH,
-    flex: 1,
-    backfaceVisibility: 'hidden',
-  },
   tabBarContainer: {
-    paddingBottom: 0,
-    // Use a very subtle top border instead of a shadow to avoid the "boxy" look
-    borderTopWidth: 1,
+    borderTopWidth: 1.5,
   },
   tabBar: {
     flexDirection: 'row',
-    height: 60,
+    height: 65,
   },
   tabItem: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 8,
+    paddingTop: 10,
+    position: 'relative',
   },
   tabLabel: {
     fontSize: 10,
     marginTop: 4,
     fontWeight: 'bold',
   },
+  indicator: {
+    position: 'absolute',
+    top: -1.5, // Align with the top border
+    width: '60%',
+    height: 3,
+    borderRadius: 2,
+  }
 });

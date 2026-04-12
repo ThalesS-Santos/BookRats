@@ -1,0 +1,84 @@
+Nível 1: Infraestrutura e Integridade de Dados (Urgência Crítica)
+Este nível garante que o seu app não quebre e que você não gaste dinheiro desnecessário com o Google Cloud.
+
+1.1 API e Comunicação com Banco de Dados
+
+1.1.1 Implementação de Debouncing: * Ação: Criar um utilitário de debounce e aplicar em searchUsers (nas telas de busca e convite).
+
+Objetivo: Parar de "metralhar" o Firestore com requisições inúteis.
+
+1.1.2 Validação de Entrada no Backend (API Layer):
+
+Ação: Garantir que updateProgress e addBook validem se os dados são números e se não são nulos antes de enviar ao Firebase.
+
+1.2 Estabilidade do Sistema
+
+1.2.1 Sanitização de Inputs no Timer: * Ação: Aplicar Regex no onChangeText da TimerScreen.js para aceitar estritamente apenas números.
+
+1.2.2 Tratamento de Erros Global: * Ação: Substituir os console.error nas APIs por retornos estruturados que o usuário consiga entender (ex: avisar se o limite de cotas do Firebase estourou).
+
+🟡 Nível 2: Performance e Escalabilidade (Otimização de Fluxo)
+Este nível garante que o app continue rápido mesmo se você tiver muitos usuários e dados.
+
+2.1 Otimização de Listas e Rankings
+
+2.1.1 Paginação do Ranking Geral:
+
+Ação: Alterar RankingScreen.js para usar limit() e startAfter() do Firestore.
+
+2.1.2 Agregação de Dados para Social:
+
+Ação: Em vez de ler todos os detalhes de cada amigo em tempo real, criar campos de "resumo" no documento do usuário (total de páginas, etc.).
+
+2.2 Gestão de Memória e Bundle
+
+2.2.1 Remoção de Dead Code (Lixo):
+
+Ação: Varredura em todas as telas para remover o import Alert do react-native (já que você usa o CustomPopup).
+
+2.2.2 Cache de Imagens de Perfil:
+
+Ação: Implementar uma biblioteca como react-native-fast-image para evitar que os avatares fiquem piscando no scroll.
+
+🔵 Nível 3: Refinamento de UX e Interface (Polimento)
+Este nível transforma o seu projeto em um produto "Nível App Store".
+
+3.1 Experiência de Navegação
+
+3.1.1 Ajuste da Transição entre Abas:
+
+Ação: Refinar a interpolação do MaterialTopTabNavigator no TabNavigator.js para que não haja "flicker" (piscada) de opacidade.
+
+3.1.2 Haptic Feedback (Tátil):
+
+Ação: Adicionar vibrações sutis ao completar um Timer ou ganhar um Badge.
+
+3.2 Design de Detalhes
+
+
+////Ja feito
+
+
+
+3.2.1 Respiro de Layout (Padding):
+
+Ação: Revisar margens nos Cards da HomeScreen e GroupsScreen (evitar que textos fiquem colados na borda).
+
+3.2.2 Estados de "Empty List":
+
+Ação: Criar ilustrações ou textos amigáveis para quando o usuário não tem livros ou amigos ainda.
+
+🔴 Nível 4: Gamificação e Social (Expansão de Funcionalidade)
+Apenas para ser feito após o app estar 100% estável.
+
+4.1 Sistema de Anotações Colaborativas
+
+4.1.1 Privacidade de Notas:
+
+Ação: Adicionar flag isPublic nas anotações de leitura.
+
+4.2 Rankings de Nicho
+
+4.2.1 Ranking Interno de Grupos:
+
+Ação: Implementar a lógica de filtro de ranking dentro da GroupDetailsScreen.js.

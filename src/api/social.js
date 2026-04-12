@@ -15,7 +15,8 @@ import {
   arrayUnion,
   orderBy,
   limit,
-  startAfter
+  startAfter,
+  documentId
 } from 'firebase/firestore';
 import { mapFirebaseError } from '../utils/errorMapper';
 
@@ -153,6 +154,33 @@ export const getUserDetails = async (uid) => {
   }
 };
 
+/**
+ * 🚀 Batch Fetch Users by IDs
+ * Uses Firestore 'in' query to fetch up to 30 documents in a single read trip.
+ */
+export const getUsersByIds = async (uids) => {
+  if (!uids || uids.length === 0) return [];
+  
+  try {
+    // Firestore 'in' limit is 30. If more, we'd need to chunk.
+    const chunks = [];
+    for (let i = 0; i < uids.length; i += 30) {
+      chunks.push(uids.slice(i, i + 30));
+    }
+
+    const results = await Promise.all(chunks.map(async (chunk) => {
+      const q = query(collection(db, 'users'), where(documentId(), 'in', chunk));
+      const snap = await getDocs(q);
+      return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    }));
+
+    return results.flat();
+  } catch (error) {
+    console.error("Error in getUsersByIds:", error);
+    throw new Error(mapFirebaseError(error));
+  }
+};
+
 export const removeFriendship = async (uid, friendId) => {
   try {
     const q1 = query(collection(db, 'friendships'), where('senderId', '==', uid), where('receiverId', '==', friendId));
@@ -190,13 +218,9 @@ export const getGroupDetails = async (groupId) => {
     if (!snap.exists()) return null;
     
     const data = snap.data();
-    // Paraleliza a busca de detalhes dos membros 🚀
-    const memberPromises = (data.members || []).map(async (uid) => {
-       const userSnap = await getDoc(doc(db, 'users', uid));
-       return userSnap.exists() ? { id: uid, ...userSnap.data() } : null;
-    });
+    // ⚡ Optimized Batch Fetch of member details (O(1) extra read instead of O(N))
+    const members = await getUsersByIds(data.members || []);
     
-    const members = (await Promise.all(memberPromises)).filter(Boolean);
     return { id: groupId, ...data, members };
   } catch (error) {
     console.error("Error getting group details:", error);

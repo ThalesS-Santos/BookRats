@@ -4,6 +4,7 @@ import { useBookStore } from '../store/useBookStore';
 import { useSocialStore } from '../store/useSocialStore';
 import { useThemeStore } from '../store/useThemeStore';
 import { Ionicons } from '@expo/vector-icons';
+import FastAvatar from '../components/FastAvatar';
 
 // 🕒 Helper to format seconds to human-readable time
 const formatDuration = (totalSeconds) => {
@@ -24,14 +25,17 @@ const RankingItem = React.memo(({ item, index, renderMedal, onPress }) => {
     >
       <View className="flex-row items-center mb-3">
         <View className="w-8 items-center">{renderMedal(index)}</View>
+        <FastAvatar 
+          source={item.profilePic} 
+          size={50} 
+          isOnline={item.isOnline} 
+          style={{ marginLeft: 16 }} 
+        />
         <View className="ml-4 flex-1">
           <View className="flex-row items-center">
             <Text className={`text-lg font-serif font-bold ${item.isMe ? 'text-primary dark:text-primary-dark' : 'text-text-light dark:text-text-dark'}`}>
               {item.name}
             </Text>
-            {item.isOnline && (
-              <View className="w-2.5 h-2.5 bg-green-500 rounded-full ml-2" />
-            )}
           </View>
           <Text className="text-text-muted-light dark:text-text-muted-dark text-[10px] uppercase tracking-tighter">
             {item.currentReading ? `📖 Lendo: ${item.currentReading}` : 'Descansando'}
@@ -91,6 +95,7 @@ export default function RankingScreen({ navigation }) {
       pages: u.total_pages_read || 0,
       isMe: u.id === user?.uid,
       isOnline: u.isOnline,
+      profilePic: u.profilePic,
       currentReading: u.currentReadingBook,
       maxSession: u.max_reading_session || 0,
       lastSession: u.last_reading_session || 0,

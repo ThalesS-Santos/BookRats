@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Dimensions } from 'react-native';
 import { useKeepAwake } from 'expo-keep-awake';
+import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { useBookStore } from '../store/useBookStore';
 import { useThemeStore } from '../store/useThemeStore';
@@ -13,7 +14,7 @@ const { width } = Dimensions.get('window');
 export default function TimerScreen({ route, navigation }) {
   useKeepAwake();
   const { bookId } = route.params;
-  const { isDarkMode } = useThemeStore();
+  const { isDarkMode, hapticsEnabled } = useThemeStore();
   const books = useBookStore(state => state.books);
   const { showPopup } = usePopupStore();
   const user = useBookStore(state => state.user);
@@ -53,6 +54,7 @@ export default function TimerScreen({ route, navigation }) {
   };
 
   const handleFinish = () => {
+    if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setIsActive(false);
     setShowFinishForm(true);
   };
@@ -88,7 +90,6 @@ export default function TimerScreen({ route, navigation }) {
       return;
     }
     
-    // Salva anotação se houver
     if (annotation.trim() && user?.uid) {
       try {
         await addAnnotation(user.uid, bookId, newPage, annotation.trim(), isPublic);
@@ -98,6 +99,7 @@ export default function TimerScreen({ route, navigation }) {
     }
 
     updateProgress(bookId, newPage, seconds);
+    if (hapticsEnabled) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     navigation.goBack();
   };
 
@@ -152,7 +154,10 @@ export default function TimerScreen({ route, navigation }) {
           <View className="flex-row justify-center space-x-12 items-center">
             <TouchableOpacity
               className="w-16 h-16 rounded-full items-center justify-center bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark"
-              onPress={() => setIsActive(!isActive)}
+              onPress={() => {
+                if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setIsActive(!isActive);
+              }}
             >
               <Ionicons
                 name={isActive ? "pause" : "play"}
@@ -171,6 +176,7 @@ export default function TimerScreen({ route, navigation }) {
             <TouchableOpacity
               className="w-16 h-16 rounded-full items-center justify-center bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark"
               onPress={() => {
+                if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 showPopup({
                   title: 'Zerar',
                   message: 'Deseja realmente zerar o cronômetro?',

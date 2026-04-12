@@ -7,6 +7,7 @@ import { useThemeStore } from '../store/useThemeStore';
 import { usePopupStore } from '../store/usePopupStore';
 import { Ionicons } from '@expo/vector-icons';
 import { debounce } from '../utils/debounce';
+import FastAvatar from '../components/FastAvatar';
 
 export default function GroupsScreen({ navigation }) {
   const [activeTab, setActiveTab] = useState('groups'); // 'groups' | 'friends'
@@ -122,9 +123,11 @@ export default function GroupsScreen({ navigation }) {
       className="bg-card-light dark:bg-card-dark p-4 rounded-2xl mb-2 flex-row items-center justify-between border border-border-light dark:border-border-dark"
     >
       <View className="flex-row items-center">
-        <View className="w-10 h-10 bg-primary/20 rounded-full items-center justify-center mr-3">
-          <Ionicons name="person" size={20} color={accentColor} />
-        </View>
+        <FastAvatar 
+          source={item.profilePic} 
+          size={40} 
+          style={{ marginRight: 12 }} 
+        />
         <Text className="text-text-light dark:text-text-dark font-bold">{item.username || item.email.split('@')[0]}</Text>
       </View>
       <Ionicons name="chevron-forward" size={20} color={isDarkMode ? '#6B7280' : '#9CA3AF'} />
@@ -208,7 +211,10 @@ export default function GroupsScreen({ navigation }) {
                   const isSent = sentRequests.some(r => r.receiverId === item.id);
                   return (
                     <View key={item.id} className="flex-row items-center justify-between mb-2">
-                      <Text className="text-text-light dark:text-text-dark font-bold">{item.username || item.email.split('@')[0]}</Text>
+                      <View className="flex-row items-center">
+                        <FastAvatar source={item.profilePic} size={30} style={{ marginRight: 8 }} />
+                        <Text className="text-text-light dark:text-text-dark font-bold">{item.username || item.email.split('@')[0]}</Text>
+                      </View>
                       {isFriend ? (
                         <Text className="text-[#22C55E] text-xs font-bold">Amigo</Text>
                       ) : isSent ? (

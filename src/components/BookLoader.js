@@ -21,27 +21,41 @@ const PIXEL_BORDER = 3;
 const BookLoader = ({ isVisible = true }) => {
   const { isDarkMode } = useThemeStore();
   const [curiosity, setCuriosity] = useState("");
+  const [shouldRender, setShouldRender] = useState(isVisible);
   const fadeAnim = useRef(new Animated.Value(isVisible ? 1 : 0)).current;
 
   // Theme-based colors
   const BG_COLOR = isDarkMode ? COLORS.background.dark : COLORS.background.light;
-  const ACCENT_COLOR = isDarkMode ? '#22C55E' : COLORS.primary.light; // Neon Green in dark, Sage in light
+  const ACCENT_COLOR = isDarkMode ? '#22C55E' : COLORS.primary.light;
   const TEXT_MUTED = isDarkMode ? '#94A3B8' : '#64748B';
 
   useEffect(() => {
-    setCuriosity(CURIOSITIES[Math.floor(Math.random() * CURIOSITIES.length)]);
-
-    Animated.timing(fadeAnim, {
-      toValue: isVisible ? 1 : 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
+    if (isVisible) {
+      setCuriosity(CURIOSITIES[Math.floor(Math.random() * CURIOSITIES.length)]);
+      setShouldRender(true);
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => {
+        setShouldRender(false);
+      });
+    }
   }, [isVisible]);
 
-  if (!isVisible && fadeAnim._value === 0) return null;
+  if (!shouldRender) return null;
 
   return (
-    <Animated.View style={[styles.container, { opacity: fadeAnim, backgroundColor: BG_COLOR }]}>
+    <Animated.View 
+      pointerEvents={isVisible ? 'auto' : 'none'}
+      style={[styles.container, { opacity: fadeAnim, backgroundColor: BG_COLOR }]}
+    >
       <View style={styles.content}>
         
         {/* Pixel Art Book Drawing (Static) */}

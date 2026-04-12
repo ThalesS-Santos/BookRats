@@ -82,7 +82,15 @@ export const updateBookProgress = async (uid, book, newPage, timeSeconds, streak
       last_reading_date: todayStr,
       max_reading_session: newMaxSession,
       last_reading_session: tSeconds,
-      total_books_completed: totalBooksCompleted + completedIncrement
+      total_books_completed: totalBooksCompleted + completedIncrement,
+      // 📊 Denormalized Social Summary for O(1) rendering
+      socialSummary: {
+        totalPagesRead: totalPagesRead + pagesReadToday,
+        currentStreak: newStreak,
+        lastBookTitle: book.title,
+        lastActive: todayStr,
+        // profilePic is handled elsewhere or preserved if already there
+      }
     });
 
     return { pagesReadToday, isCompleted };

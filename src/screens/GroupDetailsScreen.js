@@ -187,7 +187,8 @@ export default function GroupDetailsScreen({ route, navigation }) {
   };
 
   return (
-    <ScrollView className="flex-1 bg-background-light dark:bg-background-dark p-6">
+    <View className="flex-1 bg-background-light dark:bg-background-dark">
+      <ScrollView className="flex-1 p-6" showsVerticalScrollIndicator={false}>
       <View className="flex-row justify-between items-center mt-12 mb-6">
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={28} color={isDarkMode ? '#E0E0E0' : '#1A1A1A'} />
@@ -202,9 +203,7 @@ export default function GroupDetailsScreen({ route, navigation }) {
             className="p-2 bg-card-light dark:bg-card-dark rounded-xl border border-border-light dark:border-border-dark"
           >
             {updating ? (
-              <View style={{ width: 22, height: 22 }}>
-                <BookLoader isVisible={updating} />
-              </View>
+              <ActivityIndicator size="small" color="#22C55E" />
             ) : (
               <Ionicons name={isEditing ? "checkmark" : "create-outline"} size={22} color="#22C55E" />
             )}
@@ -318,6 +317,10 @@ export default function GroupDetailsScreen({ route, navigation }) {
           </View>
         </View>
       </Modal>
-    </ScrollView>
+      </ScrollView>
+
+      {/* Full-screen Loading Overlay for Updates */}
+      <BookLoader isVisible={updating} />
+    </View>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import BookLoader from '../components/BookLoader';
 import { Ionicons } from '@expo/vector-icons';
 import { getUserBooks, getUserAnnotations } from '../api/books';
@@ -7,6 +7,8 @@ import { getUserDetails } from '../api/social';
 import { useSocialStore } from '../store/useSocialStore';
 import { useThemeStore } from '../store/useThemeStore';
 import { usePopupStore } from '../store/usePopupStore';
+import * as Haptics from 'expo-haptics';
+import FastAvatar from '../components/FastAvatar';
 import { COLORS } from '../constants/colors';
 import { ALL_BADGES } from '../constants/badges';
 
@@ -20,7 +22,7 @@ const formatDuration = (totalSeconds) => {
 
 export default function UserProfileScreen({ route, navigation }) {
   const { userId } = route.params;
-  const { isDarkMode } = useThemeStore();
+  const { isDarkMode, hapticsEnabled } = useThemeStore();
   const { removeFriend } = useSocialStore();
   const { showPopup } = usePopupStore();
   const [loading, setLoading] = useState(true);
@@ -97,11 +99,14 @@ export default function UserProfileScreen({ route, navigation }) {
       </TouchableOpacity>
 
       {/* Profile Header */}
-      <View className="items-center mb-8">
-        <View className="w-24 h-24 bg-primary/10 rounded-full items-center justify-center mb-4 border-2 border-primary">
-          <Ionicons name="person" size={48} color="#22C55E" />
-        </View>
-        <Text className="text-text-light dark:text-text-dark text-3xl font-serif font-bold">
+      <View className="items-center mt-12 mb-10">
+        <FastAvatar 
+          source={friend.profilePic} 
+          size={100} 
+          style={{ marginBottom: 16 }} 
+          border 
+        />
+        <Text className="text-text-light dark:text-text-dark text-3xl font-serif font-bold" numberOfLines={1}>
           {friend.username || friend.email.split('@')[0]}
         </Text>
         <Text className="text-text-muted-light dark:text-text-muted-dark text-sm mt-1">
@@ -142,7 +147,10 @@ export default function UserProfileScreen({ route, navigation }) {
             return (
               <TouchableOpacity 
                 key={badge.id} 
-                onPress={() => Alert.alert(badge.title, `Missão: ${badge.mission}`)}
+                onPress={() => {
+                  if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                  showPopup({ title: badge.title, message: `Missão: ${badge.mission}`, type: isUnlocked ? 'success' : 'info' });
+                }}
                 className={`p-3 rounded-xl border items-center mb-2 w-[31%] ${
                   isUnlocked 
                     ? 'bg-card-light dark:bg-card-dark border-primary/20 dark:border-primary-dark/20' 
