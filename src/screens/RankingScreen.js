@@ -17,27 +17,35 @@ const formatDuration = (totalSeconds) => {
 
 // 🎨 Memoized Ranking Item for Performance
 const RankingItem = React.memo(({ item, index, renderMedal, onPress }) => {
+  const { COLORS } = require('../constants/colors');
   return (
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.7}
-      className={`p-5 mb-4 rounded-3xl border ${item.isMe ? 'bg-primary/5 dark:bg-primary-dark/5 border-primary dark:border-primary-dark' : 'bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark'}`}
+      className={`p-6 mb-4 rounded-3xl border shadow-sm bg-card-light dark:bg-card-dark ${item.isMe ? 'border-primary dark:border-primary-dark border-2' : 'border-border-light dark:border-border-dark'}`}
+      style={{ shadowColor: item.isMe ? COLORS.neon_green : COLORS.dark_blue, shadowOpacity: 0.05, shadowRadius: 15, shadowOffset: { width: 0, height: 4 } }}
     >
-      <View className="flex-row items-center mb-3">
+      <View className="flex-row items-center mb-4">
         <View className="w-8 items-center">{renderMedal(index)}</View>
         <FastAvatar 
           source={item.profilePic} 
           size={50} 
           isOnline={item.isOnline} 
-          style={{ marginLeft: 16 }} 
+          style={{ marginLeft: 8, marginRight: 12 }} 
         />
-        <View className="ml-4 flex-1">
+        <View className="flex-1 pr-4">
           <View className="flex-row items-center">
-            <Text className={`text-lg font-serif font-bold ${item.isMe ? 'text-primary dark:text-primary-dark' : 'text-text-light dark:text-text-dark'}`}>
+            <Text 
+              className={`text-lg font-serif font-bold ${item.isMe ? 'text-primary dark:text-primary-dark' : 'text-text-light dark:text-text-dark'}`}
+              numberOfLines={1}
+            >
               {item.name}
             </Text>
           </View>
-          <Text className="text-text-muted-light dark:text-text-muted-dark text-[10px] uppercase tracking-tighter">
+          <Text 
+            className="text-text-muted-light dark:text-text-muted-dark text-[10px] uppercase tracking-tighter mt-1"
+            numberOfLines={1}
+          >
             {item.currentReading ? `📖 Lendo: ${item.currentReading}` : 'Descansando'}
           </Text>
         </View>

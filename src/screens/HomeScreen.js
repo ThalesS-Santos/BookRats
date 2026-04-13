@@ -19,7 +19,10 @@ export default function HomeScreen({ navigation }) {
   const readingBooks = books.filter(b => b.status === 'reading');
 
   const listHeader = () => (
-    <View className="mb-8 mt-4 items-center bg-card-light dark:bg-card-dark p-8 rounded-[40px] border border-border-light dark:border-border-dark">
+    <View 
+      className="mb-8 mt-4 items-center bg-card-light dark:bg-card-dark p-8 rounded-[40px] border border-border-light dark:border-border-dark shadow-sm"
+      style={{ shadowColor: COLORS.dark_blue, shadowOpacity: 0.05, shadowRadius: 15, shadowOffset: { width: 0, height: 4 } }}
+    >
       <View className="flex-row items-center">
         <Text className="text-streak text-6xl font-bold font-mono">🔥 {streak}</Text>
       </View>
@@ -71,8 +74,9 @@ export default function HomeScreen({ navigation }) {
         )}
         renderItem={({ item }) => (
           <TouchableOpacity
-            className="bg-card-light dark:bg-card-dark p-6 rounded-3xl mb-6 border border-border-light dark:border-border-dark shadow-sm"
+            className="bg-card-light dark:bg-card-dark px-8 py-6 rounded-3xl mb-6 border border-border-light dark:border-border-dark shadow-sm"
             onPress={() => navigation.navigate('Timer', { bookId: item.id })}
+            style={{ shadowColor: COLORS.dark_blue, shadowOpacity: 0.05, shadowRadius: 15, shadowOffset: { width: 0, height: 4 } }}
           >
             <View className="flex-row justify-between items-start mb-4">
               <View className="flex-1 pr-4">

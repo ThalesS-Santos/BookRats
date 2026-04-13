@@ -20,6 +20,7 @@ export default function GroupsScreen({ navigation }) {
   const { isDarkMode } = useThemeStore();
   const user = useBookStore(state => state.user);
   const { showPopup } = usePopupStore();
+  const { COLORS } = require('../constants/colors');
   
   const {
     friends,
@@ -98,9 +99,10 @@ export default function GroupsScreen({ navigation }) {
   const renderGroupItem = ({ item }) => (
     <TouchableOpacity
       onPress={() => navigation.navigate('GroupChat', { groupId: item.id, groupName: item.name })}
-      className="bg-card-light dark:bg-card-dark p-5 rounded-2xl mb-3 border border-border-light dark:border-border-dark flex-row items-center justify-between"
+      className="bg-card-light dark:bg-card-dark p-6 rounded-2xl mb-3 border border-border-light dark:border-border-dark flex-row items-center justify-between shadow-sm"
+      style={{ shadowColor: COLORS.dark_blue, shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } }}
     >
-      <View className="flex-row items-center flex-1">
+      <View className="flex-row items-center flex-1 pr-4">
         <View className="w-12 h-12 bg-primary/10 dark:bg-primary-dark/10 rounded-full items-center justify-center mr-4">
           <Ionicons name="chatbubbles" size={24} color={accentColor} />
         </View>
@@ -120,15 +122,18 @@ export default function GroupsScreen({ navigation }) {
   const renderFriendItem = ({ item }) => (
     <TouchableOpacity 
       onPress={() => navigation.navigate('UserProfile', { userId: item.id })}
-      className="bg-card-light dark:bg-card-dark p-4 rounded-2xl mb-2 flex-row items-center justify-between border border-border-light dark:border-border-dark"
+      className="bg-card-light dark:bg-card-dark p-4 rounded-2xl mb-2 flex-row items-center justify-between border border-border-light dark:border-border-dark shadow-sm"
+      style={{ shadowColor: COLORS.dark_blue, shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } }}
     >
-      <View className="flex-row items-center">
+      <View className="flex-row items-center flex-1 pr-4">
         <FastAvatar 
           source={item.profilePic} 
           size={40} 
           style={{ marginRight: 12 }} 
         />
-        <Text className="text-text-light dark:text-text-dark font-bold">{item.username || item.email.split('@')[0]}</Text>
+        <View className="flex-1">
+          <Text className="text-text-light dark:text-text-dark font-bold" numberOfLines={1}>{item.username || item.email.split('@')[0]}</Text>
+        </View>
       </View>
       <Ionicons name="chevron-forward" size={20} color={isDarkMode ? '#6B7280' : '#9CA3AF'} />
     </TouchableOpacity>
@@ -210,10 +215,12 @@ export default function GroupsScreen({ navigation }) {
                   const isFriend = friends.some(f => f.id === item.id);
                   const isSent = sentRequests.some(r => r.receiverId === item.id);
                   return (
-                    <View key={item.id} className="flex-row items-center justify-between mb-2">
-                      <View className="flex-row items-center">
-                        <FastAvatar source={item.profilePic} size={30} style={{ marginRight: 8 }} />
-                        <Text className="text-text-light dark:text-text-dark font-bold">{item.username || item.email.split('@')[0]}</Text>
+                    <View key={item.id} className="flex-row items-center justify-between mb-3 border-b border-border-light/30 dark:border-border-dark/30 pb-3">
+                      <View className="flex-row items-center flex-1 pr-4">
+                        <FastAvatar source={item.profilePic} size={30} style={{ marginRight: 12 }} />
+                        <View className="flex-1">
+                          <Text className="text-text-light dark:text-text-dark font-bold" numberOfLines={1}>{item.username || item.email.split('@')[0]}</Text>
+                        </View>
                       </View>
                       {isFriend ? (
                         <Text className="text-[#22C55E] text-xs font-bold">Amigo</Text>
@@ -242,8 +249,10 @@ export default function GroupsScreen({ navigation }) {
             <View className="mb-6">
               <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-3 ml-2">Solicitações Pendentes</Text>
               {pendingRequests.map(item => (
-                <View key={item.id} className="bg-card-light dark:bg-card-dark p-4 rounded-2xl mb-2 flex-row items-center justify-between border border-border-light dark:border-border-dark">
-                  <Text className="text-text-light dark:text-text-dark font-bold">{item.senderName || 'Convite'}</Text>
+                <View key={item.id} className="bg-card-light dark:bg-card-dark p-4 rounded-2xl mb-2 flex-row items-center justify-between border border-border-light dark:border-border-dark shadow-sm" style={{ shadowColor: COLORS.dark_blue, shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } }}>
+                  <View className="flex-1 pr-4">
+                    <Text className="text-text-light dark:text-text-dark font-bold" numberOfLines={1}>{item.senderName || 'Convite'}</Text>
+                  </View>
                   <View className="flex-row">
                     <TouchableOpacity
                       onPress={() => acceptFriendRequest(item.id)}
