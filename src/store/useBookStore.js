@@ -21,6 +21,7 @@ export const useBookStore = create((set, get) => ({
   books: [],
   user: null,
   loading: true,
+  loadingBooks: true,
   streak: 0,
   totalPagesRead: 0,
   lastReadDate: null,
@@ -39,9 +40,10 @@ export const useBookStore = create((set, get) => ({
   setAuthUser: (user) => {
     set({ user, loading: false });
     if (user) {
+      set({ loadingBooks: true });
       get().fetchUserData(user.uid);
     } else {
-      set({ books: [], streak: 0, totalPagesRead: 0, lastReadDate: null });
+      set({ books: [], streak: 0, totalPagesRead: 0, lastReadDate: null, loadingBooks: false });
     }
   },
 
@@ -158,10 +160,10 @@ export const useBookStore = create((set, get) => ({
       const booksList = querySnap.docs.map(d => ({ id: d.id, ...d.data() }));
       // Ordena livros por data de criação / mais recentes primeiro
       const sortedBooks = booksList.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-      set({ books: sortedBooks, loading: false });
+      set({ books: sortedBooks, loading: false, loadingBooks: false });
     }, (error) => {
       console.error("Error fetching books:", error);
-      set({ loading: false });
+      set({ loading: false, loadingBooks: false });
     });
 
     return () => {

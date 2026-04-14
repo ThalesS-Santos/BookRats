@@ -1,15 +1,153 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, FlatList, TextInput, TouchableOpacity, Modal, ScrollView, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, FlatList, TextInput, TouchableOpacity, Modal, ScrollView, ActivityIndicator, Animated, Easing } from 'react-native';
 import BookLoader from '../components/BookLoader';
 import { useSocialStore } from '../store/useSocialStore';
 import { useBookStore } from '../store/useBookStore';
 import { useThemeStore } from '../store/useThemeStore';
 import { usePopupStore } from '../store/usePopupStore';
+import { useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { debounce } from '../utils/debounce';
 import FastAvatar from '../components/FastAvatar';
+import Skeleton from '../components/Skeleton';
+
+// 🎨 Memoized Animated Components for Staggered Entry
+const AnimatedGroupItem = React.memo(({ item, index, navigation, accentColor, COLORS, isDarkMode, isFocused }) => {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
+
+  useEffect(() => {
+    if (isFocused && !item.isSkeleton) {
+      fadeAnim.setValue(0);
+      slideAnim.setValue(20);
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 400,
+          delay: Math.min(index, 10) * 50,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 400,
+          delay: Math.min(index, 10) * 50,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        })
+      ]).start();
+    }
+  }, [isFocused, item.isSkeleton]);
+
+  if (item.isSkeleton) {
+    return (
+      <View className="bg-card-light dark:bg-card-dark p-6 rounded-2xl mb-4 border border-border-light dark:border-border-dark flex-row items-center justify-between shadow-sm">
+        <View className="flex-row items-center flex-1 pr-4">
+          <Skeleton width={56} height={56} borderRadius={28} style={{ marginRight: 16 }} />
+          <View className="flex-1">
+            <Skeleton width="60%" height={20} style={{ marginBottom: 6 }} />
+            <Skeleton width="30%" height={12} />
+          </View>
+        </View>
+        <Skeleton width={20} height={20} borderRadius={10} />
+      </View>
+    );
+  }
+
+  return (
+    <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+      <TouchableOpacity
+        onPress={() => navigation.navigate('GroupChat', { groupId: item.id, groupName: item.name })}
+        className="bg-card-light dark:bg-card-dark p-6 rounded-2xl mb-4 border border-border-light dark:border-border-dark flex-row items-center justify-between shadow-sm"
+        style={{ shadowColor: COLORS.dark_blue, shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } }}
+      >
+        <View className="flex-row items-center flex-1 pr-4">
+          <View className="w-14 h-14 bg-primary/10 dark:bg-primary-dark/10 rounded-full items-center justify-center mr-4">
+            <Ionicons name="chatbubbles" size={28} color={accentColor} />
+          </View>
+          <View className="flex-1">
+            <Text className="text-text-light dark:text-text-dark font-serif font-bold text-lg" numberOfLines={1}>
+              {item.name}
+            </Text>
+            <Text className="text-text-muted-light dark:text-text-muted-dark text-xs mt-1">
+              {item.members ? `${item.members.length} membros` : '0 membros'}
+            </Text>
+          </View>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color={isDarkMode ? '#6B7280' : '#9CA3AF'} />
+      </TouchableOpacity>
+    </Animated.View>
+  );
+});
+
+const AnimatedFriendItem = React.memo(({ item, index, navigation, COLORS, isDarkMode, isFocused }) => {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
+
+  useEffect(() => {
+    if (isFocused && !item.isSkeleton) {
+      fadeAnim.setValue(0);
+      slideAnim.setValue(20);
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 400,
+          delay: Math.min(index, 10) * 50,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 400,
+          delay: Math.min(index, 10) * 50,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        })
+      ]).start();
+    }
+  }, [isFocused, item.isSkeleton]);
+
+  if (item.isSkeleton) {
+    return (
+      <View className="bg-card-light dark:bg-card-dark p-6 rounded-2xl mb-3 flex-row items-center justify-between border border-border-light dark:border-border-dark shadow-sm">
+        <View className="flex-row items-center flex-1 pr-4">
+          <Skeleton width={48} height={48} borderRadius={24} style={{ marginRight: 16 }} />
+          <View className="flex-1">
+            <Skeleton width="50%" height={18} style={{ marginBottom: 6 }} />
+            <Skeleton width="30%" height={12} />
+          </View>
+        </View>
+        <Skeleton width={20} height={20} borderRadius={10} />
+      </View>
+    );
+  }
+
+  return (
+    <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+      <TouchableOpacity 
+        onPress={() => navigation.navigate('UserProfile', { userId: item.id })}
+        className="bg-card-light dark:bg-card-dark p-6 rounded-2xl mb-3 flex-row items-center justify-between border border-border-light dark:border-border-dark shadow-sm"
+        style={{ shadowColor: COLORS.dark_blue, shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } }}
+      >
+        <View className="flex-row items-center flex-1 pr-4">
+          <FastAvatar 
+            source={item.profilePic} 
+            size={48} 
+            style={{ marginRight: 16 }} 
+          />
+          <View className="flex-1">
+            <Text className="text-text-light dark:text-text-dark font-bold text-lg" numberOfLines={1}>{item.username || item.email.split('@')[0]}</Text>
+            <Text className="text-text-muted-light dark:text-text-muted-dark text-xs mt-1">Ver perfil completo</Text>
+          </View>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color={isDarkMode ? '#6B7280' : '#9CA3AF'} />
+      </TouchableOpacity>
+    </Animated.View>
+  );
+});
 
 export default function GroupsScreen({ navigation }) {
+  const isFocused = useIsFocused();
   const [activeTab, setActiveTab] = useState('groups'); // 'groups' | 'friends'
   const [searchText, setSearchText] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
@@ -36,10 +174,35 @@ export default function GroupsScreen({ navigation }) {
     createGroup,
     subscribeToSocialData,
     removeFriend,
-    leaveGroup
+    leaveGroup,
+    loadingSocial
   } = useSocialStore();
 
   const accentColor = isDarkMode ? '#A7C9A7' : '#5B8C5A';
+
+  // Screen level animations
+  const headerFade = useRef(new Animated.Value(0)).current;
+
+  // Use dummy skeletons during initial load
+  const groupsData = (loadingSocial && groups.length === 0) 
+    ? Array(3).fill({}).map((_, i) => ({ id: `skeleton-group-${i}`, isSkeleton: true })) 
+    : groups;
+
+  const friendsData = (loadingSocial && friends.length === 0) 
+    ? Array(4).fill({}).map((_, i) => ({ id: `skeleton-friend-${i}`, isSkeleton: true })) 
+    : friends;
+
+  useEffect(() => {
+    if (isFocused && !loadingSocial) {
+      headerFade.setValue(0);
+      Animated.timing(headerFade, {
+        toValue: 1,
+        duration: 600,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true
+      }).start();
+    }
+  }, [isFocused, loadingSocial]);
 
   useEffect(() => {
     let unsub = () => {};
@@ -96,90 +259,74 @@ export default function GroupsScreen({ navigation }) {
     }
   };
 
-  const renderGroupItem = ({ item }) => (
-    <TouchableOpacity
-      onPress={() => navigation.navigate('GroupChat', { groupId: item.id, groupName: item.name })}
-      className="bg-card-light dark:bg-card-dark p-6 rounded-2xl mb-3 border border-border-light dark:border-border-dark flex-row items-center justify-between shadow-sm"
-      style={{ shadowColor: COLORS.dark_blue, shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } }}
-    >
-      <View className="flex-row items-center flex-1 pr-4">
-        <View className="w-12 h-12 bg-primary/10 dark:bg-primary-dark/10 rounded-full items-center justify-center mr-4">
-          <Ionicons name="chatbubbles" size={24} color={accentColor} />
-        </View>
-        <View className="flex-1">
-          <Text className="text-text-light dark:text-text-dark font-serif font-bold text-lg" numberOfLines={1}>
-            {item.name}
-          </Text>
-          <Text className="text-text-muted-light dark:text-text-muted-dark text-xs">
-            {item.members ? `${item.members.length} membros` : '0 membros'}
-          </Text>
-        </View>
-      </View>
-      <Ionicons name="chevron-forward" size={20} color={isDarkMode ? '#6B7280' : '#9CA3AF'} />
-    </TouchableOpacity>
-  );
+  const renderGroupItem = useCallback(({ item, index }) => (
+    <AnimatedGroupItem 
+      item={item} 
+      index={index} 
+      navigation={navigation} 
+      accentColor={accentColor} 
+      COLORS={COLORS} 
+      isDarkMode={isDarkMode} 
+      isFocused={isFocused} 
+    />
+  ), [navigation, accentColor, COLORS, isDarkMode, isFocused]);
 
-  const renderFriendItem = ({ item }) => (
-    <TouchableOpacity 
-      onPress={() => navigation.navigate('UserProfile', { userId: item.id })}
-      className="bg-card-light dark:bg-card-dark p-4 rounded-2xl mb-2 flex-row items-center justify-between border border-border-light dark:border-border-dark shadow-sm"
-      style={{ shadowColor: COLORS.dark_blue, shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } }}
-    >
-      <View className="flex-row items-center flex-1 pr-4">
-        <FastAvatar 
-          source={item.profilePic} 
-          size={40} 
-          style={{ marginRight: 12 }} 
-        />
-        <View className="flex-1">
-          <Text className="text-text-light dark:text-text-dark font-bold" numberOfLines={1}>{item.username || item.email.split('@')[0]}</Text>
-        </View>
-      </View>
-      <Ionicons name="chevron-forward" size={20} color={isDarkMode ? '#6B7280' : '#9CA3AF'} />
-    </TouchableOpacity>
-  );
+  const renderFriendItem = useCallback(({ item, index }) => (
+    <AnimatedFriendItem 
+      item={item} 
+      index={index} 
+      navigation={navigation} 
+      COLORS={COLORS} 
+      isDarkMode={isDarkMode} 
+      isFocused={isFocused} 
+    />
+  ), [navigation, COLORS, isDarkMode, isFocused]);
 
   return (
     <View className="flex-1 bg-background-light dark:bg-background-dark px-6 pt-4">
-      <View className="mb-4">
-        <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-1">Social</Text>
-        <Text className="text-text-light dark:text-text-dark text-3xl font-serif font-bold">Comunidade</Text>
-      </View>
+      <Animated.View style={{ opacity: headerFade, transform: [{ translateY: headerFade.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] }}>
+        <View className="mb-4">
+          <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-1">Social</Text>
+          <Text className="text-text-light dark:text-text-dark text-3xl font-serif font-bold">Sua Rede</Text>
+        </View>
 
-      {/* Tabs */}
-      <View className="flex-row mb-6 bg-card-light dark:bg-card-dark p-1 rounded-xl border border-border-light dark:border-border-dark">
-        <TouchableOpacity
-          onPress={() => setActiveTab('groups')}
-          className={`flex-1 p-3 rounded-lg items-center ${activeTab === 'groups' ? 'bg-primary dark:bg-primary-dark' : ''}`}
-        >
-          <Text className={`font-bold ${activeTab === 'groups' ? 'text-white' : 'text-text-muted-light dark:text-text-muted-dark'}`}>Grupos</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => setActiveTab('friends')}
-          className={`flex-1 p-3 rounded-lg items-center ${activeTab === 'friends' ? 'bg-primary dark:bg-primary-dark' : ''}`}
-        >
-          <Text className={`font-bold ${activeTab === 'friends' ? 'text-white' : 'text-text-muted-light dark:text-text-muted-dark'}`}>Amigos</Text>
-        </TouchableOpacity>
-      </View>
+        {/* Tabs */}
+        <View className="flex-row mb-6 bg-card-light dark:bg-card-dark p-1 rounded-xl border border-border-light dark:border-border-dark">
+          <TouchableOpacity
+            onPress={() => setActiveTab('groups')}
+            className={`flex-1 p-3 rounded-lg items-center ${activeTab === 'groups' ? 'bg-primary dark:bg-primary-dark' : ''}`}
+          >
+            <Text className={`font-bold ${activeTab === 'groups' ? 'text-white' : 'text-text-muted-light dark:text-text-muted-dark'}`}>Grupos</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setActiveTab('friends')}
+            className={`flex-1 p-3 rounded-lg items-center ${activeTab === 'friends' ? 'bg-primary dark:bg-primary-dark' : ''}`}
+          >
+            <Text className={`font-bold ${activeTab === 'friends' ? 'text-white' : 'text-text-muted-light dark:text-text-muted-dark'}`}>Amigos</Text>
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
 
       {/* Groups Tab */}
       {activeTab === 'groups' && (
         <View className="flex-1">
           <TouchableOpacity
             onPress={() => setModalVisible(true)}
-            className="bg-primary/10 dark:bg-primary-dark/10 p-5 rounded-2xl mb-4 border border-primary/20 dark:border-primary-dark/20 flex-row items-center justify-center"
+            className="bg-primary/10 dark:bg-primary-dark/10 p-6 rounded-2xl mb-6 border border-primary/20 dark:border-primary-dark/20 flex-row items-center justify-center"
           >
-            <Ionicons name="add-circle" size={24} color={accentColor} className="mr-2" />
+            <Ionicons name="add-circle" size={24} color={accentColor} style={{ marginRight: 8 }} />
             <Text className="text-primary dark:text-primary-dark font-bold text-lg">Criar Grupo de Leitura</Text>
           </TouchableOpacity>
 
           <FlatList
-            data={groups}
+            data={groupsData}
             keyExtractor={item => item.id}
             renderItem={renderGroupItem}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
-              <Text className="text-text-muted-light dark:text-text-muted-dark text-center mt-10">Você não pertence a nenhum grupo ainda.</Text>
+              !loadingSocial ? (
+                <Text className="text-text-muted-light dark:text-text-muted-dark text-center mt-10">Você não pertence a nenhum grupo ainda.</Text>
+              ) : null
             }
           />
         </View>
@@ -275,12 +422,14 @@ export default function GroupsScreen({ navigation }) {
           {/* Friends List */}
           <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-3 ml-2">Meus Amigos ({friends.length})</Text>
           <FlatList
-            data={friends}
+            data={friendsData}
             keyExtractor={item => item.id}
             renderItem={renderFriendItem}
             scrollEnabled={false}
             ListEmptyComponent={
-              <Text className="text-text-muted-light dark:text-text-muted-dark text-sm ml-2">Você ainda não tem amigos. Comece a buscar!</Text>
+              !loadingSocial ? (
+                <Text className="text-text-muted-light dark:text-text-muted-dark text-sm ml-2">Você ainda não tem amigos. Comece a buscar!</Text>
+              ) : null
             }
           />
         </ScrollView>

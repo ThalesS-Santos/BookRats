@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, FlatList, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
-import BookLoader from '../components/BookLoader';
+import { View, Text, FlatList, TouchableOpacity, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Modal, TextInput as RNTextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { getGroupDetails, updateGroupDetails, removeGroupMember, addGroupMember } from '../api/social';
-import { debounce } from '../utils/debounce';
 import { useSocialStore } from '../store/useSocialStore';
 import { useBookStore } from '../store/useBookStore';
 import { useThemeStore } from '../store/useThemeStore';
 import { usePopupStore } from '../store/usePopupStore';
-import { Modal, TextInput as RNTextInput } from 'react-native';
+import { getGroupDetails, updateGroupDetails, removeGroupMember, addGroupMember, leaveGroup } from '../api/social';
+import { debounce } from '../utils/debounce';
+import BookLoader from '../components/BookLoader';
 
 export default function GroupDetailsScreen({ route, navigation }) {
   const { groupId } = route.params;
@@ -187,8 +186,13 @@ export default function GroupDetailsScreen({ route, navigation }) {
   };
 
   return (
-    <View className="flex-1 bg-background-light dark:bg-background-dark">
-      <ScrollView className="flex-1 p-6" showsVerticalScrollIndicator={false}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+      className="flex-1 bg-background-light dark:bg-background-dark"
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <ScrollView className="flex-1 p-6" showsVerticalScrollIndicator={false}>
       <View className="flex-row justify-between items-center mt-12 mb-6">
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={28} color={isDarkMode ? '#E0E0E0' : '#1A1A1A'} />
@@ -263,64 +267,71 @@ export default function GroupDetailsScreen({ route, navigation }) {
         {rankedMembers.map((item, index) => renderMember({ item, index }))}
       </View>
 
-      <TouchableOpacity 
-        onPress={handleLeaveGroup}
-        className="bg-red-500/10 border border-red-500/30 p-4 rounded-xl items-center mb-12 flex-row justify-center"
-      >
-        <Ionicons name="exit-outline" size={20} color="#EF4444" className="mr-2" />
-        <Text className="text-red-500 font-bold">Sair do Grupo</Text>
-      </TouchableOpacity>
+        <TouchableOpacity 
+          onPress={handleLeaveGroup}
+          className="bg-red-500/10 border border-red-500/30 p-4 rounded-xl items-center mb-12 flex-row justify-center"
+        >
+          <Ionicons name="exit-outline" size={20} color="#EF4444" style={{ marginRight: 8 }} />
+          <Text className="text-red-500 font-bold">Sair do Grupo</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </TouchableWithoutFeedback>
 
       {/* Add Member Modal */}
       <Modal visible={showAddModal} transparent animationType="slide">
-        <View className="flex-1 justify-end bg-black/60">
-          <View className="bg-background-light dark:bg-background-dark p-6 rounded-t-3xl h-[60%] border-t border-border-light dark:border-border-dark">
-            <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-text-light dark:text-text-dark text-xl font-bold">Adicionar Membro</Text>
-              <TouchableOpacity onPress={() => { setShowAddModal(false); setSearchQuery(''); setSearchResults([]); }}>
-                <Ionicons name="close" size={24} color={isDarkMode ? '#FFF' : '#000'} />
-              </TouchableOpacity>
-            </View>
-
-            <View className="flex-row items-center bg-card-light dark:bg-card-dark p-3 rounded-xl border border-border-light dark:border-border-dark mb-4">
-              <Ionicons name="search" size={20} color="#6B7280" className="mr-2" />
-              <RNTextInput
-                className="flex-1 text-text-light dark:text-text-dark"
-                placeholder="Buscar usuário..."
-                placeholderTextColor="#6B7280"
-                value={searchQuery}
-                onChangeText={handleSearchUsers}
-              />
-            </View>
-
-            {(loadingSearch || isDebouncing) ? (
-              <View style={{ height: 40, justifyContent: 'center', alignItems: 'center' }}>
-                <ActivityIndicator size="small" color="#22C55E" />
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View className="flex-1 justify-end bg-black/60">
+            <KeyboardAvoidingView 
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              keyboardVerticalOffset={Platform.OS === 'ios' ? 20 : 0}
+              className="bg-background-light dark:bg-background-dark p-6 rounded-t-3xl h-[60%] border-t border-border-light dark:border-border-dark"
+            >
+              <View className="flex-row justify-between items-center mb-4">
+                <Text className="text-text-light dark:text-text-dark text-xl font-bold">Adicionar Membro</Text>
+                <TouchableOpacity onPress={() => { setShowAddModal(false); setSearchQuery(''); }}>
+                  <Ionicons name="close" size={24} color={isDarkMode ? '#FFF' : '#000'} />
+                </TouchableOpacity>
               </View>
-            ) : (
-              <ScrollView>
-                {filteredSearchResults.map(u => (
-                  <TouchableOpacity 
-                    key={u.id} 
-                    onPress={() => { handleAddMember(u.id); setShowAddModal(false); }}
-                    className="flex-row items-center justify-between p-3 border-b border-border-light dark:border-border-dark"
-                  >
-                    <Text className="text-text-light dark:text-text-dark">{u.username || u.email.split('@')[0]}</Text>
-                    <Ionicons name="add-circle-outline" size={24} color="#22C55E" />
-                  </TouchableOpacity>
-                ))}
-                {searchQuery.trim().length >= 3 && filteredSearchResults.length === 0 && (
-                  <Text className="text-text-muted-light dark:text-text-muted-dark text-center mt-4">Nenhum resultado.</Text>
-                )}
-              </ScrollView>
-            )}
+
+              <View className="flex-row items-center bg-card-light dark:bg-card-dark p-3 rounded-xl border border-border-light dark:border-border-dark mb-4">
+                <Ionicons name="search" size={20} color="#6B7280" style={{ marginRight: 8 }} />
+                <RNTextInput
+                  className="flex-1 text-text-light dark:text-text-dark"
+                  placeholder="Buscar usuário..."
+                  placeholderTextColor="#6B7280"
+                  value={searchQuery}
+                  onChangeText={handleSearchUsers}
+                />
+              </View>
+
+              {(loadingSearch || isDebouncing) ? (
+                <View style={{ height: 40, justifyContent: 'center', alignItems: 'center' }}>
+                  <ActivityIndicator size="small" color="#22C55E" />
+                </View>
+              ) : (
+                <ScrollView showsVerticalScrollIndicator={false}>
+                  {filteredSearchResults.map(u => (
+                    <TouchableOpacity 
+                      key={u.id} 
+                      onPress={() => { handleAddMember(u.id); setShowAddModal(false); }}
+                      className="flex-row items-center justify-between p-3 border-b border-border-light dark:border-border-dark"
+                    >
+                      <Text className="text-text-light dark:text-text-dark">{u.username || u.email.split('@')[0]}</Text>
+                      <Ionicons name="add-circle-outline" size={24} color="#22C55E" />
+                    </TouchableOpacity>
+                  ))}
+                  {searchQuery.trim().length >= 3 && filteredSearchResults.length === 0 && (
+                    <Text className="text-text-muted-light dark:text-text-muted-dark text-center mt-4">Nenhum resultado.</Text>
+                  )}
+                </ScrollView>
+              )}
+            </KeyboardAvoidingView>
           </View>
-        </View>
+        </TouchableWithoutFeedback>
       </Modal>
-      </ScrollView>
 
       {/* Full-screen Loading Overlay for Updates */}
       <BookLoader isVisible={updating} />
-    </View>
+    </KeyboardAvoidingView>
   );
 }

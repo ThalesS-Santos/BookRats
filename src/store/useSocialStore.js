@@ -151,6 +151,8 @@ export const useSocialStore = create((set, get) => ({
     }
   },
 
+  loadingSocial: true,
+
   createGroup: async (name, adminId, memberIds) => {
     try {
       return await apiCreateGroup(name, adminId, memberIds);
@@ -166,26 +168,46 @@ export const useSocialStore = create((set, get) => ({
   },
 
   subscribeToSocialData: (uid) => {
-    if (!uid) return () => {};
+    if (!uid) {
+      set({ loadingSocial: false });
+      return () => {};
+    }
+
+    set({ loadingSocial: true });
+    let isSentLoaded = false;
+    let isReceivedLoaded = false;
+    let isGroupsLoaded = false;
+
+    const checkComplete = () => {
+      if (isSentLoaded && isReceivedLoaded && isGroupsLoaded) {
+        set({ loadingSocial: false });
+      }
+    };
 
     // 1. Sent Requests
-    const unsubSent = subscribeToSentRequests(uid, (reqs) => {
+    const unsubSent = subscribeToSentRequests(uid, async (reqs) => {
       set({ sentRequests: reqs });
-      get().resolveFriendships(uid);
+      await get().resolveFriendships(uid);
+      isSentLoaded = true;
+      checkComplete();
     });
 
     // 2. Received Requests
-    const unsubReceived = subscribeToReceivedRequests(uid, (reqs) => {
+    const unsubReceived = subscribeToReceivedRequests(uid, async (reqs) => {
       set({ 
         pendingRequests: reqs.filter(r => r.status === 'pending'),
         allReceived: reqs 
       });
-      get().resolveFriendships(uid);
+      await get().resolveFriendships(uid);
+      isReceivedLoaded = true;
+      checkComplete();
     });
 
     // 3. Groups
     const unsubGroups = subscribeToGroups(uid, (groupsList) => {
       set({ groups: groupsList });
+      isGroupsLoaded = true;
+      checkComplete();
     });
 
     return () => {

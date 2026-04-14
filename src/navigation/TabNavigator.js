@@ -16,7 +16,7 @@ const Tab = createMaterialTopTabNavigator();
 const TABS = [
   { name: 'Início', icon: 'book', component: HomeScreen },
   { name: 'Ranking', icon: 'trophy', component: RankingScreen },
-  { name: 'Grupo', icon: 'chatbubbles', component: GroupsScreen },
+  { name: 'Social', icon: 'chatbubbles', component: GroupsScreen },
   { name: 'Perfil', icon: 'person', component: ProfileScreen },
 ];
 
