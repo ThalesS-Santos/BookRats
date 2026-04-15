@@ -1,9 +1,10 @@
 import React, { useMemo, useEffect, useCallback, useState, useRef } from 'react';
-import { View, Text, FlatList, ActivityIndicator, RefreshControl, TouchableOpacity, Animated, Easing } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, RefreshControl, TouchableOpacity, Animated, Easing, InteractionManager } from 'react-native';
 import { useBookStore } from '../store/useBookStore';
 import { useSocialStore } from '../store/useSocialStore';
 import { useThemeStore } from '../store/useThemeStore';
 import { useIsFocused } from '@react-navigation/native';
+import { useShallow } from 'zustand/react/shallow';
 import { Ionicons } from '@expo/vector-icons';
 import FastAvatar from '../components/FastAvatar';
 import Skeleton from '../components/Skeleton';
@@ -152,29 +153,43 @@ const RankingItem = React.memo(({ item, index, renderMedal, onPress, isFocused }
 export default function RankingScreen({ navigation }) {
   const { isDarkMode } = useThemeStore();
   const isFocused = useIsFocused();
+  const [isReady, setIsReady] = useState(false);
   const user = useBookStore(state => state.user);
+  
+  // Optimized Social Store Selectors with useShallow
   const { 
     rankingList, 
-    fetchInitialRanking, 
-    fetchMoreRanking, 
     loadingRanking, 
-    hasMore 
-  } = useSocialStore();
+    hasMore, 
+    fetchInitialRanking, 
+    fetchMoreRanking 
+  } = useSocialStore(useShallow(state => ({
+    rankingList: state.rankingList,
+    loadingRanking: state.loadingRanking,
+    hasMore: state.hasMore,
+    fetchInitialRanking: state.fetchInitialRanking,
+    fetchMoreRanking: state.fetchMoreRanking
+  })));
 
   const [refreshing, setRefreshing] = useState(false);
   const headerFade = useRef(new Animated.Value(0)).current;
 
-  // Use dummy skeletons during initial load
-  const listData = (loadingRanking && rankingList.length === 0) 
-    ? Array(6).fill({}).map((_, i) => ({ id: `skeleton-${i}`, isSkeleton: true })) 
+  // Use dummy skeletons during initial load OR when not "ready"
+  const listData = (loadingRanking && rankingList.length === 0) || !isReady
+    ? Array(10).fill({}).map((_, i) => ({ id: `skeleton-${i}`, isSkeleton: true })) 
     : rankingList;
 
   useEffect(() => {
-    fetchInitialRanking();
+    // Wait for navigation animations
+    const task = InteractionManager.runAfterInteractions(() => {
+      setIsReady(true);
+      fetchInitialRanking();
+    });
+    return () => task.cancel();
   }, []);
 
   useEffect(() => {
-    if (isFocused && !loadingRanking) {
+    if (isFocused && !loadingRanking && isReady) {
       headerFade.setValue(0);
       Animated.timing(headerFade, {
         toValue: 1,
@@ -250,6 +265,10 @@ export default function RankingScreen({ navigation }) {
         renderItem={renderItem}
         onEndReached={fetchMoreRanking}
         onEndReachedThreshold={0.5}
+        removeClippedSubviews={true}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
         ListFooterComponent={renderFooter}
         refreshControl={
           <RefreshControl

@@ -10,7 +10,30 @@ service cloud.firestore {
       // 📚 Subcoleção de Livros
       match /books/{bookId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
+
+        // 🏠 Acesso Local (Dono) - Garante acesso mesmo sem o campo userId no documento
+        match /annotations/{annotId} {
+          allow read, write: if request.auth != null && request.auth.uid == userId;
+        }
       }
+    }
+
+    // 🌟 Social Echoes (Notes) - Top-Level Collection Group Match
+    match /{path=**}/annotations/{annotId} {
+      // Allow reading if the note is public OR the current user is the owner (userId field)
+      allow read: if request.auth != null && (resource.data.isPublic == true || request.auth.uid == resource.data.userId);
+      
+      // Creation is owner-only
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      
+      // Update is owner-only UNLESS just incrementing reactions (Rat Claps)
+      allow update: if request.auth != null && (
+        request.auth.uid == resource.data.userId || 
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions']))
+      );
+
+      // Deletion is owner-only
+      allow delete: if request.auth != null && request.auth.uid == resource.data.userId;
     }
     
     // 🤝 Amizades (Friendships)

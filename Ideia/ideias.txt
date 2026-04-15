@@ -32,3 +32,11 @@ Melhoria: Use Firebase Cloud Messaging (FCM).
 Configure um lembrete diário (ex: "Já leu hoje?") 
 ou uma notificação quando ele atingir uma meta. 
 Isso aumenta drasticamente a retenção.
+
+
+
+Ideia,Resumo de 1 Linha (Como funcionaria)
+1. Modelo Freemium,           Usuários pagam uma assinatura mensal para ter Badges exclusivos de pixel art e estatísticas de leitura avançadas.
+2. Afiliados Amazon,           "O app gera links automáticos com seu ID de afiliado para cada livro pesquisado, rendendo comissão em cada venda."
+3. Parcerias com Editoras,    Editoras pagam para destacar livros específicos no topo das buscas ou criar desafios de leitura patrocinados.
+4. B2B para Educação,         Escolas ou Clubes de Leitura pagam uma licença para ter um painel administrativo e monitorar o progresso dos alunos.

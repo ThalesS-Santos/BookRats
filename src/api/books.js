@@ -121,7 +121,7 @@ export const getUserBooks = async (uid) => {
   }
 };
 
-export const addAnnotation = async (uid, bookId, page, text, isPublic = true) => {
+export const addAnnotation = async (uid, bookId, page, text, isPublic = true, userMetadata = { displayName: 'Anon', photoURL: null }) => {
   // 🛡️ Validation Guard
   if (!text || typeof text !== 'string' || text.trim() === '') {
     throw new Error("Erro de validação: O texto da anotação é obrigatório.");
@@ -135,9 +135,16 @@ export const addAnnotation = async (uid, bookId, page, text, isPublic = true) =>
   try {
     const annotRef = collection(db, 'users', uid, 'books', bookId, 'annotations');
     await addDoc(annotRef, {
-      page: pageNum,
+      userId: uid,
+      bookId: bookId,
+      pageLocation: pageNum,
       text,
       isPublic,
+      userMetadata: {
+        displayName: userMetadata.displayName || 'Leitor',
+        photoURL: userMetadata.photoURL || null
+      },
+      reactions: { claps: 0 },
       timestamp: serverTimestamp()
     });
   } catch (error) {

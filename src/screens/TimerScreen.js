@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Dimensions, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Dimensions, TouchableWithoutFeedback, Keyboard, Animated, Easing } from 'react-native';
 import { useKeepAwake } from 'expo-keep-awake';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
@@ -41,6 +41,37 @@ export default function TimerScreen({ route, navigation }) {
       updateReadingStatus(null);
     };
   }, [isActive, book, updateReadingStatus]);
+
+  // 🌟 Social Layer: Neon Pulse Animation
+  const neonPulse = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (isPublic && showFinishForm) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(neonPulse, {
+            toValue: 1.5,
+            duration: 1000,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true
+          }),
+          Animated.timing(neonPulse, {
+            toValue: 1,
+            duration: 1000,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true
+          })
+        ])
+      ).start();
+    } else {
+      neonPulse.setValue(1);
+    }
+  }, [isPublic, showFinishForm]);
+
+  const handlePublicToggle = () => {
+    if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setIsPublic(!isPublic);
+  };
 
   const formatTime = (totalSeconds) => {
     const hrs = Math.floor(totalSeconds / 3600);
@@ -84,7 +115,11 @@ export default function TimerScreen({ route, navigation }) {
     
     if (annotation.trim() && user?.uid) {
       try {
-        await addAnnotation(user.uid, bookId, newPage, annotation.trim(), isPublic);
+        const userMetadata = {
+          displayName: user.displayName || user.username || user.email.split('@')[0],
+          photoURL: user.photoURL || user.profilePic || null
+        };
+        await addAnnotation(user.uid, bookId, newPage, annotation.trim(), isPublic, userMetadata);
       } catch (error) {
         console.error("Erro ao salvar anotação:", error);
       }
@@ -221,13 +256,29 @@ export default function TimerScreen({ route, navigation }) {
               />
 
               <TouchableOpacity 
-                onPress={() => setIsPublic(!isPublic)} 
+                onPress={handlePublicToggle} 
                 className="flex-row items-center mb-6 ml-2"
               >
-                <Ionicons name={isPublic ? "globe-outline" : "lock-closed-outline"} size={18} color={accentColor} style={{ marginRight: 8 }} />
-                <Text className="text-text-muted-light dark:text-text-muted-dark text-xs">
-                  {isPublic ? 'Pública para Amigos' : 'Privada (Só eu)'}
-                </Text>
+                <Animated.View 
+                  style={{ 
+                    opacity: isPublic ? neonPulse : 1,
+                    transform: [{ scale: isPublic ? neonPulse : 1 }],
+                    shadowColor: '#22C55E', // Green-500
+                    shadowOpacity: isPublic ? 0.8 : 0,
+                    shadowRadius: 10,
+                  }}
+                  className={`w-6 h-6 rounded-full items-center justify-center mr-3 ${isPublic ? 'bg-primary dark:bg-primary-dark shadow-lg shadow-primary' : 'bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark'}`}
+                >
+                  <Ionicons name={isPublic ? "globe-outline" : "lock-closed-outline"} size={14} color="white" />
+                </Animated.View>
+                <View>
+                  <Text className={`text-sm font-bold ${isPublic ? 'text-primary dark:text-primary-dark' : 'text-text-muted-light dark:text-text-muted-dark'}`}>
+                    {isPublic ? 'Deixando um rastro na página...' : 'Privada (Só eu)'}
+                  </Text>
+                  {isPublic && (
+                    <Text className="text-[10px] text-text-muted-light dark:text-text-muted-dark italic">Sua nota ficará visível para outros leitores deste livro</Text>
+                  )}
+                </View>
               </TouchableOpacity>
 
               <TouchableOpacity

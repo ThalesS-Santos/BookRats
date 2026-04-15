@@ -92,10 +92,12 @@ export default function App() {
       {loading ? (
         <LoadingScreen />
       ) : (
-        <NavigationContainer theme={isDarkMode ? BookDarkTheme : BookLightTheme}>
-          <AppNavigator />
-          <CustomPopup />
-        </NavigationContainer>
+        <View style={{ flex: 1, backgroundColor: COLORS.dark_blue }}>
+          <NavigationContainer theme={isDarkMode ? BookDarkTheme : BookLightTheme}>
+            <AppNavigator />
+            <CustomPopup />
+          </NavigationContainer>
+        </View>
       )}
     </SafeAreaProvider>
   );

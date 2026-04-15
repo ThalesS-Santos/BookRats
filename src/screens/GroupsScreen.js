@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, FlatList, TextInput, TouchableOpacity, Modal, ScrollView, ActivityIndicator, Animated, Easing } from 'react-native';
+import { View, Text, FlatList, TextInput, TouchableOpacity, Modal, ScrollView, ActivityIndicator, Animated, Easing, InteractionManager } from 'react-native';
 import BookLoader from '../components/BookLoader';
 import { useSocialStore } from '../store/useSocialStore';
 import { useBookStore } from '../store/useBookStore';
 import { useThemeStore } from '../store/useThemeStore';
 import { usePopupStore } from '../store/usePopupStore';
 import { useIsFocused } from '@react-navigation/native';
+import { useShallow } from 'zustand/react/shallow';
 import { Ionicons } from '@expo/vector-icons';
 import { debounce } from '../utils/debounce';
 import FastAvatar from '../components/FastAvatar';
@@ -148,6 +149,7 @@ const AnimatedFriendItem = React.memo(({ item, index, navigation, COLORS, isDark
 
 export default function GroupsScreen({ navigation }) {
   const isFocused = useIsFocused();
+  const [isReady, setIsReady] = useState(false);
   const [activeTab, setActiveTab] = useState('groups'); // 'groups' | 'friends'
   const [searchText, setSearchText] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
@@ -160,6 +162,7 @@ export default function GroupsScreen({ navigation }) {
   const { showPopup } = usePopupStore();
   const { COLORS } = require('../constants/colors');
   
+  // Optimized Social Store Selectors with useShallow
   const {
     friends,
     pendingRequests,
@@ -167,6 +170,7 @@ export default function GroupsScreen({ navigation }) {
     groups,
     searchResults,
     loadingSearch,
+    loadingSocial,
     searchUsers,
     sendFriendRequest,
     acceptFriendRequest,
@@ -174,26 +178,49 @@ export default function GroupsScreen({ navigation }) {
     createGroup,
     subscribeToSocialData,
     removeFriend,
-    leaveGroup,
-    loadingSocial
-  } = useSocialStore();
+    leaveGroup
+  } = useSocialStore(useShallow(state => ({
+    friends: state.friends,
+    pendingRequests: state.pendingRequests,
+    sentRequests: state.sentRequests,
+    groups: state.groups,
+    searchResults: state.searchResults,
+    loadingSearch: state.loadingSearch,
+    loadingSocial: state.loadingSocial,
+    searchUsers: state.searchUsers,
+    sendFriendRequest: state.sendFriendRequest,
+    acceptFriendRequest: state.acceptFriendRequest,
+    rejectFriendRequest: state.rejectFriendRequest,
+    createGroup: state.createGroup,
+    subscribeToSocialData: state.subscribeToSocialData,
+    removeFriend: state.removeFriend,
+    leaveGroup: state.leaveGroup
+  })));
 
   const accentColor = isDarkMode ? '#A7C9A7' : '#5B8C5A';
 
   // Screen level animations
   const headerFade = useRef(new Animated.Value(0)).current;
 
-  // Use dummy skeletons during initial load
-  const groupsData = (loadingSocial && groups.length === 0) 
-    ? Array(3).fill({}).map((_, i) => ({ id: `skeleton-group-${i}`, isSkeleton: true })) 
+  // Use dummy skeletons during initial load OR when not "ready"
+  const groupsData = (loadingSocial && groups.length === 0) || !isReady
+    ? Array(5).fill({}).map((_, i) => ({ id: `skeleton-group-${i}`, isSkeleton: true })) 
     : groups;
 
-  const friendsData = (loadingSocial && friends.length === 0) 
-    ? Array(4).fill({}).map((_, i) => ({ id: `skeleton-friend-${i}`, isSkeleton: true })) 
+  const friendsData = (loadingSocial && friends.length === 0) || !isReady
+    ? Array(6).fill({}).map((_, i) => ({ id: `skeleton-friend-${i}`, isSkeleton: true })) 
     : friends;
 
   useEffect(() => {
-    if (isFocused && !loadingSocial) {
+    // Interaction Gatekeeping
+    const task = InteractionManager.runAfterInteractions(() => {
+      setIsReady(true);
+    });
+    return () => task.cancel();
+  }, []);
+
+  useEffect(() => {
+    if (isFocused && !loadingSocial && isReady) {
       headerFade.setValue(0);
       Animated.timing(headerFade, {
         toValue: 1,
@@ -323,6 +350,10 @@ export default function GroupsScreen({ navigation }) {
             keyExtractor={item => item.id}
             renderItem={renderGroupItem}
             showsVerticalScrollIndicator={false}
+            removeClippedSubviews={true}
+            initialNumToRender={10}
+            maxToRenderPerBatch={10}
+            windowSize={5}
             ListEmptyComponent={
               !loadingSocial ? (
                 <Text className="text-text-muted-light dark:text-text-muted-dark text-center mt-10">Você não pertence a nenhum grupo ainda.</Text>
@@ -426,6 +457,10 @@ export default function GroupsScreen({ navigation }) {
             keyExtractor={item => item.id}
             renderItem={renderFriendItem}
             scrollEnabled={false}
+            removeClippedSubviews={true}
+            initialNumToRender={10}
+            maxToRenderPerBatch={10}
+            windowSize={5}
             ListEmptyComponent={
               !loadingSocial ? (
                 <Text className="text-text-muted-light dark:text-text-muted-dark text-sm ml-2">Você ainda não tem amigos. Comece a buscar!</Text>

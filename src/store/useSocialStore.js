@@ -13,7 +13,9 @@ import {
   getUsersByIds,
   removeFriendship as apiRemoveFriendship,
   leaveGroup as apiLeaveGroup,
-  getPaginatedRanking as apiGetPaginatedRanking
+  getPaginatedRanking as apiGetPaginatedRanking,
+  getPublicEchoes as apiGetPublicEchoes,
+  addRatClap as apiAddRatClap
 } from '../api/social';
 import { usePopupStore } from './usePopupStore';
 
@@ -26,6 +28,10 @@ export const useSocialStore = create((set, get) => ({
   searchResults: [],
   loadingSearch: false,
   errorSearch: null,
+
+  // Social Echoes (Community Margin Notes)
+  communityEchoes: [],
+  loadingEchoes: false,
 
   // Ranking Pagination State
   rankingList: [],
@@ -190,6 +196,10 @@ export const useSocialStore = create((set, get) => ({
       await get().resolveFriendships(uid);
       isSentLoaded = true;
       checkComplete();
+    }, (error) => {
+      console.error("Error fetching sent requests:", error);
+      isSentLoaded = true; // Mark as "attempted" to not block checkComplete
+      checkComplete();
     });
 
     // 2. Received Requests
@@ -201,11 +211,19 @@ export const useSocialStore = create((set, get) => ({
       await get().resolveFriendships(uid);
       isReceivedLoaded = true;
       checkComplete();
+    }, (error) => {
+      console.error("Error fetching received requests:", error);
+      isReceivedLoaded = true;
+      checkComplete();
     });
 
     // 3. Groups
     const unsubGroups = subscribeToGroups(uid, (groupsList) => {
       set({ groups: groupsList });
+      isGroupsLoaded = true;
+      checkComplete();
+    }, (error) => {
+      console.error("Error fetching groups:", error);
       isGroupsLoaded = true;
       checkComplete();
     });
@@ -269,6 +287,32 @@ export const useSocialStore = create((set, get) => ({
         message: error.message,
         type: 'error'
       });
+    }
+  },
+
+  fetchEchoes: async (bookId) => {
+    if (!bookId) return;
+    set({ loadingEchoes: true });
+    try {
+      const echoes = await apiGetPublicEchoes(bookId);
+      set({ communityEchoes: echoes, loadingEchoes: false });
+    } catch (error) {
+      console.error("Error fetching echoes:", error);
+      set({ communityEchoes: [], loadingEchoes: false });
+    }
+  },
+
+  clapEcho: async (userId, bookId, echoId) => {
+    try {
+      await apiAddRatClap(userId, bookId, echoId);
+      // Optimistic Update
+      const { communityEchoes } = get();
+      const updated = communityEchoes.map(e => 
+        e.id === echoId ? { ...e, reactions: { ...e.reactions, claps: (e.reactions?.claps || 0) + 1 } } : e
+      );
+      set({ communityEchoes: updated });
+    } catch (error) {
+      console.error("Error clapping echo:", error);
     }
   }
 }));

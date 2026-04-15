@@ -20,10 +20,18 @@ const Stack = createNativeStackNavigator();
 // LoadingScreen is now exported from its own file or handled in App.js
 
 export default function AppNavigator() {
-  const { user } = useBookStore();
+  const user = useBookStore(state => state.user);
 
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator 
+      screenOptions={{ 
+        headerShown: false,
+        animation: 'default',
+        fullScreenGestureEnabled: true, // Improved swipe gesture consistency
+        detachInactiveScreens: true, // Optimizes memory by detaching screens not in view
+        contentStyle: { backgroundColor: COLORS.dark_blue } // Fixes "white flash" during transitions
+      }}
+    >
       {user ? (
         <>
           <Stack.Screen name="MainTabs" component={TabNavigator} />

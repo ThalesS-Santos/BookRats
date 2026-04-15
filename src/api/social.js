@@ -16,7 +16,9 @@ import {
   orderBy,
   limit,
   startAfter,
-  documentId
+  documentId,
+  collectionGroup,
+  increment
 } from 'firebase/firestore';
 import { mapFirebaseError } from '../utils/errorMapper';
 
@@ -258,6 +260,46 @@ export const removeGroupMember = async (groupId, userId) => {
     });
   } catch (error) {
     console.error("Error removing group member:", error);
+    throw new Error(mapFirebaseError(error));
+  }
+};
+
+/**
+ * 🌟 Social Layer: Get Public Echoes (Notes) for a specific book
+ * Uses collectionGroup to fetch across all user sub-collections efficiently.
+ */
+export const getPublicEchoes = async (bookId) => {
+  if (!bookId) return [];
+  try {
+    const echoesRef = collectionGroup(db, 'annotations');
+    const q = query(
+      echoesRef, 
+      where('bookId', '==', bookId), 
+      where('isPublic', '==', true),
+      orderBy('timestamp', 'desc'),
+      limit(20)
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({ id: doc.id, userId: doc.ref.parent.parent.id, ...doc.data() }));
+  } catch (error) {
+    console.error("Error getting echoes:", error);
+    // 💡 If index is missing, firebase returns an error. 
+    // Usually, Firestore will provide a link in the error console to create the index.
+    return [];
+  }
+};
+
+/**
+ * 🐭 Collaborative: Add a Rat Clap to an Echo
+ */
+export const addRatClap = async (userId, bookId, echoId) => {
+  try {
+    const echoRef = doc(db, 'users', userId, 'books', bookId, 'annotations', echoId);
+    await updateDoc(echoRef, {
+      'reactions.claps': increment(1)
+    });
+  } catch (error) {
+    console.error("Error adding clap:", error);
     throw new Error(mapFirebaseError(error));
   }
 };
