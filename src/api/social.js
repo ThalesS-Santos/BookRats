@@ -18,7 +18,8 @@ import {
   startAfter,
   documentId,
   collectionGroup,
-  increment
+  increment,
+  runTransaction
 } from 'firebase/firestore';
 import { mapFirebaseError } from '../utils/errorMapper';
 
@@ -300,6 +301,54 @@ export const addRatClap = async (userId, bookId, echoId) => {
     });
   } catch (error) {
     console.error("Error adding clap:", error);
+    throw new Error(mapFirebaseError(error));
+  }
+};
+
+/**
+ * 🌟 Social Echoes: Reply to an existing Echo
+ * Uses a Transaction to create the reply inside the parent author's collection
+ * and increments the parent's replyCount.
+ */
+export const replyToEcho = async (parentUserId, parentBookId, parentEchoId, text, userMetadata, currentUserId) => {
+  const parentRef = doc(db, 'users', parentUserId, 'books', parentBookId, 'annotations', parentEchoId);
+  const repliesCollectionRef = collection(db, 'users', parentUserId, 'books', parentBookId, 'annotations');
+  // Generate a new document reference for the reply
+  const replyRef = doc(repliesCollectionRef);
+
+  try {
+    await runTransaction(db, async (transaction) => {
+      const parentDoc = await transaction.get(parentRef);
+      if (!parentDoc.exists()) {
+        throw new Error("O Echo original não foi encontrado.");
+      }
+
+      // Operation 1 & 2: Create a new document in the original author's subcollection
+      transaction.set(replyRef, {
+        userId: currentUserId, // Crucial for security rules: the replier owns this document
+        bookId: parentBookId,
+        pageLocation: parentDoc.data().pageLocation || null,
+        text: text.trim(),
+        isPublic: true,
+        parentId: parentEchoId,
+        replyCount: 0,
+        userMetadata: {
+          displayName: userMetadata.displayName || 'Leitor',
+          photoURL: userMetadata.photoURL || null
+        },
+        reactions: { claps: 0 },
+        timestamp: serverTimestamp()
+      });
+
+      // Operation 3: Increment parent's replyCount
+      transaction.update(parentRef, {
+        replyCount: increment(1)
+      });
+    });
+
+    return replyRef.id;
+  } catch (error) {
+    console.error("Error replying to echo:", error);
     throw new Error(mapFirebaseError(error));
   }
 };

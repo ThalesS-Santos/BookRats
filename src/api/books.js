@@ -121,14 +121,14 @@ export const getUserBooks = async (uid) => {
   }
 };
 
-export const addAnnotation = async (uid, bookId, page, text, isPublic = true, userMetadata = { displayName: 'Anon', photoURL: null }) => {
+export const addAnnotation = async (uid, bookId, page, text, isPublic = true, userMetadata = { displayName: 'Anon', photoURL: null }, parentId = null) => {
   // 🛡️ Validation Guard
   if (!text || typeof text !== 'string' || text.trim() === '') {
     throw new Error("Erro de validação: O texto da anotação é obrigatório.");
   }
 
   const pageNum = Number(page);
-  if (Number.isNaN(pageNum)) {
+  if (!parentId && Number.isNaN(pageNum)) {
     throw new Error("Erro de validação: Verifique a página informada.");
   }
 
@@ -137,9 +137,11 @@ export const addAnnotation = async (uid, bookId, page, text, isPublic = true, us
     await addDoc(annotRef, {
       userId: uid,
       bookId: bookId,
-      pageLocation: pageNum,
+      pageLocation: !parentId ? pageNum : null,
       text,
       isPublic,
+      parentId,
+      replyCount: 0,
       userMetadata: {
         displayName: userMetadata.displayName || 'Leitor',
         photoURL: userMetadata.photoURL || null
