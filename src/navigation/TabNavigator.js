@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeStore } from '../store/useThemeStore';
+import { useUserStore } from '../store/useUserStore';
 import { COLORS } from '../constants/colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -23,6 +24,7 @@ const TABS = [
 function CustomTabBar({ state, descriptors, navigation, isDarkMode }) {
   const activeColor = isDarkMode ? COLORS.primary.dark : COLORS.primary.light;
   const inactiveColor = isDarkMode ? '#64748B' : '#94A3B8';
+  const unreadCount = useUserStore(state => state.unreadCount);
 
   return (
     <View style={[
@@ -59,7 +61,12 @@ function CustomTabBar({ state, descriptors, navigation, isDarkMode }) {
               style={styles.tabItem}
               activeOpacity={0.7}
             >
-              <Ionicons name={tabConfig.icon} size={24} color={color} />
+              <View>
+                <Ionicons name={tabConfig.icon} size={24} color={color} />
+                {tabConfig.name === 'Perfil' && unreadCount > 0 && (
+                  <View style={[styles.badge, { backgroundColor: COLORS.neon_green, shadowColor: COLORS.neon_green }]} />
+                )}
+              </View>
               <Text style={[styles.tabLabel, { color }]}>
                 {tabConfig.name}
               </Text>
@@ -142,9 +149,21 @@ const styles = StyleSheet.create({
   },
   indicator: {
     position: 'absolute',
-    top: -1.5, // Align with the top border
+    top: -1.5,
     width: '60%',
     height: 3,
     borderRadius: 2,
+  },
+  badge: {
+    position: 'absolute',
+    top: -2,
+    right: -4,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    elevation: 3,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
   }
 });

@@ -7,7 +7,7 @@ import { getUserDetails } from '../api/social';
 import { useSocialStore } from '../store/useSocialStore';
 import { useThemeStore } from '../store/useThemeStore';
 import { usePopupStore } from '../store/usePopupStore';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '../utils/haptics';
 import FastAvatar from '../components/FastAvatar';
 import { COLORS } from '../constants/colors';
 import { ALL_BADGES } from '../constants/badges';
@@ -22,7 +22,7 @@ const formatDuration = (totalSeconds) => {
 
 export default function UserProfileScreen({ route, navigation }) {
   const { userId } = route.params;
-  const { isDarkMode, hapticsEnabled } = useThemeStore();
+  const { isDarkMode } = useThemeStore();
   const { removeFriend } = useSocialStore();
   const { showPopup } = usePopupStore();
   const [loading, setLoading] = useState(true);
@@ -148,7 +148,7 @@ export default function UserProfileScreen({ route, navigation }) {
               <TouchableOpacity 
                 key={badge.id} 
                 onPress={() => {
-                  if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
                   showPopup({ title: badge.title, message: `Missão: ${badge.mission}`, type: isUnlocked ? 'success' : 'info' });
                 }}
                 className={`p-3 rounded-xl border items-center mb-2 w-[31%] ${

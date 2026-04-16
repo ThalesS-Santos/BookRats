@@ -1,6 +1,6 @@
-import { initializeApp } from 'firebase/app';
-import { initializeAuth, getReactNativePersistence, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { initializeAuth, getAuth, getReactNativePersistence, GoogleAuthProvider } from 'firebase/auth';
+import { getFirestore, initializeFirestore } from 'firebase/firestore';
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 
 // TODO: Replace with your actual Firebase config from the Firebase Console
@@ -14,14 +14,22 @@ const firebaseConfig = {
   measurementId: "G-E845C65R6V"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+let app;
+let auth;
+let db;
 
-// Initialize Firebase Auth with Persistence for React Native
-export const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(ReactNativeAsyncStorage)
-});
+// Strict check for React Native / Expo Fast Refresh
+if (getApps().length === 0) {
+  app = initializeApp(firebaseConfig);
+  auth = initializeAuth(app, {
+    persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+  });
+  db = initializeFirestore(app, {}); // Use initializeFirestore for the first run
+} else {
+  app = getApp();
+  auth = getAuth(app);
+  db = getFirestore(app);
+}
+
+export { app, auth, db };
 export const googleProvider = new GoogleAuthProvider();
-
-// Initialize Firestore (Defaults to memory cache on React Native)
-export const db = getFirestore(app);

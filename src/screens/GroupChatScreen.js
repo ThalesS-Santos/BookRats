@@ -3,6 +3,7 @@ import { View, Text, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useBookStore } from '../store/useBookStore';
 import { useThemeStore } from '../store/useThemeStore';
+import * as Haptics from '../utils/haptics';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function GroupChatScreen({ route, navigation }) {
@@ -28,6 +29,7 @@ export default function GroupChatScreen({ route, navigation }) {
 
   const handleSendMessage = () => {
     if (messageText.trim() === '') return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     sendMessage(groupId, messageText.trim());
     setMessageText('');
   };
@@ -45,7 +47,10 @@ export default function GroupChatScreen({ route, navigation }) {
             {/* Custom Header */}
             <View className="flex-row items-center mb-4 mt-2">
               <TouchableOpacity
-                onPress={() => navigation.goBack()}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  navigation.goBack();
+                }}
                 className="p-2 bg-card-light dark:bg-card-dark rounded-xl border border-border-light dark:border-border-dark mr-4"
               >
                 <Ionicons name="arrow-back" size={20} color={isDarkMode ? '#E1E1E1' : '#1A1A1A'} />

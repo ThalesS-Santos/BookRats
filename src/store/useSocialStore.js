@@ -29,10 +29,6 @@ export const useSocialStore = create((set, get) => ({
   loadingSearch: false,
   errorSearch: null,
 
-  // Social Echoes (Community Margin Notes)
-  communityEchoes: [],
-  loadingEchoes: false,
-
   // Ranking Pagination State
   rankingList: [],
   lastDoc: null,
@@ -287,32 +283,6 @@ export const useSocialStore = create((set, get) => ({
         message: error.message,
         type: 'error'
       });
-    }
-  },
-
-  fetchEchoes: async (bookId) => {
-    if (!bookId) return;
-    set({ loadingEchoes: true });
-    try {
-      const echoes = await apiGetPublicEchoes(bookId);
-      set({ communityEchoes: echoes, loadingEchoes: false });
-    } catch (error) {
-      console.error("Error fetching echoes:", error);
-      set({ communityEchoes: [], loadingEchoes: false });
-    }
-  },
-
-  clapEcho: async (userId, bookId, echoId) => {
-    try {
-      await apiAddRatClap(userId, bookId, echoId);
-      // Optimistic Update
-      const { communityEchoes } = get();
-      const updated = communityEchoes.map(e => 
-        e.id === echoId ? { ...e, reactions: { ...e.reactions, claps: (e.reactions?.claps || 0) + 1 } } : e
-      );
-      set({ communityEchoes: updated });
-    } catch (error) {
-      console.error("Error clapping echo:", error);
     }
   }
 }));

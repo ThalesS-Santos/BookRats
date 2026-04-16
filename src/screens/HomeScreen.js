@@ -7,14 +7,25 @@ import { useIsFocused } from '@react-navigation/native';
 import { useShallow } from 'zustand/react/shallow';
 import { Ionicons } from '@expo/vector-icons';
 import { getUserAnnotations } from '../api/books';
-import * as Haptics from 'expo-haptics';
+import { getPublicEchoes, addRatClap } from '../api/social';
+import * as Haptics from '../utils/haptics';
 import FastAvatar from '../components/FastAvatar';
 import Skeleton from '../components/Skeleton';
 import CommunityNote from '../components/CommunityNote';
 
-const { width } = Dimensions.get('window');
-
 const BookItem = React.memo(({ item, navigation, COLORS, isDarkMode, accentColor, fadeAnim, slideAnim }) => {
+   const { width } = Dimensions.get('window');
+   const user = useBookStore(state => state.user);
+
+   const handleOpenGallery = () => {
+     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+     navigation.navigate('EchoGallery', { 
+       bookId: item.id, 
+       bookTitle: item.title,
+       userCurrentPage: item.currentPage 
+     });
+   };
+
    if (item.id.startsWith('s')) { // Skeleton check
      return (
       <View className="bg-card-light dark:bg-card-dark p-8 rounded-[32px] mb-8 border border-border-light dark:border-border-dark shadow-sm">
@@ -39,46 +50,59 @@ const BookItem = React.memo(({ item, navigation, COLORS, isDarkMode, accentColor
 
    return (
     <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
-      <TouchableOpacity
-        className="bg-card-light dark:bg-card-dark p-8 rounded-[32px] mb-8 border border-border-light dark:border-border-dark shadow-sm"
-        onPress={() => navigation.navigate('Timer', { bookId: item.id })}
-        style={{ shadowColor: COLORS.dark_blue, shadowOpacity: 0.05, shadowRadius: 15, shadowOffset: { width: 0, height: 4 } }}
+      <View
+        className="bg-card-light dark:bg-card-dark rounded-[32px] mb-8 border border-border-light dark:border-border-dark shadow-sm"
+        style={{ shadowColor: COLORS.dark_blue, shadowOpacity: 0.05, shadowRadius: 15, shadowOffset: { width: 0, height: 4 }, overflow: 'hidden' }}
       >
-      <View className="flex-row justify-between items-start mb-6">
-        <View className="flex-1 pr-6">
-          <Text className="text-text-light dark:text-text-dark text-2xl font-serif font-bold mb-2" numberOfLines={2}>{item.title}</Text>
-          <Text className="text-text-muted-light dark:text-text-muted-dark font-serif italic text-sm">Sua jornada atual</Text>
-        </View>
-        <View className="bg-primary/10 dark:bg-primary-dark/10 h-12 w-12 rounded-2xl items-center justify-center">
-          <Ionicons name="book-outline" size={24} color={accentColor} />
-        </View>
-      </View>
+        <TouchableOpacity
+          className="p-8"
+          onPress={() => navigation.navigate('Timer', { bookId: item.id })}
+          activeOpacity={0.8}
+        >
+          <View className="flex-row justify-between items-start mb-6">
+            <View className="flex-1 pr-6">
+              <Text className="text-text-light dark:text-text-dark text-2xl font-serif font-bold mb-2" numberOfLines={2}>{item.title}</Text>
+              <Text className="text-text-muted-light dark:text-text-muted-dark font-serif italic text-sm">Sua jornada atual</Text>
+            </View>
+            <View className="bg-primary/10 dark:bg-primary-dark/10 h-12 w-12 rounded-2xl items-center justify-center">
+              <Ionicons name="book-outline" size={24} color={accentColor} />
+            </View>
+          </View>
 
-      <View className="mb-4">
-        <View className="h-[6px] bg-border-light dark:bg-border-dark rounded-full overflow-hidden">
-          <View
-            className="h-full bg-primary dark:bg-primary-dark"
-            style={{ width: `${Math.min((item.currentPage / item.totalPages) * 100, 100)}%` }}
-          />
-        </View>
-        <View className="flex-row justify-between mt-2">
-          <Text className="text-text-muted-light dark:text-text-muted-dark text-sm font-mono">
-            {Math.round((item.currentPage / item.totalPages) * 100)}% concluído
-          </Text>
-          <Text className="text-text-muted-light dark:text-text-muted-dark text-sm font-mono">
-            {item.currentPage}/{item.totalPages} págs
-          </Text>
-        </View>
-      </View>
+          <View className="mb-4">
+            <View className="h-[6px] bg-border-light dark:bg-border-dark rounded-full overflow-hidden">
+              <View
+                className="h-full bg-primary dark:bg-primary-dark"
+                style={{ width: `${Math.min((item.currentPage / item.totalPages) * 100, 100)}%` }}
+              />
+            </View>
+            <View className="flex-row justify-between mt-2">
+              <Text className="text-text-muted-light dark:text-text-muted-dark text-sm font-mono">
+                {Math.round((item.currentPage / item.totalPages) * 100)}% concluído
+              </Text>
+              <Text className="text-text-muted-light dark:text-text-muted-dark text-sm font-mono">
+                {item.currentPage}/{item.totalPages} págs
+              </Text>
+            </View>
+          </View>
 
-      <View className="flex-row justify-end">
-        <View className="flex-row items-center bg-primary dark:bg-primary-dark px-4 py-2 rounded-full">
-          <Text className="text-white font-bold mr-2">Ler agora</Text>
-          <Ionicons name="play-circle" size={18} color="white" />
-        </View>
+          <View className="flex-row justify-end items-center">
+            {/* Gallery Button */}
+            <TouchableOpacity 
+              onPress={handleOpenGallery}
+              className="mr-3 p-3 bg-card-light dark:bg-card-dark rounded-full border border-border-light dark:border-border-dark"
+            >
+              <Ionicons name="chatbubble-ellipses-outline" size={20} color={accentColor} />
+            </TouchableOpacity>
+
+            <View className="flex-row items-center bg-primary dark:bg-primary-dark px-6 py-3 rounded-full shadow-sm">
+              <Text className="text-white font-bold mr-2 text-md">Ler agora</Text>
+              <Ionicons name="play-circle" size={20} color="white" />
+            </View>
+          </View>
+        </TouchableOpacity>
       </View>
-    </TouchableOpacity>
-  </Animated.View>
+    </Animated.View>
   );
 });
 
@@ -94,20 +118,9 @@ export default function HomeScreen({ navigation }) {
     loadingBooks: state.loadingBooks
   })));
 
-  // Social Echoes State
-  const { 
-    communityEchoes, 
-    loadingEchoes, 
-    fetchEchoes, 
-    clapEcho 
-  } = useSocialStore(useShallow(state => ({
-    communityEchoes: state.communityEchoes,
-    loadingEchoes: state.loadingEchoes,
-    fetchEchoes: state.fetchEchoes,
-    clapEcho: state.clapEcho
-  })));
+  // Removed global social store hook
 
-  const { isDarkMode, hapticsEnabled } = useThemeStore();
+  const { isDarkMode } = useThemeStore();
   const { COLORS } = require('../constants/colors');
   const accentColor = isDarkMode ? COLORS.primary.dark : COLORS.primary.light;
 
@@ -151,7 +164,7 @@ export default function HomeScreen({ navigation }) {
         })
       ]).start();
     }
-  }, [isFocused, loadingBooks]);
+  }, [isFocused, loadingBooks, isReady]);
 
   useEffect(() => {
     // Fetch Recent Annotations for home screen
@@ -172,10 +185,9 @@ export default function HomeScreen({ navigation }) {
     };
     if (!loadingBooks && readingBooks.length > 0) {
       fetchNotes();
-      // 🌟 Social Layer: Fetch community echoes for the most relevant book
-      fetchEchoes(readingBooks[0].id);
+      // Global Echo fetch removed - now handled by individual BookItems
     }
-  }, [user, books.length, loadingBooks]);
+  }, [user, books.length, loadingBooks, readingBooks[0]?.currentPage]);
 
   const listHeader = () => (
     <Animated.View 
@@ -236,7 +248,7 @@ export default function HomeScreen({ navigation }) {
               </View>
               <TouchableOpacity 
                 onPress={() => {
-                  if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   navigation.navigate('Perfil');
                 }}
               >
@@ -262,58 +274,6 @@ export default function HomeScreen({ navigation }) {
               </TouchableOpacity>
             </View>
 
-            {/* 🌟 Community Echoes Section (Moved here for visibility) */}
-            {(loadingEchoes || communityEchoes.length > 0) ? (
-              <View className="mb-10">
-                <View className="flex-row justify-between items-center mb-4 px-2">
-                  <View>
-                    <Text className="text-primary dark:text-primary-dark uppercase tracking-[3px] text-[10px] font-bold mb-1">Ecos da Comunidade</Text>
-                    <Text className="text-text-light dark:text-text-dark text-xl font-serif font-bold">O que estão dizendo</Text>
-                  </View>
-                  <Ionicons name="sparkles" size={20} color={accentColor} />
-                </View>
-
-                {loadingEchoes ? (
-                  <View className="flex-row px-2">
-                    {[1, 2].map(i => (
-                      <View key={i} className="bg-card-light dark:bg-card-dark p-5 rounded-3xl mr-4 w-72 h-40 border border-border-light dark:border-border-dark shadow-sm">
-                        <View className="flex-row items-center mb-4">
-                          <Skeleton width={32} height={32} borderRadius={16} style={{ marginRight: 8 }} />
-                          <View>
-                            <Skeleton width={80} height={12} style={{ marginBottom: 4 }} />
-                            <Skeleton width={60} height={10} />
-                          </View>
-                        </View>
-                        <Skeleton width="100%" height={14} style={{ marginBottom: 6 }} />
-                        <Skeleton width="60%" height={14} />
-                      </View>
-                    ))}
-                  </View>
-                ) : (
-                  <FlatList
-                    horizontal
-                    data={communityEchoes}
-                    keyExtractor={item => item.id}
-                    showsHorizontalScrollIndicator={false}
-                    renderItem={({ item }) => (
-                      <CommunityNote 
-                        note={item} 
-                        onClap={clapEcho}
-                        COLORS={COLORS}
-                        isDarkMode={isDarkMode}
-                      />
-                    )}
-                    contentContainerStyle={{ paddingLeft: 8 }}
-                  />
-                )}
-              </View>
-            ) : readingBooks.length > 0 ? (
-               <View className="bg-primary/5 dark:bg-primary-dark/5 p-6 rounded-[32px] mb-10 border border-dashed border-primary/20 dark:border-primary-dark/20 items-center justify-center">
-                  <Text className="text-text-muted-light dark:text-text-muted-dark font-serif italic text-sm text-center">
-                    Seja o primeiro a deixar um rastro nesta leitura! Suas notas públicas aparecerão aqui para outros leitores.
-                  </Text>
-               </View>
-            ) : null}
           </Animated.View>
         )}
         renderItem={renderItem}

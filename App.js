@@ -14,6 +14,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import AppNavigator from './src/navigation/AppNavigator';
 import { useThemeStore } from './src/store/useThemeStore';
 import { useBookStore } from './src/store/useBookStore';
+import { useUserStore } from './src/store/useUserStore';
 import { auth } from './src/services/firebase';
 
 import { COLORS } from './src/constants/colors';
@@ -65,6 +66,8 @@ export default function App() {
     return unsubscribe;
   }, []);
 
+// Removed misplaced import and comments
+
   useEffect(() => {
     if (!user) return;
     const currentUid = user.uid;
@@ -76,13 +79,16 @@ export default function App() {
     updateStatus(true); // Online on mount
 
     const subscription = AppState.addEventListener('change', nextAppState => {
-      // Deixa offline se não estiver 'active' (funciona para background e inactive)
       updateStatus(nextAppState === 'active');
     });
+
+    // 🌟 Start Notifications Listener
+    const unsubNotifs = useUserStore.getState().startNotificationsListener(currentUid);
 
     return () => {
       subscription.remove();
       updateStatus(false); // Offline on unmount/cleanup
+      if (unsubNotifs) unsubNotifs();
     };
   }, [user]);
 

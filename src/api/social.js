@@ -269,7 +269,7 @@ export const removeGroupMember = async (groupId, userId) => {
  * 🌟 Social Layer: Get Public Echoes (Notes) for a specific book
  * Uses collectionGroup to fetch across all user sub-collections efficiently.
  */
-export const getPublicEchoes = async (bookId) => {
+export const getPublicEchoes = async (bookId, userCurrentPage, currentUserId) => {
   if (!bookId) return [];
   try {
     const echoesRef = collectionGroup(db, 'annotations');
@@ -278,10 +278,36 @@ export const getPublicEchoes = async (bookId) => {
       where('bookId', '==', bookId), 
       where('isPublic', '==', true),
       orderBy('timestamp', 'desc'),
-      limit(20)
+      limit(30)
     );
     const snap = await getDocs(q);
-    return snap.docs.map(doc => ({ id: doc.id, userId: doc.ref.parent.parent.id, ...doc.data() }));
+    let echoes = snap.docs.map(doc => ({ id: doc.id, userId: doc.ref.parent.parent.id, ...doc.data() }));
+
+    // Security/Integrity Check: Exclude user's own notes
+    // COMPORTAMENTO TEMPORÁRIO PARA TESTES: Comentado para você poder ver suas próprias notas no Deck enquanto desenvolve.
+    /*
+    if (currentUserId) {
+      echoes = echoes.filter(e => e.userId !== currentUserId);
+    }
+    */
+
+    // Spoiler Protection: Only show echoes up to the user's current page
+    if (userCurrentPage !== undefined && userCurrentPage !== null) {
+      echoes = echoes.filter(e => e.pageLocation && e.pageLocation <= userCurrentPage);
+    }
+
+    // Ordering: Most clapped first, secondarily by timestamp
+    echoes.sort((a, b) => {
+      const clapsA = a.reactions?.claps || 0;
+      const clapsB = b.reactions?.claps || 0;
+      if (clapsB !== clapsA) return clapsB - clapsA;
+      
+      const timeA = a.timestamp?.seconds || 0;
+      const timeB = b.timestamp?.seconds || 0;
+      return timeB - timeA;
+    });
+
+    return echoes.slice(0, 20);
   } catch (error) {
     console.error("Error getting echoes:", error);
     // 💡 If index is missing, firebase returns an error. 
@@ -293,12 +319,16 @@ export const getPublicEchoes = async (bookId) => {
 /**
  * 🐭 Collaborative: Add a Rat Clap to an Echo
  */
-export const addRatClap = async (userId, bookId, echoId) => {
+export const addRatClap = async (userId, bookId, echoId, currentUserId, currentUserName) => {
   try {
     const echoRef = doc(db, 'users', userId, 'books', bookId, 'annotations', echoId);
     await updateDoc(echoRef, {
       'reactions.claps': increment(1)
     });
+
+    if (userId !== currentUserId) {
+      await createNotification(userId, 'clap', { displayName: currentUserName, uid: currentUserId }, bookId, echoId);
+    }
   } catch (error) {
     console.error("Error adding clap:", error);
     throw new Error(mapFirebaseError(error));
@@ -346,9 +376,108 @@ export const replyToEcho = async (parentUserId, parentBookId, parentEchoId, text
       });
     });
 
+    if (parentUserId !== currentUserId) {
+      await createNotification(
+        parentUserId, 
+        'reply', 
+        { displayName: userMetadata.displayName || 'Leitor', uid: currentUserId }, 
+        parentBookId, 
+        parentEchoId
+      );
+    }
+
     return replyRef.id;
   } catch (error) {
     console.error("Error replying to echo:", error);
     throw new Error(mapFirebaseError(error));
   }
 };
+
+/**
+ * 🌟 Get Discussion Replies for an Echo
+ */
+export const getEchoReplies = async (parentUserId, parentBookId, parentEchoId) => {
+  try {
+    const repliesRef = collection(db, 'users', parentUserId, 'books', parentBookId, 'annotations');
+    const q = query(
+      repliesRef,
+      where('parentId', '==', parentEchoId)
+    );
+    const snap = await getDocs(q);
+    const replies = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    // Sort by claps desc, then timestamp desc
+    replies.sort((a, b) => {
+      const clapsA = a.reactions?.claps || 0;
+      const clapsB = b.reactions?.claps || 0;
+      if (clapsB !== clapsA) return clapsB - clapsA;
+      
+      const timeA = a.timestamp?.seconds || 0;
+      const timeB = b.timestamp?.seconds || 0;
+      return timeB - timeA;
+    });
+
+    return replies;
+  } catch (error) {
+    console.error("Error getting echo replies:", error);
+    return [];
+  }
+};
+
+/**
+ * 🌟 Create a Notification
+ */
+export const createNotification = async (targetUserId, type, fromUser, bookId, echoId) => {
+  try {
+    const notificationsRef = collection(db, 'users', targetUserId, 'notifications');
+    await addDoc(notificationsRef, {
+      type, // 'reply' or 'clap'
+      fromUser, // { displayName, uid }
+      bookId,
+      echoId,
+      read: false,
+      timestamp: serverTimestamp()
+    });
+  } catch (error) {
+    console.error("Error creating notification:", error);
+  }
+};
+
+/**
+ * 🌟 Subscribe to Notifications
+ */
+export const subscribeToNotifications = (uid, onUpdate) => {
+  const q = query(
+    collection(db, 'users', uid, 'notifications'),
+    orderBy('timestamp', 'desc'),
+    limit(50) // Arbitrary limit for performance
+  );
+  return onSnapshot(q, (snapshot) => {
+    onUpdate(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+  });
+};
+
+/**
+ * 🌟 Mark Notification as Read
+ */
+export const markNotificationAsRead = async (uid, notificationId) => {
+  try {
+    const notifRef = doc(db, 'users', uid, 'notifications', notificationId);
+    await updateDoc(notifRef, { read: true });
+  } catch (error) {
+    console.error("Error marking notification as read:", error);
+  }
+};
+
+/**
+ * 🌟 Update Influencer Status
+ */
+export const updateUserInfluencerStatus = async (uid, isInfluencer) => {
+  try {
+    const userRef = doc(db, 'users', uid);
+    await updateDoc(userRef, { isInfluencer });
+  } catch (error) {
+    console.error("Error updating influencer status:", error);
+  }
+};
+

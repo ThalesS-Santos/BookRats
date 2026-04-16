@@ -1,20 +1,24 @@
 import React, { useState } from 'react';
 import { View, Text, Switch, TouchableOpacity, ScrollView } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useThemeStore } from '../store/useThemeStore';
 import { useBookStore } from '../store/useBookStore';
+import { useUserStore } from '../store/useUserStore';
 import { usePopupStore } from '../store/usePopupStore';
 import { ALL_BADGES } from '../constants/badges';
-import * as Haptics from 'expo-haptics';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Haptics from '../utils/haptics';
+import { Ionicons } from '@expo/vector-icons';
 import FastAvatar from '../components/FastAvatar';
 
 export default function ProfileScreen() {
-  const { isDarkMode, toggleTheme, hapticsEnabled, toggleHaptics } = useThemeStore();
+  const navigation = useNavigation();
+  const { isDarkMode, toggleTheme, hapticsEnabled, setHapticsEnabled } = useThemeStore();
   const [showCompleted, setShowCompleted] = useState(false);
   const books = useBookStore(state => state.books);
   const streak = useBookStore(state => state.streak);
   const totalPagesRead = useBookStore(state => state.totalPagesRead);
   const user = useBookStore(state => state.user);
+  const { hasInfluencerBadge, unreadCount } = useUserStore();
   const signOut = useBookStore(state => state.signOut);
   const { showPopup } = usePopupStore();
   const { COLORS } = require('../constants/colors');
@@ -62,17 +66,36 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView className="flex-1 bg-background-light dark:bg-background-dark p-6" showsVerticalScrollIndicator={false}>
-      <View className="items-center mt-12 mb-10">
+      
+      {/* Top Header Row for Notifications */}
+      <View className="flex-row justify-end items-center mb-2 z-10">
+        <TouchableOpacity 
+          onPress={() => navigation.navigate('Notifications')}
+          className="p-3 bg-card-light dark:bg-card-dark rounded-full shadow-sm border border-border-light dark:border-border-dark relative"
+        >
+          <Ionicons name="notifications-outline" size={24} color={isDarkMode ? 'white' : 'black'} />
+          {unreadCount > 0 && (
+            <View className="absolute top-2 right-2 w-3 h-3 rounded-full bg-neon-green border-2 border-background-light dark:border-background-dark" style={{ backgroundColor: COLORS.neon_green }} />
+          )}
+        </TouchableOpacity>
+      </View>
+
+      <View className="items-center mt-2 mb-10">
         <FastAvatar 
           source={user?.profilePic} 
           size={100} 
           style={{ marginBottom: 16 }} 
           border 
         />
-        <Text className="text-text-light dark:text-text-dark text-3xl font-serif font-bold" numberOfLines={1}>
-          {user?.email?.split('@')[0] || 'Leitor Rat'}
-        </Text>
-        <View className="flex-row items-center mt-1">
+        <View className="flex-row items-center">
+          <Text className="text-text-light dark:text-text-dark text-3xl font-serif font-bold" numberOfLines={1}>
+            {user?.email?.split('@')[0] || 'Leitor Rat'}
+          </Text>
+          {(hasInfluencerBadge || user?.isInfluencer) && (
+            <Ionicons name="star" size={24} color={COLORS.neon_green} style={{ marginLeft: 8 }} />
+          )}
+        </View>
+        <View className="flex-row items-center mt-2">
           <Ionicons name="flame" size={18} color={COLORS.streak} />
           <Text className="text-streak font-bold font-mono ml-1">Streak: {streak} dias</Text>
         </View>
@@ -98,13 +121,13 @@ export default function ProfileScreen() {
         <View className="flex-row items-center justify-between p-5 bg-card-light dark:bg-card-dark rounded-2xl border border-border-light dark:border-border-dark mt-4 shadow-sm">
           <View className="flex-row items-center">
             <View className="bg-primary/10 dark:bg-primary-dark/10 p-2 rounded-lg mr-4">
-              <MaterialCommunityIcons name="vibrate" size={22} color={accentColor} />
+              <Ionicons name="pulse-outline" size={22} color={accentColor} />
             </View>
             <Text className="text-text-light dark:text-text-dark font-serif font-bold text-lg">Feedback Tátil</Text>
           </View>
           <Switch
             value={hapticsEnabled}
-            onValueChange={toggleHaptics}
+            onValueChange={setHapticsEnabled}
             trackColor={{ false: '#CBD5E1', true: accentColor }}
             thumbColor={'#ffffff'}
           />
@@ -120,7 +143,7 @@ export default function ProfileScreen() {
               <TouchableOpacity 
                 key={badge.id} 
                 onPress={() => {
-                  if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
                   showPopup({ title: badge.title, message: `Missão: ${badge.mission}`, type: isUnlocked ? 'success' : 'info' });
                 }}
                 className={`p-3 rounded-xl border items-center mr-2 mb-2 w-[30%] ${

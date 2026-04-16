@@ -10,6 +10,9 @@ import TimerScreen from '../screens/TimerScreen';
 import GroupChatScreen from '../screens/GroupChatScreen';
 import GroupDetailsScreen from '../screens/GroupDetailsScreen';
 import UserProfileScreen from '../screens/UserProfileScreen';
+import EchoDetailScreen from '../screens/EchoDetailScreen';
+import GalleryScreen from '../screens/GalleryScreen';
+import NotificationsScreen from '../screens/NotificationsScreen';
 import TabNavigator from './TabNavigator';
 import LoadingScreen from '../components/LoadingScreen';
 
@@ -40,6 +43,9 @@ export default function AppNavigator() {
           <Stack.Screen name="GroupChat" component={GroupChatScreen} />
           <Stack.Screen name="GroupDetails" component={GroupDetailsScreen} />
           <Stack.Screen name="UserProfile" component={UserProfileScreen} />
+          <Stack.Screen name="EchoDetail" component={EchoDetailScreen} />
+          <Stack.Screen name="EchoGallery" component={GalleryScreen} />
+          <Stack.Screen name="Notifications" component={NotificationsScreen} />
         </>
       ) : (
         <Stack.Screen name="Auth" component={AuthScreen} />
