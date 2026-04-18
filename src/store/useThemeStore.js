@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export const useThemeStore = create(
   persist(
     (set) => ({
-      isDarkMode: true,
+      isDarkMode: false,
       hapticsEnabled: true,
       toggleTheme: () => set((state) => ({ isDarkMode: !state.isDarkMode })),
       toggleHaptics: () => set((state) => ({ hapticsEnabled: !state.hapticsEnabled })),
@@ -13,8 +13,14 @@ export const useThemeStore = create(
       setDarkMode: (value) => set({ isDarkMode: value }),
     }),
     {
-      name: 'theme-storage',
+      name: 'bookrats-theme-storage',
       storage: createJSONStorage(() => AsyncStorage),
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          // If hydration fails, we ensure the store remains in a safe default state
+          useThemeStore.setState({ isDarkMode: false, hapticsEnabled: true });
+        }
+      },
     }
   )
 );

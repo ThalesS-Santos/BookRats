@@ -32,10 +32,10 @@ service cloud.firestore {
       // Creation is owner-only
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
       
-      // Update is owner-only UNLESS just incrementing reactions (Rat Claps)
+      // Update is owner-only UNLESS just incrementing reactions (Rat Claps) or replies
       allow update: if request.auth != null && (
         request.auth.uid == resource.data.userId || 
-        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions']))
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions', 'replyCount']))
       );
 
       // Deletion is owner-only

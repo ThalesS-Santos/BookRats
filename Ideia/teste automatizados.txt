@@ -1,0 +1,36 @@
+Nível 6: Engenharia de Fiabilidade e Testes de Elite
+Etapa 6.1: Fundação e Mocking de Infraestrutura
+O objetivo aqui é ensinar o sistema a "fingir" que é o telemóvel e o Firebase, para que os testes corram num ambiente controlado.
+
+6.1.1: Setup de Ambiente Jest: Configuração do jest-expo e transformadores de Babel para suportar a sintaxe do projeto.
+
+6.1.2: Mocking de Módulos Nativos: Criar mocks para Expo-Haptics, Reanimated e Firebase para evitar erros de "Native Module not found".
+
+6.1.3: Implementação do MSW (Mock Service Worker): Criar o servidor de interceptação para simular respostas da Google Books API sem gastar cota real.
+
+Etapa 6.2: Testes de Unidade (Lógica Pura)
+Vamos testar os "músculos" do app: as funções que calculam tudo por trás das cortinas.
+
+6.2.1: Validação de Streaks: Testar se a lógica em streak.js conta corretamente os dias consecutivos e identifica quebras.
+
+6.2.2: Formatação e Cronómetro: Testar se o useTimer.js converte segundos em horas/minutos sem erros de arredondamento.
+
+6.2.3: Mapeamento de Erros: Garantir que o errorMapper.js retorna a mensagem amigável correta para cada código do Firebase.
+
+Etapa 6.3: Testes de Integração de Componentes (UI)
+Aqui garantimos que os botões fazem o que devem fazer.
+
+6.3.1: Fluxo de Autenticação: Testar se ao preencher o formulário e clicar em "Entrar", a função de login é chamada com os dados certos.
+
+6.3.2: Renderização da Galeria 3D: Garantir que os cards da EchoGalleryScreen são montados corretamente e reagem ao scroll.
+
+6.3.3: Gestão de Popups: Validar se o CustomPopup aparece quando o estado no usePopupStore é alterado.
+
+Etapa 6.4: Testes de Estado (Zustand Resilience)
+Garantir que os teus "cérebros" (Stores) não se baralham.
+
+6.4.1: Persistência do Tema: Testar se ao mudar para Dark Mode, a preferência é guardada e recuperada.
+
+6.4.2: Integridade da Biblioteca: Testar se adicionar um livro no useBookStore atualiza a lista global sem duplicar itens.
+
+6.4.3: Lógica de Badges: Simular o ganho de 50 claps e verificar se o badge de "Influenciador" é desbloqueado no Store.

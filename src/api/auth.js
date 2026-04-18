@@ -7,6 +7,7 @@ import {
   GoogleAuthProvider
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { mapFirebaseError } from '../utils/errorMapper';
 
 export const signUp = async (email, password) => {
   try {
@@ -27,7 +28,7 @@ export const signUp = async (email, password) => {
     return userCredential.user;
   } catch (error) {
     console.error("Sign up error:", error);
-    throw new Error(error.message);
+    throw new Error(mapFirebaseError(error));
   }
 };
 
@@ -37,7 +38,7 @@ export const signIn = async (email, password) => {
     return userCredential.user;
   } catch (error) {
     console.error("Sign in error:", error);
-    throw new Error(error.message);
+    throw new Error(mapFirebaseError(error));
   }
 };
 
@@ -65,7 +66,7 @@ export const signInWithGoogle = async (idToken) => {
     return user;
   } catch (error) {
     console.error("Google sign in error:", error);
-    throw new Error(error.message);
+    throw new Error(mapFirebaseError(error));
   }
 };
 

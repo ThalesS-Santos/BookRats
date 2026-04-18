@@ -3,7 +3,7 @@ import { doc, updateDoc, collection, setDoc, arrayUnion, serverTimestamp, getDoc
 import { calculateStreak } from '../utils/streak';
 import { mapFirebaseError } from '../utils/errorMapper';
 
-export const addBook = async (uid, title, totalPages) => {
+export const addBook = async (uid, title, totalPages, id = null) => {
   // 🛡️ Validation Guard
   if (!uid || !title || totalPages === null || totalPages === undefined) {
     throw new Error("Dados inválidos: Título e número de páginas são obrigatórios.");
@@ -15,7 +15,7 @@ export const addBook = async (uid, title, totalPages) => {
   }
 
   try {
-    const bookRef = doc(collection(db, 'users', uid, 'books'));
+    const bookRef = id ? doc(db, 'users', uid, 'books', id) : doc(collection(db, 'users', uid, 'books'));
     await setDoc(bookRef, {
       title,
       totalPages: pages,

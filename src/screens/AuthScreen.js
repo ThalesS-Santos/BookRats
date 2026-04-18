@@ -41,11 +41,6 @@ const AuthScreen = () => {
         }
     }, [response]);
 
-    useEffect(() => {
-        if (authError) {
-            showPopup({ title: 'Erro de Autenticação', message: authError, type: 'error' });
-        }
-    }, [authError]);
 
     const validateEmail = (email) => {
         return /\S+@\S+\.\S+/.test(email);

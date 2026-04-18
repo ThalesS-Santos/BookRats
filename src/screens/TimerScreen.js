@@ -8,6 +8,7 @@ import { useThemeStore } from '../store/useThemeStore';
 import { addAnnotation } from '../api/books';
 import { useTimer } from '../hooks/useTimer';
 import { usePopupStore } from '../store/usePopupStore';
+import { formatTime } from '../utils/time';
 
 export default function TimerScreen({ route, navigation }) {
   const { width } = Dimensions.get('window');
@@ -72,16 +73,6 @@ export default function TimerScreen({ route, navigation }) {
     setIsPublic(!isPublic);
   };
 
-  const formatTime = (totalSeconds) => {
-    const hrs = Math.floor(totalSeconds / 3600);
-    const min = Math.floor((totalSeconds % 3600) / 60);
-    const sec = totalSeconds % 60;
-
-    if (hrs > 0) {
-      return `${hrs}:${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
-    }
-    return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
-  };
 
   const handleFinish = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

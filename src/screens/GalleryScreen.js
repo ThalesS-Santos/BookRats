@@ -149,6 +149,7 @@ const GalleryScreen = ({ route }) => {
         </View>
       ) : (
         <Animated.FlatList
+          testID="echo-flatlist"
           data={echoes}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}

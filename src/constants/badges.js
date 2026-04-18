@@ -40,5 +40,12 @@ export const ALL_BADGES = [
     icon: 'albums',
     mission: 'Tenha 2 ou mais livros sendo lidos ao mesmo tempo.',
     check: (userData) => (userData.readingBooks || 0) >= 2
+  },
+  {
+    id: 'influenciador',
+    title: 'Influenciador',
+    icon: 'star',
+    mission: 'Consiga um total de 50 curtidas (claps) em suas anotações.',
+    check: (userData) => (userData.totalClaps || 0) >= 50
   }
 ];

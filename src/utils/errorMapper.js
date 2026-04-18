@@ -16,8 +16,8 @@ export const mapFirebaseError = (error) => {
   const errorMap = {
     // Auth Errors
     'auth/network-request-failed': 'Erro de conexão. Verifique sua internet.',
-    'auth/user-not-found': 'Usuário não encontrado.',
-    'auth/wrong-password': 'Senha incorreta.',
+    'auth/user-not-found': 'E-mail ou senha incorretos.',
+    'auth/wrong-password': 'E-mail ou senha incorretos.',
     'auth/email-already-in-use': 'Este e-mail já está em uso.',
     'auth/invalid-email': 'E-mail inválido.',
     'auth/weak-password': 'A senha é muito fraca.',

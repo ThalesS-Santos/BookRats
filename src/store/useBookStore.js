@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { auth, db, googleProvider } from '../services/firebase';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   doc,
   setDoc,
@@ -16,8 +18,11 @@ import {
 import { signUp as apiSignUp, signIn as apiSignIn, signInWithGoogle as apiSignInWithGoogle, signOut as apiSignOut, updatePresence as apiUpdatePresence, updateReadingStatus as apiUpdateReadingStatus } from '../api/auth';
 import { addBook as apiAddBook, updateBookProgress, markAsDNF as apiMarkAsDNF } from '../api/books';
 import { usePopupStore } from './usePopupStore';
+import { ALL_BADGES } from '../constants/badges';
 
-export const useBookStore = create((set, get) => ({
+export const useBookStore = create(
+  persist(
+    (set, get) => ({
   books: [],
   user: null,
   loading: true,
@@ -34,6 +39,8 @@ export const useBookStore = create((set, get) => ({
   lastReadingSession: 0,
   totalBooksCompleted: 0,
   repairLocked: false,
+  totalClaps: 0,
+  unlockedBadges: {},
 
 
   // Auth Actions
@@ -172,11 +179,18 @@ export const useBookStore = create((set, get) => ({
     };
   },
 
-  addBook: async (title, totalPages) => {
-    const { user } = get();
+  addBook: async (title, totalPages, id = null) => {
+    const { user, books } = get();
     if (!user) return;
+
+    // 🛡️ Deduplication Guard (The Gauntlet)
+    if (id && books.some(b => b.id === id)) {
+      console.warn(`[Library Integrity] Duplicate ID detected: ${id}. Skipping.`);
+      return;
+    }
+
     try {
-      await apiAddBook(user.uid, title, totalPages);
+      await apiAddBook(user.uid, title, totalPages, id);
     } catch (error) {
       usePopupStore.getState().showPopup({
         title: 'Erro ao Adicionar',
@@ -323,4 +337,44 @@ export const useBookStore = create((set, get) => ({
       });
     }
   },
-}));
+
+  setClaps: (count) => {
+    set({ totalClaps: count });
+    get().checkAchievements();
+  },
+
+  checkAchievements: () => {
+    const state = get();
+    const userData = {
+      streak: state.streak,
+      totalPagesRead: state.totalPagesRead,
+      totalClaps: state.totalClaps,
+      completedBooks: state.books.filter(b => b.status === 'completed').length,
+      readingBooks: state.books.filter(b => b.status === 'reading').length,
+    };
+
+    const newUnlocked = { ...state.unlockedBadges };
+    let changed = false;
+
+    ALL_BADGES.forEach(badge => {
+      if (!newUnlocked[badge.id] && badge.check(userData)) {
+        newUnlocked[badge.id] = { 
+          dateUnlocked: new Date().toISOString(),
+          id: badge.id,
+          title: badge.title
+        };
+        changed = true;
+      }
+    });
+
+    if (changed) {
+      set({ unlockedBadges: newUnlocked });
+    }
+  },
+}),
+{
+  name: 'bookrats-library-storage',
+  storage: createJSONStorage(() => AsyncStorage),
+}
+)
+);
