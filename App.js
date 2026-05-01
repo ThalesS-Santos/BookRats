@@ -1,3 +1,4 @@
+import { useMainStore } from '@core/store';
 import './global.css';
 import React, { useEffect } from 'react';
 import { View, Platform, AppState } from 'react-native';
@@ -11,15 +12,12 @@ import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'nativewind';
 import { onAuthStateChanged } from 'firebase/auth';
 
-import AppNavigator from './src/navigation/AppNavigator';
+import AppNavigator from '@ui/navigation/AppNavigator';
 import { useThemeStore } from './src/store/useThemeStore';
-import { useBookStore } from './src/store/useBookStore';
-import { useUserStore } from './src/store/useUserStore';
-import { auth } from './src/services/firebase';
+import { auth } from '@core/firebase/firebase';
 
-import { COLORS } from './src/constants/colors';
-import CustomPopup from './src/components/CustomPopup';
-import LoadingScreen from './src/components/LoadingScreen';
+import { COLORS } from '@constants/colors';
+import { CustomPopup, LoadingScreen, ErrorBoundary } from '@ui/components';
 
 const BookLightTheme = { 
   ...DefaultTheme, 
@@ -46,7 +44,7 @@ const BookDarkTheme = {
 
 export default function App() {
   const { isDarkMode } = useThemeStore();
-  const { user, loading, setAuthUser } = useBookStore();
+  const { user, loading, setAuthUser } = useMainStore();
   const { setColorScheme } = useColorScheme();
 
   useEffect(() => {
@@ -73,7 +71,7 @@ export default function App() {
     const currentUid = user.uid;
 
     const updateStatus = (status) => {
-      useBookStore.getState().updatePresence(status, currentUid);
+      useMainStore.getState().updatePresence(status, currentUid);
     };
 
     updateStatus(true); // Online on mount
@@ -83,7 +81,7 @@ export default function App() {
     });
 
     // 🌟 Start Notifications Listener
-    const unsubNotifs = useUserStore.getState().startNotificationsListener(currentUid);
+    const unsubNotifs = useMainStore.getState().startNotificationsListener(currentUid);
 
     return () => {
       subscription.remove();
@@ -99,10 +97,12 @@ export default function App() {
         <LoadingScreen />
       ) : (
         <View style={{ flex: 1, backgroundColor: COLORS.dark_blue }}>
-          <NavigationContainer theme={isDarkMode ? BookDarkTheme : BookLightTheme}>
-            <AppNavigator />
-            <CustomPopup />
-          </NavigationContainer>
+          <ErrorBoundary>
+            <NavigationContainer theme={isDarkMode ? BookDarkTheme : BookLightTheme}>
+              <AppNavigator />
+              <CustomPopup />
+            </NavigationContainer>
+          </ErrorBoundary>
         </View>
       )}
     </SafeAreaProvider>

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { useBookStore } from './useBookStore';
+import { useMainStore } from '@core/store';
 import { 
   searchUsers as apiSearchUsers, 
   sendFriendRequest as apiSendFriendRequest, 
@@ -16,7 +16,7 @@ import {
   getPaginatedRanking as apiGetPaginatedRanking,
   getPublicEchoes as apiGetPublicEchoes,
   addRatClap as apiAddRatClap
-} from '../api/social';
+} from '@core/api/social';
 import { usePopupStore } from './usePopupStore';
 
 export const useSocialStore = create((set, get) => ({
@@ -87,7 +87,7 @@ export const useSocialStore = create((set, get) => ({
     
     try {
       // 🚀 Fallback Robusto: Usar dados locais do Ranking ou buscar da API com filtro
-      const { users: localUsers } = useBookStore.getState();
+      const { users: localUsers } = useMainStore.getState();
       let searchSource = localUsers;
 
       if (!searchSource || searchSource.length === 0) {
@@ -257,7 +257,7 @@ export const useSocialStore = create((set, get) => ({
   },
 
   removeFriend: async (friendId) => {
-    const { user } = useBookStore.getState();
+    const { user } = useMainStore.getState();
     if (!user) return;
     try {
       await apiRemoveFriendship(user.uid, friendId);
@@ -272,7 +272,7 @@ export const useSocialStore = create((set, get) => ({
   },
 
   leaveGroup: async (groupId) => {
-    const { user } = useBookStore.getState();
+    const { user } = useMainStore.getState();
     if (!user) return;
     try {
       await apiLeaveGroup(groupId, user.uid);

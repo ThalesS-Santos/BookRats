@@ -14,6 +14,14 @@ module.exports = {
           light: '#F5F3E7',
           dark: '#121212',
         },
+        surface: {
+          light: '#FFFFFF',
+          dark: '#0F172A',
+        },
+        surfaceLayer: {
+          light: '#F1F5F9',
+          dark: '#1E293B',
+        },
         primary: {
           DEFAULT: '#5B8C5A', // Sage Green
           dark: '#A7C9A7',
@@ -30,11 +38,29 @@ module.exports = {
         border: {
           light: '#E5E7EB',
           dark: '#262626',
+        },
+        borderGlass: {
+          light: 'rgba(203, 213, 225, 0.6)',
+          dark: 'rgba(71, 85, 105, 0.4)',
         }
       },
       fontFamily: {
         serif: ['Georgia', 'serif'],
         mono: ['Courier New', 'monospace'],
+      },
+      fontSize: {
+        micro: '7px',
+        mini: '9px',
+        tiny: '11px',
+      },
+      borderRadius: {
+        card: '24px',
+        hero: '32px',
+        ultra: '40px',
+      },
+      letterSpacing: {
+        ultra: '2px',
+        mega: '3px',
       }
     },
   },
