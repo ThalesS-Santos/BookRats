@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">71.42% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>5/7</span>
+                <span class='fraction'>7/7</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">54.16% </span>
+                <span class="strong">83.33% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>13/24</span>
+                <span class='fraction'>20/24</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">50% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>1/2</span>
+                <span class='fraction'>2/2</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">71.42% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>5/7</span>
+                <span class='fraction'>7/7</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line medium'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -172,11 +172,11 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">5x</span>
-<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">51x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">12x</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">51x</span>
+<span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -191,7 +191,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">42x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -245,7 +245,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -258,7 +258,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -273,17 +273,17 @@ import FastAvatar from '../atoms/FastAvatar';
 /**
  * 🌟 Collaborative Social Component: Community Note (Echo)
  */
-const CommunityNote = ({ note, onClap, COLORS, isDarkMode, isFrontCard = <span class="branch-0 cbranch-no" title="branch not covered" >false,</span> isBackgroundCard = false }) =&gt; {
+const CommunityNote = ({ note, onClap, COLORS, isDarkMode, isFrontCard = false, isBackgroundCard = false }) =&gt; {
   const { userMetadata, pageLocation, text, reactions, userId, bookId } = note;
   
-  <span class="missing-if-branch" title="if path not taken" >I</span>if (isBackgroundCard) {
-<span class="cstat-no" title="statement not covered" >    return (</span>
+  if (isBackgroundCard) {
+    return (
       &lt;View 
         style={[
           styles.container,
           { 
-            shadowColor: COLORS?.neon_green || '#00FF00',
-            shadowOpacity: isDarkMode ? 0.1 : 0.05,
+            shadowColor: COLORS?.neon_green || <span class="branch-1 cbranch-no" title="branch not covered" >'#00FF00',</span>
+            shadowOpacity: isDarkMode ? <span class="branch-0 cbranch-no" title="branch not covered" >0.1 </span>: 0.05,
             shadowRadius: 10,
           }
         ]}
@@ -321,7 +321,7 @@ const CommunityNote = ({ note, onClap, COLORS, isDarkMode, isFrontCard = <span c
                 {userMetadata?.displayName}
               &lt;/Text&gt;
               {userMetadata?.isInfluencer &amp;&amp; (
-<span class="branch-1 cbranch-no" title="branch not covered" >                &lt;Ionicons name="star" size={8} color={COLORS?.neon_green || '#00FF00'} style={{ marginLeft: 3 }} /&gt;</span>
+                &lt;Ionicons name="star" size={8} color={COLORS?.neon_green || <span class="branch-1 cbranch-no" title="branch not covered" >'#00FF00'}</span> style={{ marginLeft: 3 }} /&gt;
               )}
             &lt;/View&gt;
           &lt;/View&gt;
@@ -332,7 +332,7 @@ const CommunityNote = ({ note, onClap, COLORS, isDarkMode, isFrontCard = <span c
             Pg. {pageLocation}
           &lt;/Text&gt;
           &lt;View className="bg-primary/5 dark:bg-primary-dark/5 p-1 rounded-full"&gt;
-              &lt;Ionicons name="chatbubble-ellipses-outline" size={12} color={isDarkMode ? <span class="branch-0 cbranch-no" title="branch not covered" >'rgba(167, 201, 167, 0.6)' </span>: 'rgba(91, 140, 90, 0.6)'} /&gt;
+              &lt;Ionicons name="chatbubble-ellipses-outline" size={12} color={isDarkMode ? 'rgba(167, 201, 167, 0.6)' : 'rgba(91, 140, 90, 0.6)'} /&gt;
           &lt;/View&gt;
         &lt;/View&gt;
       &lt;/View&gt;
@@ -346,7 +346,7 @@ const CommunityNote = ({ note, onClap, COLORS, isDarkMode, isFrontCard = <span c
 &nbsp;
       &lt;View className="flex-row justify-end"&gt;
         &lt;TouchableOpacity 
-          onPress={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >onClap(userId, bookId, note.id)}</span>
+          onPress={() =&gt; onClap(userId, bookId, note.id)}
           className="flex-row items-center bg-background-light dark:bg-background-dark/50 px-2 py-1 rounded-full border border-border-light dark:border-border-dark"
         &gt;
           &lt;Text className="mr-1 text-[10px]"&gt;🐀&lt;/Text&gt;
@@ -373,7 +373,7 @@ export default React.memo(CommunityNote);
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-05-01T06:31:12.449Z
+                at 2026-05-02T02:31:48.814Z
             </div>
         <script src="../../../../prettify.js"></script>
         <script>

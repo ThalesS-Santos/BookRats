@@ -126,7 +126,7 @@ const AuthScreen = () => {
                                 onChangeText={setPassword}
                                 secureTextEntry={!showPassword}
                             />
-                            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                            <TouchableOpacity testID="password-toggle" onPress={() => setShowPassword(!showPassword)}>
                                 <Ionicons
                                     name={showPassword ? "eye-off-outline" : "eye-outline"}
                                     size={20}

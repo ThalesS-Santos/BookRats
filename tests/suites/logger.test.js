@@ -47,6 +47,14 @@ describe('Centralized Logger Service', () => {
         { meta: true }
       );
     });
+
+    it('should handle default parameters for info and error', () => {
+      Logger.info('Simple info');
+      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('[INFO]'), {});
+
+      Logger.error('Simple error');
+      expect(console.error).toHaveBeenCalledWith(expect.stringContaining('[ERROR]'), null, {});
+    });
   });
 
   describe('Production Environment (__DEV__ = false)', () => {

@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">81.81% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>9/11</span>
+                <span class='fraction'>11/11</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">37.5% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>3/8</span>
+                <span class='fraction'>8/8</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">66.66% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>2/3</span>
+                <span class='fraction'>3/3</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">81.81% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>9/11</span>
+                <span class='fraction'>11/11</span>
             </div>
         
             
@@ -97,26 +97,26 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">6x</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">6x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">6x</span>
-<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import * as ExpoHaptics from 'expo-haptics';
 import { useThemeStore } from '../store/useThemeStore';
 &nbsp;
@@ -124,20 +124,20 @@ import { useThemeStore } from '../store/useThemeStore';
  * 📳 Centralized Haptics Utility
  * Wraps expo-haptics to natively respect the user's global haptics theme preference.
  */
-export const impactAsync = async (style = <span class="branch-0 cbranch-no" title="branch not covered" >ExpoHaptics.ImpactFeedbackStyle.Light)</span> =&gt; {
+export const impactAsync = async (style = ExpoHaptics.ImpactFeedbackStyle.Light) =&gt; {
   if (useThemeStore.getState().hapticsEnabled) {
     await ExpoHaptics.impactAsync(style);
   }
 };
 &nbsp;
-export const notificationAsync = <span class="fstat-no" title="function not covered" >as</span>ync (type = <span class="branch-0 cbranch-no" title="branch not covered" >ExpoHaptics.NotificationFeedbackType.Success)</span> =&gt; {
-<span class="cstat-no" title="statement not covered" >  if (useThemeStore.getState().hapticsEnabled) {</span>
-<span class="cstat-no" title="statement not covered" >    await ExpoHaptics.notificationAsync(type);</span>
+export const notificationAsync = async (type = ExpoHaptics.NotificationFeedbackType.Success) =&gt; {
+  if (useThemeStore.getState().hapticsEnabled) {
+    await ExpoHaptics.notificationAsync(type);
   }
 };
 &nbsp;
 export const selectionAsync = async () =&gt; {
-  <span class="missing-if-branch" title="else path not taken" >E</span>if (useThemeStore.getState().hapticsEnabled) {
+  if (useThemeStore.getState().hapticsEnabled) {
     await ExpoHaptics.selectionAsync();
   }
 };
@@ -151,7 +151,7 @@ export const NotificationFeedbackType = ExpoHaptics.NotificationFeedbackType;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-05-01T06:31:12.449Z
+                at 2026-05-02T02:31:48.814Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

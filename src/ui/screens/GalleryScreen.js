@@ -133,7 +133,7 @@ const GalleryScreen = ({ route }) => {
     <View style={[styles.container, { backgroundColor: isDarkMode ? COLORS.background.dark : COLORS.background.light }]}>
       {/* Header */}
       <View style={[styles.header, { height: HEADER_TOTAL_HEIGHT }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity testID="back-button" onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="chevron-back" size={28} color={isDarkMode ? 'white' : 'black'} />
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>

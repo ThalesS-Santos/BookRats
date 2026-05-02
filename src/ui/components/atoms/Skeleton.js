@@ -5,7 +5,7 @@ import { Animated, Easing } from 'react-native';
  * Reusable Skeleton Component
  * @param {Object} props
  */
-export default function Skeleton({ width, height, borderRadius = 8, style, children }) {
+export default function Skeleton({ width, height, borderRadius = 8, style, children, testID }) {
   const opacityAnim = useRef(new Animated.Value(0.3)).current;
 
   useEffect(() => {
@@ -29,6 +29,7 @@ export default function Skeleton({ width, height, borderRadius = 8, style, child
 
   return (
     <Animated.View
+      testID={testID}
       className="bg-surfaceLayer-light dark:bg-surfaceLayer-dark"
       style={[
         {

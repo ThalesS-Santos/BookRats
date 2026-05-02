@@ -68,7 +68,7 @@ const EchoDeck = ({ echoes, onClap, COLORS, isDarkMode }) => {
   const onSwipeComplete = () => {
     position.setValue({ x: 0, y: 0 });
     setCurrentIndex(prev => {
-      const nextIndex = prev < echoes.length - 1 ? prev + 1 : prev;
+      const nextIndex = prev + 1;
       currentIndexRef.current = nextIndex;
       return nextIndex;
     });
@@ -131,6 +131,7 @@ const EchoDeck = ({ echoes, onClap, COLORS, isDarkMode }) => {
         visibleCards.push(
           <Animated.View
             key={item.id}
+            testID="front-card"
             style={[styles.cardWrapper, cardStyle]}
             {...panResponder.panHandlers}
           >

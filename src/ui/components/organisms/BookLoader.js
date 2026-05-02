@@ -53,6 +53,7 @@ const BookLoader = ({ isVisible = true }) => {
 
   return (
     <Animated.View 
+      testID="book-loader-container"
       pointerEvents={isVisible ? 'auto' : 'none'}
       style={[styles.container, { opacity: fadeAnim, backgroundColor: BG_COLOR }]}
     >

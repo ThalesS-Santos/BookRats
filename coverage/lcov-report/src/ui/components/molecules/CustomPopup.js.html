@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">75% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>15/20</span>
+                <span class='fraction'>20/20</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">61.11% </span>
+                <span class="strong">94.44% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>11/18</span>
+                <span class='fraction'>17/18</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">75% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>3/4</span>
+                <span class='fraction'>4/4</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">82.35% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>14/17</span>
+                <span class='fraction'>17/17</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line medium'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -141,33 +141,33 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">17x</span>
-<span class="cline-any cline-yes">17x</span>
+<span class="cline-any cline-yes">24x</span>
+<span class="cline-any cline-yes">24x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">17x</span>
+<span class="cline-any cline-yes">24x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">9x</span>
-<span class="cline-any cline-yes">9x</span>
-<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">15x</span>
+<span class="cline-any cline-yes">15x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">15x</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">15x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">9x</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">15x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">9x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">15x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -221,19 +221,19 @@ export default function CustomPopup() {
     switch (type) {
       case 'error': return { name: 'alert-circle', color: '#EF4444' };
       case 'success': return { name: 'checkmark-circle', color: '#22C55E' };
-<span class="branch-2 cbranch-no" title="branch not covered" >      case 'confirm': <span class="cstat-no" title="statement not covered" >return { name: 'help-circle', color: '#D97706' };</span></span>
+      case 'confirm': return { name: 'help-circle', color: '#D97706' };
       default: return { name: 'information-circle', color: '#3B82F6' };
     }
   };
 &nbsp;
   const handleConfirm = () =&gt; {
-    <span class="missing-if-branch" title="if path not taken" >I</span>if (onConfirm) <span class="cstat-no" title="statement not covered" >onConfirm();</span>
+    if (onConfirm) onConfirm();
     hidePopup();
   };
 &nbsp;
-  const handleCancel = <span class="fstat-no" title="function not covered" >()</span> =&gt; {
-<span class="cstat-no" title="statement not covered" >    if (onCancel) <span class="cstat-no" title="statement not covered" >onCancel();</span></span>
-<span class="cstat-no" title="statement not covered" >    hidePopup();</span>
+  const handleCancel = () =&gt; {
+    <span class="missing-if-branch" title="else path not taken" >E</span>if (onCancel) onCancel();
+    hidePopup();
   };
 &nbsp;
   const iconData = getIcon();
@@ -243,7 +243,7 @@ export default function CustomPopup() {
       &lt;View className="flex-1 justify-center items-center bg-black/70 px-6"&gt;
         &lt;View className="bg-card-light dark:bg-card-dark w-full rounded-3xl p-6 border border-border-light dark:border-border-dark shadow-2xl"&gt;
           &lt;View className="items-center mb-4"&gt;
-            &lt;View className={`p-3 rounded-full ${isDarkMode ? <span class="branch-0 cbranch-no" title="branch not covered" >'bg-primary-dark/10' </span>: 'bg-primary/10'} mb-3`}&gt;
+            &lt;View className={`p-3 rounded-full ${isDarkMode ? 'bg-primary-dark/10' : 'bg-primary/10'} mb-3`}&gt;
               &lt;Ionicons name={iconData.name} size={40} color={iconData.color} /&gt;
             &lt;/View&gt;
             &lt;Text className="text-text-light dark:text-text-dark text-xl font-serif font-bold text-center"&gt;
@@ -257,7 +257,7 @@ export default function CustomPopup() {
 &nbsp;
           &lt;View className="flex-row justify-center space-x-3 gap-2"&gt;
             {type === 'confirm' &amp;&amp; (
-<span class="branch-1 cbranch-no" title="branch not covered" >              &lt;TouchableOpacity </span>
+              &lt;TouchableOpacity 
                 onPress={handleCancel}
                 className="flex-1 bg-gray-100 dark:bg-gray-800 p-3 rounded-xl items-center border border-border-light dark:border-border-dark"
               &gt;
@@ -268,7 +268,7 @@ export default function CustomPopup() {
               onPress={handleConfirm}
               className={`flex-1 p-3 rounded-xl items-center ${type === 'error' ? 'bg-red-500' : 'bg-primary dark:bg-primary-dark'}`}
             &gt;
-              &lt;Text className="text-white font-bold"&gt;{type === 'confirm' ? <span class="branch-0 cbranch-no" title="branch not covered" >'Confirmar' </span>: 'OK'}&lt;/Text&gt;
+              &lt;Text className="text-white font-bold"&gt;{type === 'confirm' ? 'Confirmar' : 'OK'}&lt;/Text&gt;
             &lt;/TouchableOpacity&gt;
           &lt;/View&gt;
         &lt;/View&gt;
@@ -283,7 +283,7 @@ export default function CustomPopup() {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-05-01T06:31:12.449Z
+                at 2026-05-02T02:31:48.814Z
             </div>
         <script src="../../../../prettify.js"></script>
         <script>
