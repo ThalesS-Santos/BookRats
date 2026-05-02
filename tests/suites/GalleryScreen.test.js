@@ -36,9 +36,12 @@ describe('GalleryScreen', () => {
     getPublicEchoes.mockResolvedValue(mockEchoes);
   });
 
-  it('renders loading state initially', () => {
-    const { getByTestId } = render(<GalleryScreen route={mockRoute} />);
+  it('renders loading state initially', async () => {
+    const { getByTestId, queryByTestId } = render(<GalleryScreen route={mockRoute} />);
     expect(getByTestId('book-loader-container')).toBeTruthy();
+    
+    // Sink the async state update to avoid 'act' warning
+    await waitFor(() => expect(queryByTestId('book-loader-container')).toBeNull());
   });
 
   it('renders echoes after loading', async () => {
@@ -55,22 +58,26 @@ describe('GalleryScreen', () => {
 
   it('renders empty state if no echoes found', async () => {
     getPublicEchoes.mockResolvedValue([]);
-    const { getByText } = render(<GalleryScreen route={mockRoute} />);
+    const { getByText, queryByTestId } = render(<GalleryScreen route={mockRoute} />);
     
     await waitFor(() => {
-      expect(getByText('Nenhum eco encontrado nesta parte do livro.')).toBeTruthy();
+      expect(queryByTestId('book-loader-container')).toBeNull();
     });
+    
+    expect(getByText('Nenhum eco encontrado nesta parte do livro.')).toBeTruthy();
   });
 
   it('handles fetch error gracefully', async () => {
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     getPublicEchoes.mockRejectedValue(new Error('API Failure'));
     
-    render(<GalleryScreen route={mockRoute} />);
+    const { queryByTestId } = render(<GalleryScreen route={mockRoute} />);
     
     await waitFor(() => {
-      expect(consoleSpy).toHaveBeenCalled();
+      expect(queryByTestId('book-loader-container')).toBeNull();
     });
+    
+    expect(consoleSpy).toHaveBeenCalled();
     consoleSpy.mockRestore();
   });
 
@@ -106,9 +113,14 @@ describe('GalleryScreen', () => {
     await waitFor(() => expect(getPublicEchoes).toHaveBeenCalled());
 
     const clapButton = getByText('5'); // Initial claps of Echo 1
-    fireEvent.press(clapButton);
+    
+    await act(async () => {
+      fireEvent.press(clapButton);
+    });
 
-    expect(getByText('6')).toBeTruthy(); // Optimistic update
+    await waitFor(() => {
+      expect(getByText('6')).toBeTruthy(); // Optimistic update
+    });
     expect(addRatClap).toHaveBeenCalled();
   });
 

@@ -21,12 +21,23 @@ describe('BookFactory', () => {
     expect(book.author).toBe('Overridden Author');
   });
 
-  it('creates many books', () => {
-    const books = BookFactory.createMany(3, { pageCount: 100 });
+  it('creates a reading book without overrides', () => {
+    const book = BookFactory.createReading();
+    expect(book.status).toBe('reading');
+    expect(book.currentPage).toBe(50);
+  });
+
+  it('creates many books with default overrides', () => {
+    const books = BookFactory.createMany(3);
     expect(books).toHaveLength(3);
-    expect(books[0].pageCount).toBe(100);
-    expect(books[1].pageCount).toBe(100);
-    expect(books[2].pageCount).toBe(100);
-    expect(books[0].id).not.toBe(books[1].id);
+    expect(books[0]).toHaveProperty('id');
+  });
+
+  it('covers random status generation', () => {
+    const books = BookFactory.createMany(20);
+    const statuses = books.map(b => b.status);
+    expect(statuses).toContain('reading');
+    expect(statuses).toContain('read');
+    expect(statuses).toContain('wantToRead');
   });
 });

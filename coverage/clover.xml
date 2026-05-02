@@ -1,28 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1777689108878" clover="3.2.0">
-  <project timestamp="1777689108878" name="All files">
-    <metrics statements="856" coveredstatements="856" conditionals="524" coveredconditionals="485" methods="217" coveredmethods="215" elements="1597" coveredelements="1556" complexity="0" loc="856" ncloc="856" packages="18" files="42" classes="42"/>
+<coverage generated="1777690516882" clover="3.2.0">
+  <project timestamp="1777690516882" name="All files">
+    <metrics statements="857" coveredstatements="857" conditionals="524" coveredconditionals="490" methods="218" coveredmethods="216" elements="1599" coveredelements="1563" complexity="0" loc="857" ncloc="857" packages="18" files="42" classes="42"/>
     <package name="assets">
       <metrics statements="5" coveredstatements="5" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
       <file name="favicon.png" path="C:\GitHub\App_leitura\BookRats\assets\favicon.png">
         <metrics statements="1" coveredstatements="1" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
-        <line num="1" count="9" type="stmt"/>
+        <line num="1" count="10" type="stmt"/>
       </file>
       <file name="icon.png" path="C:\GitHub\App_leitura\BookRats\assets\icon.png">
         <metrics statements="1" coveredstatements="1" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
-        <line num="1" count="9" type="stmt"/>
+        <line num="1" count="10" type="stmt"/>
       </file>
       <file name="pixel-avatar-fallback.png" path="C:\GitHub\App_leitura\BookRats\assets\pixel-avatar-fallback.png">
         <metrics statements="1" coveredstatements="1" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
-        <line num="1" count="9" type="stmt"/>
+        <line num="1" count="10" type="stmt"/>
       </file>
       <file name="pixel_book.png" path="C:\GitHub\App_leitura\BookRats\assets\pixel_book.png">
         <metrics statements="1" coveredstatements="1" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
-        <line num="1" count="9" type="stmt"/>
+        <line num="1" count="10" type="stmt"/>
       </file>
       <file name="splash-icon.png" path="C:\GitHub\App_leitura\BookRats\assets\splash-icon.png">
         <metrics statements="1" coveredstatements="1" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
-        <line num="1" count="9" type="stmt"/>
+        <line num="1" count="10" type="stmt"/>
       </file>
     </package>
     <package name="src.core.api">
@@ -674,11 +674,11 @@
       <metrics statements="5" coveredstatements="5" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
       <file name="index.js" path="C:\GitHub\App_leitura\BookRats\src\ui\assets\index.js">
         <metrics statements="5" coveredstatements="5" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
-        <line num="1" count="9" type="stmt"/>
-        <line num="2" count="9" type="stmt"/>
-        <line num="3" count="9" type="stmt"/>
-        <line num="4" count="9" type="stmt"/>
-        <line num="5" count="9" type="stmt"/>
+        <line num="1" count="10" type="stmt"/>
+        <line num="2" count="10" type="stmt"/>
+        <line num="3" count="10" type="stmt"/>
+        <line num="4" count="10" type="stmt"/>
+        <line num="5" count="10" type="stmt"/>
       </file>
     </package>
     <package name="src.ui.components">
@@ -688,11 +688,11 @@
       </file>
     </package>
     <package name="src.ui.components.atoms">
-      <metrics statements="7" coveredstatements="7" conditionals="11" coveredconditionals="8" methods="4" coveredmethods="4"/>
+      <metrics statements="7" coveredstatements="7" conditionals="11" coveredconditionals="11" methods="4" coveredmethods="4"/>
       <file name="FastAvatar.js" path="C:\GitHub\App_leitura\BookRats\src\ui\components\atoms\FastAvatar.js">
-        <metrics statements="2" coveredstatements="2" conditionals="10" coveredconditionals="7" methods="1" coveredmethods="1"/>
-        <line num="6" count="9" type="stmt"/>
-        <line num="21" count="42" type="stmt"/>
+        <metrics statements="2" coveredstatements="2" conditionals="10" coveredconditionals="10" methods="1" coveredmethods="1"/>
+        <line num="6" count="10" type="stmt"/>
+        <line num="21" count="46" type="stmt"/>
       </file>
       <file name="LoadingScreen.js" path="C:\GitHub\App_leitura\BookRats\src\ui\components\atoms\LoadingScreen.js">
         <metrics statements="1" coveredstatements="1" conditionals="0" coveredconditionals="0" methods="1" coveredmethods="1"/>
@@ -1010,14 +1010,14 @@
       </file>
     </package>
     <package name="tests.factories">
-      <metrics statements="7" coveredstatements="7" conditionals="4" coveredconditionals="2" methods="5" coveredmethods="5"/>
+      <metrics statements="7" coveredstatements="7" conditionals="4" coveredconditionals="4" methods="5" coveredmethods="5"/>
       <file name="BookFactory.js" path="C:\GitHub\App_leitura\BookRats\tests\factories\BookFactory.js">
-        <metrics statements="5" coveredstatements="5" conditionals="3" coveredconditionals="1" methods="4" coveredmethods="4"/>
+        <metrics statements="5" coveredstatements="5" conditionals="3" coveredconditionals="3" methods="4" coveredmethods="4"/>
         <line num="5" count="2" type="stmt"/>
         <line num="7" count="2" type="stmt"/>
-        <line num="13" count="18" type="cond" truecount="1" falsecount="0"/>
-        <line num="28" count="1" type="cond" truecount="0" falsecount="1"/>
-        <line num="33" count="3" type="cond" truecount="0" falsecount="1"/>
+        <line num="13" count="39" type="cond" truecount="1" falsecount="0"/>
+        <line num="28" count="2" type="cond" truecount="1" falsecount="0"/>
+        <line num="33" count="23" type="cond" truecount="1" falsecount="0"/>
       </file>
       <file name="UserFactory.js" path="C:\GitHub\App_leitura\BookRats\tests\factories\UserFactory.js">
         <metrics statements="2" coveredstatements="2" conditionals="1" coveredconditionals="1" methods="1" coveredmethods="1"/>
@@ -1026,16 +1026,17 @@
       </file>
     </package>
     <package name="tests.mocks">
-      <metrics statements="4" coveredstatements="4" conditionals="0" coveredconditionals="0" methods="2" coveredmethods="2"/>
+      <metrics statements="5" coveredstatements="5" conditionals="0" coveredconditionals="0" methods="3" coveredmethods="3"/>
       <file name="handlers.js" path="C:\GitHub\App_leitura\BookRats\tests\mocks\handlers.js">
-        <metrics statements="3" coveredstatements="3" conditionals="0" coveredconditionals="0" methods="2" coveredmethods="2"/>
-        <line num="3" count="39" type="stmt"/>
+        <metrics statements="4" coveredstatements="4" conditionals="0" coveredconditionals="0" methods="3" coveredmethods="3"/>
+        <line num="3" count="40" type="stmt"/>
         <line num="6" count="2" type="stmt"/>
         <line num="34" count="1" type="stmt"/>
+        <line num="93" count="1" type="stmt"/>
       </file>
       <file name="server.js" path="C:\GitHub\App_leitura\BookRats\tests\mocks\server.js">
         <metrics statements="1" coveredstatements="1" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
-        <line num="4" count="39" type="stmt"/>
+        <line num="4" count="40" type="stmt"/>
       </file>
     </package>
   </project>

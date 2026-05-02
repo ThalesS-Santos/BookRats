@@ -26,19 +26,25 @@ jest.mock('@react-navigation/native', () => {
         }),
     };
 });
-
-describe('Gallery Screen Integration', () => {
+describe('Gallery Screen Integration', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     useMainStore.setState({ user: UserFactory.create({ uid: 'test-user-123' }) });
   });
 
-  const renderGallery = () => {
-    return render(
+  const renderGallery = async () => {
+    const renderResult = render(
       <NavigationContainer>
         <GalleryScreen route={mockRoute} />
       </NavigationContainer>
     );
+    
+    // Let VirtualizedList settle its internal timers
+    await act(async () => {
+      await new Promise(r => setTimeout(r, 0));
+    });
+    
+    return renderResult;
   };
 
   it('Scenario 1: should mount correctly with book metadata and filter spoilers', async () => {
@@ -61,7 +67,7 @@ describe('Gallery Screen Integration', () => {
         mockEchoes.filter(e => e.pageLocation <= mockRoute.params.userCurrentPage)
     );
 
-    const { findByText, getByText, queryByText } = renderGallery();
+    const { findByText, getByText, queryByText } = await renderGallery();
 
     // Verify Title in Header (Waiting for loading to finish)
     expect(await findByText('Cem Anos de Solidão')).toBeTruthy();
@@ -88,18 +94,21 @@ describe('Gallery Screen Integration', () => {
     }));
     jest.spyOn(socialApi, 'getPublicEchoes').mockResolvedValue(mockEchoes);
 
-    const { getByTestId } = renderGallery();
+    const { getByTestId } = await renderGallery();
 
     // Wait for data to load and FlatList to appear
     const flatList = await waitFor(() => getByTestId('echo-flatlist'));
     
     // Simulate Scroll
-    fireEvent.scroll(flatList, {
-      nativeEvent: {
-        contentOffset: { y: 200 },
-        contentSize: { height: 1000, width: 400 },
-        layoutMeasurement: { height: 800, width: 400 },
-      },
+    await act(async () => {
+      fireEvent.scroll(flatList, {
+        nativeEvent: {
+          contentOffset: { y: 200 },
+          contentSize: { height: 1000, width: 400 },
+          layoutMeasurement: { height: 800, width: 400 },
+        },
+      });
+      await new Promise(r => setTimeout(r, 0));
     });
 
     // Verify it's still there
@@ -109,7 +118,7 @@ describe('Gallery Screen Integration', () => {
   it('Scenario 3: should display empty state when no echoes are found', async () => {
     jest.spyOn(socialApi, 'getPublicEchoes').mockResolvedValue([]);
 
-    const { getByText } = renderGallery();
+    const { getByText } = await renderGallery();
 
     await waitFor(() => {
       expect(getByText('Nenhum eco encontrado nesta parte do livro.')).toBeTruthy();
@@ -126,13 +135,15 @@ describe('Gallery Screen Integration', () => {
     };
     jest.spyOn(socialApi, 'getPublicEchoes').mockResolvedValue([mockEcho]);
 
-    const { getByText } = renderGallery();
+    const { getByText } = await renderGallery();
 
     // Wait for data
     const cardText = await waitFor(() => getByText('"Teste de navegação"'));
     
     // Press the card
-    fireEvent.press(cardText);
+    await act(async () => {
+      fireEvent.press(cardText);
+    });
 
     expect(mockNavigate).toHaveBeenCalledWith('EchoDetail', expect.objectContaining({
         echoId: 'echo-123'

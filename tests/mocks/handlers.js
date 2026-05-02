@@ -87,4 +87,9 @@ export const handlers = [
       ])
     );
   }),
+
+  // Handler for network isolation testing
+  rest.get('https://unhandled-api.com/data', (req, res, ctx) => {
+    return res(ctx.status(200), ctx.json({ mocked: true }));
+  }),
 ];
