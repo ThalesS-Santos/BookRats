@@ -1,43 +1,46 @@
 # Especificações e Funcionalidades (BookRats)
 
-Este documento centraliza as definições de escopo e stack tecnológico do BookRats.
+Este documento centraliza as definições de escopo, pilares de design e requisitos técnicos do projeto BookRats.
 
 ---
 
-## 1. Stack Tecnológico
+## 1. Visão Geral
+BookRats não é apenas um tracker de leitura; é um ecossistema social focado na imersão literária. O objetivo é gamificar o hábito de leitura e permitir que pensamentos sejam compartilhados de forma contextual (atrelados à página do livro).
 
-- **Framework Front-End:** React Native 0.81 (via Expo SDK 54)
-- **Gerenciamento de Estado:** Zustand 5.0
-- **Estilização:** NativeWind v4 (TailwindCSS)
-- **Navegação:** React Navigation v7
-- **Animações e Gestos:** React Native Reanimated v4 + React Native Gesture Handler
-- **Backend / Database:** Firebase (Auth, Firestore, Cloud Rules)
-- **Testes:** Jest v29, React Native Testing Library v13, MSW (Mock Service Worker)
+---
 
-## 2. Pilares Funcionais (Features Principais)
+## 2. Pilares de Experiência (UX)
 
-### 2.1 Echoes (Rastros Literários)
-A grande inovação do BookRats. Não são apenas resenhas no final do livro; são anotações atreladas a uma página específica.
-- **Filtro Anti-Spoiler:** O usuário só vê as anotações feitas até a página que ele mesmo já alcançou.
-- **Threads:** Capacidade de responder a um Rastro (Comentários aninhados).
-- **Gamificação:** Rastros bem avaliados geram pontos de "Rat Claps" (reações).
+### 2.1 Contextualidade (Echoes)
+Diferente de resenhas post-mortem, os **Echoes** permitem que o usuário interaja com o livro durante o processo. A experiência é protegida pelo filtro anti-spoiler.
 
-### 2.2 Cronômetro de Leitura
-Um temporizador imersivo integrado ao app que acompanha o tempo focado de leitura de um usuário.
-- O timer gera notificações táteis (Haptics) e armazena o histórico (streaks e badges de conquistas de tempo).
+### 2.2 Foco Imersivo (Timer)
+A ferramenta de cronômetro é desenhada para minimizar distrações, mantendo a tela ativa e fornecendo feedbacks táteis que marcam o ritmo da leitura.
 
-### 2.3 Clubes do Livro (Grupos e Bate-papo)
-Sistema social robusto onde grupos podem ser criados baseados num gênero ou num livro em comum.
-- Contém Chat em Tempo Real construído sobre o Firestore.
-- Inclui um "Ranking de Nicho" interno (ex: quem lê mais no Grupo de Ficção Científica).
+### 2.3 Reconhecimento (Gamificação)
+O progresso é recompensado através de **Streaks**, **Badges** e o status de **Influenciador**, que é conquistado através da qualidade das interações sociais.
 
-### 2.4 Temas Dinâmicos e Acessibilidade
-- Modo Escuro (Dark Mode) sofisticado.
-- Controles de acessibilidade física, permitindo que o usuário desligue todo o sistema háptico (vibrações) ou animações intensas.
+---
 
-## 3. Requisitos Ambientais
+## 3. Requisitos Técnicos e Stack
 
-Para contribuir com o projeto, a máquina deve possuir:
-- Node.js (v18 ou superior).
-- Conta no Expo (para builds EAS, se necessário).
-- Conta no Firebase (ou chaves de acesso no `env` caso a comunicação exija variáveis de ambiente ocultas).
+### 3.1 Mobile First
+- **Core:** React Native + Expo.
+- **Estilo:** Design atômico com TailwindCSS (NativeWind).
+
+### 3.2 Real-time & Serverless
+- **Data:** Cloud Firestore para sincronização em tempo real.
+- **Auth:** Firebase Authentication com suporte a múltiplos providers.
+
+### 3.3 Qualidade e Estabilidade
+- **Testes:** Cobertura de 100% em lógica de domínio.
+- **Segurança:** Regras de acesso baseadas em tokens JWT via Firestore Security Rules.
+
+---
+
+## 4. Requisitos de Contribuição
+Para desenvolvedores interessados em contribuir:
+- **Node.js 18+**
+- **Git**
+- **Cultura de Testes:** Todo PR deve incluir testes que mantenham a cobertura atual.
+- **Design:** Seguir os tokens definidos no [UI/UX Guide](./UI_UX_GUIDE.md).

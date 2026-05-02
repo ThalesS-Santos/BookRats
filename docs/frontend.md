@@ -1,36 +1,50 @@
 # Arquitetura do Frontend (BookRats)
 
-O aplicativo é desenvolvido majoritariamente em **React Native**, envolto no ecossistema do **Expo (SDK 54)**, o que permite o desenvolvimento simultâneo e facilitado para iOS, Android e Web.
+O aplicativo é desenvolvido em **React Native** com **Expo (SDK 54)**, utilizando uma abordagem de **Atomic Design** e gerenciamento de estado via **Zustand**.
 
 ---
 
-## 1. Estrutura de Navegação (`src/navigation/` e `src/screens/`)
+## 1. Estrutura de UI (`src/ui/`)
 
-A navegação é orquestrada pela biblioteca `@react-navigation`.
-- **Rotas e Stack:** O aplicativo transita entre telas usando componentes nativos de stack e abas de navegação de fundo (`@react-navigation/bottom-tabs`).
-- **Principais Telas:**
-  - `HomeScreen.js`: O Dashboard principal, mostrando o livro em andamento e o "Deck" de Echoes (Flashcards de anotações 3D).
-  - `TimerScreen.js`: Interface para cronometrar sessões de leitura, com feedbacks visuais e hápticos.
-  - `GalleryScreen.js`: Galeria interativa (3D Echo Gallery) de rastros literários.
-  - `GroupsScreen.js` / `GroupDetailsScreen.js` / `GroupChatScreen.js`: Módulos de Clubes do Livro, gerenciamento de grupos e chat em tempo real.
-  - `ProfileScreen.js` e `UserProfileScreen.js`: Perfis de usuário (pessoal e de terceiros) e customização de tema.
+Seguimos a filosofia de Atomic Design adaptada:
+- **`atoms/`**: Componentes básicos (Avatares, Skeletons, LoadingScreens).
+- **`molecules/`**: Combinações de átomos (Cards de notas, Popups customizados).
+- **`organisms/`**: Componentes complexos e auto-contidos (Deck de Echoes, Carregador de Livros, Error Boundary).
 
-## 2. Gerenciamento de Estado (`src/store/`)
+### Navegação (`src/ui/navigation/`)
+Utilizamos o **React Navigation v7**:
+- **AppNavigator:** Gerencia o fluxo de Autenticação vs App principal.
+- **TabNavigator:** Define a estrutura de abas (Home, Library, Social, Profile).
 
-Ao invés de Redux ou Context API complexos, o projeto brilha usando o **Zustand** para o estado global. Isso propicia stores pequenos, leves e sem boilerplate.
-- **`useBookStore.js`:** Gerencia o acervo local do usuário e as estantes virtuais.
-- **`useSocialStore.js`:** Centraliza a lógica de amigos, Echoes da comunidade e Clubes do Livro.
-- **`useThemeStore.js`:** Lida com a persistência de temas e preferências sensoriais (como o toggle do Haptics).
-- **`useUserStore.js` / `usePopupStore.js`:** Dados da sessão atual e gatilhos de modais globais.
+---
 
-## 3. Estilização Visual (NativeWind + TailwindCSS)
+## 2. Gerenciamento de Estado (`src/core/store/`)
 
-O aplicativo usa o [NativeWind (v4)](https://www.nativewind.dev/) para estilização. 
-- Permite escrever utilitários familiares do TailwindCSS (como `flex`, `p-4`, `bg-blue-500`) diretamente nas propriedades `className` dos componentes React Native.
-- Há um arquivo global de configuração `tailwind.config.js` onde as cores oficiais da marca (ex: Neon Green, Dark Blue) e os espaçamentos estão centralizados.
+Implementamos o padrão de **Slices** do Zustand 5 para escalabilidade.
+- O estado é persistido via **AsyncStorage** em Slices selecionadas (como Tema e Preferências).
+- As Slices de domínio (`library`, `social`, `auth`) lidam com a lógica de negócio e sincronização com o backend.
 
-## 4. Componentes e Interações Nativas
+---
 
-A UI foca fortemente na imersão e gamificação:
-- **Haptics (`expo-haptics`):** Módulo centralizado em `src/utils/haptics.js` e ativado pelo `useThemeStore.js`. As vibrações táteis do dispositivo ocorrem em botões, finalizações de timer e interações na galeria.
-- **Animações (`react-native-reanimated` e Gesture Handler):** O app possui swipes, cards em 3D estilo flashcards, e animações orgânicas projetadas para passar a sensação de um aplicativo "Premium" e moderno.
+## 3. Design System (NativeWind + TailwindCSS)
+
+O BookRats utiliza **NativeWind v4** para estilização utilitária.
+- **Configuração:** `tailwind.config.js` contém a paleta de cores "Rat" (Neon Green, Dark Mode).
+- **Responsividade:** Uso de breakpoints e classes condicionais para garantir que o app funcione bem em diferentes tamanhos de tela.
+
+---
+
+## 4. Imersão e UX Premium
+
+- **Haptics (`expo-haptics`)**: Integrado profundamente nas interações. Centralizado em `src/utils/haptics.js`.
+- **Animações (`Reanimated 4`)**: Galeria 3D (Cylindrical Gallery) e transições suaves de tela.
+- **Performance**: Uso de `FlashList` (ou FlatList otimizado) para renderizar grandes coleções de ecos e livros.
+
+---
+
+## 5. Robustez e Tratamento de Erros
+
+O frontend está protegido por um **Global Error Boundary**:
+- Captura erros fatais de renderização.
+- Loga o erro automaticamente via `Logger.js`.
+- Permite ao usuário resetar a aplicação sem precisar fechá-la.
