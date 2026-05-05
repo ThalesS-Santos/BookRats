@@ -1,10 +1,10 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { View, Animated, PanResponder, Dimensions, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Animated, PanResponder, Dimensions, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import CommunityNote from '../molecules/CommunityNote';
 import * as Haptics from '@utils/haptics';
 
-const EchoDeck = ({ echoes, onClap, COLORS, isDarkMode }) => {
+const EchoDeck = ({ echoes, onClap, COLORS, isDarkMode, bookCover = null }) => {
   const { width } = Dimensions.get('window');
   const SWIPE_THRESHOLD = 0.4 * width;
   const SWIPE_OUT_DURATION = 250;
@@ -86,6 +86,13 @@ const EchoDeck = ({ echoes, onClap, COLORS, isDarkMode }) => {
     if (currentIndex >= echoes.length) {
       return (
         <View style={styles.emptyContainer}>
+          {bookCover && (
+            <Image 
+              source={bookCover} 
+              style={styles.emptyCover} 
+              resizeMode="contain" 
+            />
+          )}
           <CommunityNote 
             note={{
               userMetadata: { displayName: 'Fim do Baralho', photoURL: null },
@@ -217,7 +224,15 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     opacity: 0.5,
-    transform: [{ scale: 0.95 }]
+    transform: [{ scale: 0.95 }],
+    alignItems: 'center',
+  },
+  emptyCover: {
+    width: 60,
+    height: 90,
+    marginBottom: 10,
+    borderRadius: 4,
+    opacity: 0.6,
   }
 });
 

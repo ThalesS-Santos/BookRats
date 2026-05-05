@@ -3,14 +3,17 @@ import { doc, updateDoc, collection, setDoc, arrayUnion, serverTimestamp, getDoc
 import { calculateStreak } from '@utils/streak';
 import { mapFirebaseError } from '@utils/errorMapper';
 
-export const addBook = async (uid, title, totalPages, id = null) => {
+import { BOOK_STATUS } from '../constants/bookStatus';
+
+export const addBook = async (uid, title, totalPages, id = null, description = '', extraMetadata = {}, status = BOOK_STATUS.WANT_TO_READ) => {
   // 🛡️ Validation Guard
   if (!uid || !title || totalPages === null || totalPages === undefined) {
     throw new Error("Dados inválidos: Título e número de páginas são obrigatórios.");
   }
   
   const pages = parseInt(totalPages, 10);
-  if (Number.isNaN(pages) || pages <= 0) {
+  if (Number.isNaN(pages) || (pages <= 0 && id === null)) {
+    // If it's a manual entry, pages must be > 0. If it's from API, we might allow 0 temporarily
     throw new Error("Dados inválidos: Título e número de páginas são obrigatórios.");
   }
 
@@ -20,7 +23,14 @@ export const addBook = async (uid, title, totalPages, id = null) => {
       title,
       totalPages: pages,
       currentPage: 0,
-      status: 'reading',
+      description: description || 'Sinopse não disponível para esta edição.',
+      author: extraMetadata.author || 'Autor Desconhecido',
+      thumbnail: extraMetadata.thumbnail || null,
+      categories: extraMetadata.categories || [],
+      language: extraMetadata.language || 'pt',
+      publishedDate: extraMetadata.publishedDate || null,
+      averageRating: extraMetadata.averageRating || null,
+      status: status, // Using provided status or default (Etapa 2)
       logs: [],
       createdAt: serverTimestamp()
     });
@@ -62,7 +72,7 @@ export const updateBookProgress = async (uid, book, newPage, timeSeconds, streak
     const bookRef = doc(db, 'users', uid, 'books', book.id);
     await updateDoc(bookRef, {
       currentPage: nPage,
-      status: isCompleted ? 'completed' : book.status,
+      status: isCompleted ? BOOK_STATUS.READ : book.status,
       logs: arrayUnion({
         date: todayStr,
         pagesRead: pagesReadToday,
@@ -100,14 +110,25 @@ export const updateBookProgress = async (uid, book, newPage, timeSeconds, streak
   }
 };
 
-export const markAsDNF = async (uid, bookId) => {
+export const updateBook = async (uid, bookId, updates) => {
   try {
     const bookRef = doc(db, 'users', uid, 'books', bookId);
-    await updateDoc(bookRef, { status: 'dnf' });
+    await updateDoc(bookRef, { 
+      ...updates,
+      updatedAt: serverTimestamp() 
+    });
   } catch (error) {
-    console.error("Error marking as DNF:", error);
+    console.error("Error updating book:", error);
     throw new Error(mapFirebaseError(error));
   }
+};
+
+export const updateBookStatus = async (uid, bookId, status) => {
+  return updateBook(uid, bookId, { status });
+};
+
+export const markAsDNF = async (uid, bookId, status = BOOK_STATUS.DROPPED) => {
+  return updateBookStatus(uid, bookId, status);
 };
 
 export const getUserBooks = async (uid) => {

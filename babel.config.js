@@ -16,6 +16,7 @@ module.exports = function (api) {
             "@ui": "./src/ui",
             "@tests": "./tests",
             "@utils": "./src/utils",
+            "@hooks": "./src/hooks",
             "@constants": "./src/ui/constants"
           }
         }

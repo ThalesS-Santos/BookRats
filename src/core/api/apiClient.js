@@ -19,8 +19,12 @@ class ApiClient {
     
     try {
       // Fetch fresh token from Firebase Auth directly
+      // Only append Authorization header for internal/protected requests
+      // We skip it for public APIs like Google Books to avoid header conflicts
       const currentUser = auth.currentUser;
-      if (currentUser) {
+      const isExternalRequest = url.includes('googleapis.com');
+
+      if (currentUser && !isExternalRequest) {
         const token = await currentUser.getIdToken();
         headers.set('Authorization', `Bearer ${token}`);
       }

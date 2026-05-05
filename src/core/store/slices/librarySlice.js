@@ -1,7 +1,8 @@
 import { usePopupStore } from '../../../store/usePopupStore';
-import { addBook as apiAddBook, updateBookProgress, markAsDNF as apiMarkAsDNF } from '@core/api/books';
+import { addBook as apiAddBook, updateBookProgress, markAsDNF as apiMarkAsDNF, updateBookStatus as apiUpdateBookStatus } from '@core/api/books';
 import { db } from '@core/firebase/firebase';
 import { doc, collection, onSnapshot, updateDoc } from 'firebase/firestore';
+import { BOOK_STATUS, VALID_STATUSES } from '../../constants/bookStatus';
 
 /**
  * Library Slice handles all book-related logic.
@@ -86,9 +87,15 @@ export const createLibrarySlice = (set, get) => ({
     };
   },
 
-  addBook: async (title, totalPages, id = null) => {
+  addBook: async (title, totalPages, id = null, description = '', extraMetadata = {}, status = BOOK_STATUS.WANT_TO_READ) => {
     const { user, books } = get();
     if (!user) return;
+
+    // 🛡️ Status Validation (Etapa 2)
+    if (!VALID_STATUSES.includes(status)) {
+      console.warn(`[Library] Invalid status provided: ${status}. Defaulting to WANT_TO_READ.`);
+      status = BOOK_STATUS.WANT_TO_READ;
+    }
 
     if (id && books.some(b => b.id === id)) {
       console.warn(`[Library Integrity] Duplicate ID detected: ${id}. Skipping.`);
@@ -96,7 +103,7 @@ export const createLibrarySlice = (set, get) => ({
     }
 
     try {
-      await apiAddBook(user.uid, title, totalPages, id);
+      await apiAddBook(user.uid, title, totalPages, id, description, extraMetadata, status);
     } catch (error) {
       usePopupStore.getState().showPopup({
         title: 'Erro ao Adicionar',
@@ -154,9 +161,37 @@ export const createLibrarySlice = (set, get) => ({
     const { user } = get();
     if (!user) return;
     try {
-      await apiMarkAsDNF(user.uid, bookId);
+      await apiMarkAsDNF(user.uid, bookId, BOOK_STATUS.DROPPED);
     } catch (error) {
       console.error(error.message);
     }
+  },
+
+  updateBook: async (bookId, updates) => {
+    const { user, books } = get();
+    if (!user) return;
+
+    const previousBooks = [...books];
+    const updatedBooks = books.map(b => b.id === bookId ? { ...b, ...updates } : b);
+    set({ books: updatedBooks });
+
+    try {
+      const { updateBook: apiUpdateBook } = require('@core/api/books');
+      await apiUpdateBook(user.uid, bookId, updates);
+    } catch (error) {
+      console.error(`[Library] Failed to update book ${bookId}:`, error.message);
+      set({ books: previousBooks });
+      usePopupStore.getState().showPopup({
+        title: 'Erro ao Salvar',
+        message: 'Não foi possível salvar as alterações.',
+        type: 'error'
+      });
+    }
+  },
+
+  updateBookStatus: async (bookId, status) => {
+    // 🛡️ Pre-validation
+    if (!VALID_STATUSES.includes(status)) return;
+    return get().updateBook(bookId, { status });
   },
 });

@@ -6,6 +6,9 @@ export { default as LoadingScreen } from './atoms/LoadingScreen';
 // Molecules
 export { default as CommunityNote } from './molecules/CommunityNote';
 export { default as CustomPopup } from './molecules/CustomPopup';
+export { default as SearchPreview } from './molecules/SearchPreview';
+export { default as ProgressBookCard } from './molecules/ProgressBookCard';
+export { default as StatusSelector } from './molecules/StatusSelector';
 
 // Organisms
 export { default as EchoDeck } from './organisms/EchoDeck';

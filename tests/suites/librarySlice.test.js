@@ -211,7 +211,7 @@ describe('Library Slice', () => {
   describe('addBook', () => {
     it('should call apiAddBook', async () => {
       await state.addBook('My Book', 300);
-      expect(apiAddBook).toHaveBeenCalledWith('user1', 'My Book', 300, null);
+      expect(apiAddBook).toHaveBeenCalledWith('user1', 'My Book', 300, null, '', {}, 'quero_ler');
     });
 
     it('should NOT call apiAddBook if user is missing', async () => {
@@ -338,7 +338,7 @@ describe('Library Slice', () => {
 
     it('should call apiMarkAsDNF', async () => {
       await state.markAsDNF('book1');
-      expect(apiMarkAsDNF).toHaveBeenCalledWith('user1', 'book1');
+      expect(apiMarkAsDNF).toHaveBeenCalledWith('user1', 'book1', 'abandonado');
     });
 
     it('should log error on failure', async () => {

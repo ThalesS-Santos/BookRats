@@ -4,6 +4,7 @@ import { useIsFocused } from '@react-navigation/native';
 import { useMainStore } from '@core/store';
 import { useShallow } from 'zustand/react/shallow';
 import { BookService } from '@core/services/BookService';
+import { BOOK_STATUS } from '@core/constants/bookStatus';
 
 /**
  * Custom Hook para gerenciar o estado e lógica da HomeScreen.
@@ -22,7 +23,7 @@ export const useHomeLogic = () => {
     loadingBooks: state.loadingBooks
   })));
 
-  const readingBooks = books.filter(b => b.status === 'reading');
+  const readingBooks = books.filter(b => b.status === BOOK_STATUS.READING);
 
   // Valores de Animação
   const fadeAnim = useRef(new Animated.Value(0)).current;

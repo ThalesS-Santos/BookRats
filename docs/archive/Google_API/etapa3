@@ -1,0 +1,20 @@
+Detalhamento da Etapa 3: Gamificação e Social UX
+Refinamento do Algoritmo de Streaks: Evoluir o arquivo streak.js para suportar diferentes tipos de ofensivas (ex: "Streak de Páginas" vs. "Streak de Dias"), garantindo que a lógica de quebra de dias esteja 100% precisa.
+
+Sistema de Gatilhos para Badges (Event Listeners): Criar uma camada de serviço que "ouve" ações na store (como finalizar um livro) e dispara automaticamente a verificação de novos badges desbloqueados no gamificationSlice.
+
+Implementação de UI para Friend Requests: Desenvolver componentes para enviar, aceitar e recusar pedidos de amizade, consumindo as funções que já criamos e testamos no social.js.
+
+Criação do Organismo 'GlobalRanking': Construir uma tabela dinâmica que exiba o ranking dos usuários (pontos de leitura, claps recebidos), utilizando paginação para garantir performance em larga escala.
+
+Filtro de Ranking 'Social vs Global': Implementar a lógica para alternar a visão do ranking entre "Todos os Usuários" e apenas "Meus Amigos", extraindo dados filtrados do socialSlice.
+
+Integração de Notificações In-App: Ativar o sistema de notificações para alertar o usuário quando um amigo interagir com seu "Echo" (curtida/comentário) ou quando um pedido de amizade for aceito.
+
+Desenvolvimento do Perfil Público: Criar uma Screen onde usuários podem visualizar a estante, badges e histórico de leitura de outros membros da rede, respeitando as regras de privacidade do Firestore.
+
+Lógica de 'Social Claps' em Real-time: Refinar o sistema de aplausos nos "Echos" para atualizar o contador global instantaneamente via listeners do Firebase, aumentando o engajamento social.
+
+Animações de Conquista (Lottie/Reanimated): Adicionar feedback visual de alta qualidade (como explosão de confetes) sempre que um novo badge for conquistado, utilizando os mocks de Reanimated que já configuramos.
+
+Suíte de Testes de Comportamento Social: Criar o arquivo social_interactions.test.js para simular cenários complexos, como: "Usuário A envia pedido -> Usuário B aceita -> Ambos aparecem na lista de amigos mútua".

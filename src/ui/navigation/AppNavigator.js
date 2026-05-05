@@ -12,6 +12,7 @@ import UserProfileScreen from '@ui/screens/UserProfileScreen';
 import EchoDetailScreen from '@ui/screens/EchoDetailScreen';
 import GalleryScreen from '@ui/screens/GalleryScreen';
 import NotificationsScreen from '@ui/screens/NotificationsScreen';
+import BookEditScreen from '@ui/screens/BookEditScreen';
 import TabNavigator from './TabNavigator';
 import { LoadingScreen } from '@ui/components';
 
@@ -45,6 +46,15 @@ export default function AppNavigator() {
           <Stack.Screen name="EchoDetail" component={EchoDetailScreen} />
           <Stack.Screen name="EchoGallery" component={GalleryScreen} />
           <Stack.Screen name="Notifications" component={NotificationsScreen} />
+          <Stack.Screen 
+            name="BookEdit" 
+            component={BookEditScreen} 
+            options={{ 
+              presentation: 'transparentModal',
+              animation: 'fade',
+              headerShown: false
+            }} 
+          />
         </>
       ) : (
         <Stack.Screen name="Auth" component={AuthScreen} />

@@ -38,7 +38,7 @@ describe('Books API Methods', () => {
       expect(setDoc).toHaveBeenCalledWith('doc-ref', expect.objectContaining({
         title: 'New Book',
         totalPages: 300,
-        status: 'reading'
+        status: 'quero_ler'
       }));
     });
 
@@ -124,10 +124,10 @@ describe('Books API Methods', () => {
   });
 
   describe('markAsDNF', () => {
-    it('should update status to dnf', async () => {
+    it('should update status to abandonado', async () => {
       doc.mockReturnValue('doc-ref');
       await markAsDNF('u1', 'b1');
-      expect(updateDoc).toHaveBeenCalledWith('doc-ref', { status: 'dnf' });
+      expect(updateDoc).toHaveBeenCalledWith('doc-ref', { status: 'abandonado' });
     });
 
     it('should map error and throw', async () => {

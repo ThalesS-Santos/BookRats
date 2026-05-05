@@ -1,0 +1,20 @@
+📊 Detalhamento da Etapa 5: Analytics e Performance de Escala
+Dashboard de Estatísticas de Leitura: Criar uma nova Screen de Analytics que processe o array de livros para exibir gráficos de páginas lidas por mês, gêneros mais consumidos e tempo médio por sessão.
+
+Criação de Helpers de Agregação de Dados: Desenvolver utilitários em src/utils/stats.js para calcular métricas complexas (como "velocidade de leitura") sem sobrecarregar a renderização da UI.
+
+Implementação de Image Caching Avançado: Configurar uma estratégia de cache para as capas vindas da Google Books API, garantindo que as imagens não precisem ser baixadas novamente a cada abertura da LibraryScreen.
+
+Auditoria de Performance do Zustand: Utilizar middleware de logging para identificar renderizações desnecessárias e otimizar os seletores dos slices para que apenas os componentes impactados sejam atualizados.
+
+Refinamento do Error Boundary Global: Adicionar lógica para capturar erros específicos de rede ou de cota de API (como o erro 429 da Google) e exibir mensagens contextuais úteis para o usuário.
+
+Sistema de Feedback in-app: Implementar uma Molecule de "Rate this Book" ou "Report Issue" que envie dados estruturados para o Firebase, ajudando na melhoria contínua do produto.
+
+Sincronização em Segundo Plano (Background Sync): Garantir que, caso o usuário edite uma lista offline, o app tente sincronizar os dados com o Firestore automaticamente assim que a conexão for detectada.
+
+Otimização do Firebase Bundle Size: Revisar as importações do SDK do Firebase para garantir que apenas os módulos necessários (auth, firestore) sejam carregados, reduzindo o tempo de inicialização do app.
+
+Relatórios de Erros em Produção: Integrar o Logger.js a uma ferramenta de monitoramento remoto (como Sentry ou Firebase Crashlytics) para monitorar falhas em dispositivos reais.
+
+Finalização do Signal de Testes (Green Build): Rodar a suíte completa de 346+ testes uma última vez, garantindo que o acréscimo de analytics e telemetria não impactou a cobertura de 100% de linhas.

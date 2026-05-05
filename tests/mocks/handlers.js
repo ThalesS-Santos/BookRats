@@ -3,6 +3,44 @@ import { rest } from 'msw';
 export const handlers = [
   // Handler for Google Books Volume Search (MSW 1 syntax)
   rest.get('https://www.googleapis.com/books/v1/volumes', (req, res, ctx) => {
+    const q = req.url.searchParams.get('q') || '';
+
+    // 🚨 Error Triggers for QA Testing
+    if (q.includes('trigger_error_500')) {
+      return res(ctx.status(500), ctx.json({ error: { message: 'Internal Server Error' } }));
+    }
+    if (q.includes('trigger_rate_limit')) {
+      return res(ctx.status(429), ctx.json({ error: { message: 'Too Many Requests' } }));
+    }
+
+    // 📖 Dynamic Response for "Dom Casmurro"
+    const isDomCasmurro = q.toLowerCase().includes('dom casmurro');
+    if (isDomCasmurro) {
+      return res(
+        ctx.status(200),
+        ctx.json({
+          items: [
+            {
+              id: 'dom-casmurro-id',
+              volumeInfo: {
+                title: 'Dom Casmurro',
+                authors: ['Machado de Assis'],
+                pageCount: 371,
+                description: 'A clássica história de Bentinho e Capitu.',
+                industryIdentifiers: [{ type: 'ISBN_13', identifier: '9788508115594' }],
+                imageLinks: { thumbnail: 'http://example.com/dom_casmurro.jpg' },
+                categories: ['Fiction'],
+                language: 'pt',
+                publishedDate: '1899'
+              }
+            }
+          ],
+          totalItems: 1
+        })
+      );
+    }
+
+    // Default mock response
     return res(
       ctx.status(200),
       ctx.json({
@@ -13,18 +51,16 @@ export const handlers = [
               title: 'Cem Anos de Solidão',
               authors: ['Gabriel García Márquez'],
               pageCount: 418,
-              industryIdentifiers: [
-                {
-                  type: 'ISBN_13',
-                  identifier: '9788501012074',
-                },
-              ],
-              imageLinks: {
-                thumbnail: 'https://example.com/cover.jpg',
-              },
-            },
-          },
+              description: 'Uma jornada épica pela família Buendía.',
+              industryIdentifiers: [{ type: 'ISBN_13', identifier: '9788501012074' }],
+              imageLinks: { thumbnail: 'https://example.com/cover.jpg' },
+              categories: ['Classic'],
+              language: 'pt',
+              publishedDate: '1967'
+            }
+          }
         ],
+        totalItems: 1
       })
     );
   }),

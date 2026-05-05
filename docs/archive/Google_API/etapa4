@@ -1,0 +1,20 @@
+Detalhamento da Etapa 4: Módulo de IA e Inteligência de Leitura
+Integração do Gemini API Service: Criar um serviço centralizado em src/core/services/AIService.js para gerenciar chamadas ao modelo Gemini, utilizando a chave de API de forma segura e configurando os limites de tokens.
+
+Sistema de Embedding de Preferências: Desenvolver uma lógica para transformar o histórico de leitura e gêneros favoritos do usuário em vetores de dados (embeddings), facilitando a comparação com novos títulos da Google Books API.
+
+Resumo Automático de Echos: Implementar uma funcionalidade de IA que analisa as notas de leitura (Echos) do usuário e gera um resumo executivo dos principais aprendizados de cada livro.
+
+Módulo de Recomendações "Next Read": Criar um algoritmo que sugere o próximo livro baseado no status read e wishlist do usuário, cruzando dados de categorias e autores similares.
+
+Análise de Sentimento de Leitura: Utilizar IA para identificar o tom emocional das anotações do usuário (ex: "empolgado", "crítico", "confuso"), salvando esses metadados no socialSlice para gerar insights de perfil.
+
+Chatbot de Curadoria Literária: Desenvolver uma interface de chat (Molecule) onde o usuário pode pedir sugestões específicas (ex: "Sugira um livro de robótica médica parecido com o que li mês passado").
+
+Extração de Entidades em Notas: Treinar o prompt para identificar automaticamente citações, personagens ou conceitos técnicos mencionados nos Echos e transformá-los em "Tags" inteligentes.
+
+Sistema de "Match" Literário: Implementar uma lógica social que compara os perfis de IA de dois amigos e sugere livros que ambos gostariam de ler juntos ou discutir.
+
+Otimização de Prompt Engineering: Criar templates de prompts robustos em src/core/constants/prompts.js para garantir que as respostas da IA sejam concisas, amigáveis e mantenham a identidade visual do BookRats.
+
+Suíte de Testes de Fluxo de IA: Criar o arquivo ai_integration.test.js utilizando MSW para simular retornos da API do Gemini, garantindo que o app trate corretamente falhas de conexão ou respostas inesperadas da IA.
