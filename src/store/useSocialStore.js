@@ -14,6 +14,7 @@ import {
   removeFriendship as apiRemoveFriendship,
   leaveGroup as apiLeaveGroup,
   getPaginatedRanking as apiGetPaginatedRanking,
+  subscribeToRanking as apiSubscribeToRanking,
   getPublicEchoes as apiGetPublicEchoes,
   addRatClap as apiAddRatClap
 } from '@core/api/social';
@@ -34,6 +35,30 @@ export const useSocialStore = create((set, get) => ({
   lastDoc: null,
   hasMore: true,
   loadingRanking: false,
+  rankingUnsubscribe: null,
+
+  subscribeToRanking: () => {
+    const { rankingUnsubscribe } = get();
+    if (rankingUnsubscribe) return;
+
+    set({ loadingRanking: true });
+    const unsub = apiSubscribeToRanking((users) => {
+      set({ 
+        rankingList: users, 
+        loadingRanking: false,
+        hasMore: false // Disable pagination in real-time mode
+      });
+    });
+    set({ rankingUnsubscribe: unsub });
+  },
+
+  unsubscribeFromRanking: () => {
+    const { rankingUnsubscribe } = get();
+    if (rankingUnsubscribe) {
+      rankingUnsubscribe();
+      set({ rankingUnsubscribe: null });
+    }
+  },
 
   fetchInitialRanking: async () => {
     set({ loadingRanking: true, rankingList: [], lastDoc: null, hasMore: true });

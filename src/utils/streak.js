@@ -1,56 +1,71 @@
 /**
- * Calcula o streak atual baseado em uma lista de logs de leitura.
- * @param {Array<{date: string}>} logs - Lista de logs com campo date (YYYY-MM-DD)
- * @returns {number}
+ * Get current date string in local timezone (YYYY-MM-DD)
+ * @param {Date} date 
+ * @returns {string}
+ */
+export const getLocalDateString = (date = new Date()) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+/**
+ * Update current streak based on last reading date.
+ * Handles timezone issues by using local date strings.
+ * 
+ * @param {string} lastDateStr - Last reading date in YYYY-MM-DD format
+ * @param {number} currentStreak - Current streak count
+ * @returns {number} New streak count
+ */
+export const updateStreak = (lastDateStr, currentStreak) => {
+  const todayStr = getLocalDateString();
+  
+  if (!lastDateStr) return 1;
+  if (lastDateStr === todayStr) return currentStreak || 1;
+
+  // Calculate yesterday in local time
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = getLocalDateString(yesterday);
+
+  if (lastDateStr === yesterdayStr) {
+    return (currentStreak || 0) + 1;
+  }
+
+  // If it wasn't yesterday and isn't today, streak resets to 1 (since the user is reading NOW)
+  return 1;
+};
+
+/**
+ * Legacy: Calculate streak from a list of logs.
+ * @param {Array<{date: string}>} logs 
  */
 export const calculateStreakFromLogs = (logs) => {
   if (!logs || logs.length === 0) return 0;
-
-  // Extrai datas únicas e as ordena de forma decrescente
   const uniqueDates = [...new Set(logs.map(log => log.date))].sort((a, b) => b.localeCompare(a));
   
-  const today = new Date().toISOString().split('T')[0];
-  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  const todayStr = getLocalDateString();
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = getLocalDateString(yesterday);
 
-  // Se não leu nem hoje nem ontem, o streak quebrou
-  if (uniqueDates[0] !== today && uniqueDates[0] !== yesterday) return 0;
+  if (uniqueDates[0] !== todayStr && uniqueDates[0] !== yesterdayStr) return 0;
 
-  let streak = 0;
-  let currentDate = new Date(uniqueDates[0]);
-
-  for (const dateStr of uniqueDates) {
-    const logDate = new Date(dateStr);
+  let streak = 1;
+  for (let i = 0; i < uniqueDates.length - 1; i++) {
+    const current = new Date(uniqueDates[i]);
+    const next = new Date(uniqueDates[i+1]);
+    const diff = (current - next) / (1000 * 60 * 60 * 24);
     
-    // Verifica se a data do log é a data esperada para continuar o streak
-    const diffTime = currentDate.getTime() - logDate.getTime();
-    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0 || diffDays === 1) {
-      if (diffDays === 1) streak++;
-      currentDate = logDate;
-    } else {
-      break;
-    }
+    if (Math.round(diff) === 1) streak++;
+    else break;
   }
-
-  // O primeiro dia conta se for hoje ou ontem
-  return streak + 1;
+  return streak;
 };
 
+// Keep calculateStreak for backward compatibility if needed, but point to updateStreak logic
 export const calculateStreak = (lastDateStr, newDateStr, currentStreak) => {
-  if (!lastDateStr) return 1;
-  
-  // Normaliza ambas as datas para o início do dia em UTC para evitar problemas de fuso horário
-  const lastDate = new Date(lastDateStr);
-  lastDate.setUTCHours(0, 0, 0, 0);
-  
-  const newDate = new Date(newDateStr);
-  newDate.setUTCHours(0, 0, 0, 0);
-
-  const diffTime = newDate.getTime() - lastDate.getTime();
-  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 1) return currentStreak + 1;
-  if (diffDays === 0) return currentStreak;
-  return 1;
+  return updateStreak(lastDateStr, currentStreak);
 };

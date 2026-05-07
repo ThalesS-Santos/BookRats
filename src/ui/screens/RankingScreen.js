@@ -160,15 +160,13 @@ export default function RankingScreen({ navigation }) {
   const { 
     rankingList, 
     loadingRanking, 
-    hasMore, 
-    fetchInitialRanking, 
-    fetchMoreRanking 
+    subscribeToRanking, 
+    unsubscribeFromRanking 
   } = useSocialStore(useShallow(state => ({
     rankingList: state.rankingList,
     loadingRanking: state.loadingRanking,
-    hasMore: state.hasMore,
-    fetchInitialRanking: state.fetchInitialRanking,
-    fetchMoreRanking: state.fetchMoreRanking
+    subscribeToRanking: state.subscribeToRanking,
+    unsubscribeFromRanking: state.unsubscribeFromRanking
   })));
 
   const [refreshing, setRefreshing] = useState(false);
@@ -180,12 +178,9 @@ export default function RankingScreen({ navigation }) {
     : rankingList;
 
   useEffect(() => {
-    // Wait for navigation animations
-    const task = InteractionManager.runAfterInteractions(() => {
-      setIsReady(true);
-      fetchInitialRanking();
-    });
-    return () => task.cancel();
+    setIsReady(true);
+    subscribeToRanking();
+    return () => unsubscribeFromRanking();
   }, []);
 
   useEffect(() => {
@@ -202,7 +197,9 @@ export default function RankingScreen({ navigation }) {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchInitialRanking();
+    // Real-time handles updates, but we can re-trigger subscription if needed
+    unsubscribeFromRanking();
+    subscribeToRanking();
     setRefreshing(false);
   };
 
@@ -273,7 +270,6 @@ export default function RankingScreen({ navigation }) {
         keyExtractor={item => item.id}
         showsVerticalScrollIndicator={false}
         renderItem={renderItem}
-        onEndReached={fetchMoreRanking}
         onEndReachedThreshold={0.5}
         removeClippedSubviews={true}
         initialNumToRender={10}

@@ -4,6 +4,7 @@ import { View, Text, Switch, TouchableOpacity, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useThemeStore } from '../../store/useThemeStore';
 import { usePopupStore } from '../../store/usePopupStore';
+import { BOOK_STATUS } from '@core/constants/bookStatus';
 import { ALL_BADGES } from '@constants/badges';
 import * as Haptics from '../../utils/haptics';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,19 +18,18 @@ export default function ProfileScreen() {
   const streak = useMainStore(state => state.streak);
   const totalPagesRead = useMainStore(state => state.totalPagesRead);
   const user = useMainStore(state => state.user);
-  const { hasInfluencerBadge, unreadCount } = useMainStore();
+  const { hasInfluencerBadge, unreadCount, totalBooksCompleted } = useMainStore();
   const signOut = useMainStore(state => state.signOut);
   const { showPopup } = usePopupStore();
   const { COLORS } = require('@constants/colors');
 
   const accentColor = isDarkMode ? COLORS.primary.dark : COLORS.primary.light;
-  const completedBooks = books.filter(b => b.status === 'completed').length;
-  const readingBooks = books.filter(b => b.status === 'reading').length;
+  const readingBooks = books.filter(b => b.status === BOOK_STATUS.READING).length;
 
   const userData = {
     streak,
     totalPagesRead,
-    completedBooks,
+    completedBooks: totalBooksCompleted,
     readingBooks
   };
 
@@ -170,14 +170,14 @@ export default function ProfileScreen() {
         <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-4 ml-2">Estatísticas</Text>
         <InfoRow 
           label="Livros Lidos" 
-          value={completedBooks} 
+          value={totalBooksCompleted} 
           icon="ribbon-outline" 
           onPress={() => setShowCompleted(!showCompleted)} 
         />
         
         {showCompleted && (
           <View className="mb-4 bg-background-light dark:bg-background-dark p-4 rounded-2xl border border-border-light dark:border-border-dark -mt-2">
-            {books.filter(b => b.status === 'completed').map((b, idx, arr) => (
+            {books.filter(b => b.status === BOOK_STATUS.READ).map((b, idx, arr) => (
               <View key={b.id} className={`flex-row justify-between items-center py-2 ${idx !== arr.length - 1 ? 'border-b border-border-light dark:border-border-dark' : ''}`}>
                 <Text className="text-text-light dark:text-text-dark font-bold text-sm flex-1 mr-2">{b.title}</Text>
                 <Text className="text-text-muted-light dark:text-text-muted-dark text-xs">{b.totalPages} pág.</Text>

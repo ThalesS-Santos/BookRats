@@ -23,6 +23,20 @@ import {
 } from 'firebase/firestore';
 import { mapFirebaseError } from '@utils/errorMapper';
 
+export const subscribeToRanking = (onUpdate, pageSize = 50) => {
+  const q = query(
+    collection(db, 'users'),
+    orderBy('total_pages_read', 'desc'),
+    limit(pageSize)
+  );
+  return onSnapshot(q, (snapshot) => {
+    const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    onUpdate(users);
+  }, (error) => {
+    console.error("Error subscribing to ranking:", error);
+  });
+};
+
 export const getPaginatedRanking = async (lastVisibleDoc = null, pageSize = 20) => {
   try {
     let q;

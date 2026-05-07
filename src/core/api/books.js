@@ -1,6 +1,6 @@
 import { db } from '@core/firebase/firebase';
 import { doc, updateDoc, collection, setDoc, arrayUnion, serverTimestamp, getDocs, addDoc, deleteDoc, increment, query, orderBy, where } from 'firebase/firestore';
-import { calculateStreak } from '@utils/streak';
+import { updateStreak, getLocalDateString } from '@utils/streak';
 import { mapFirebaseError } from '@utils/errorMapper';
 
 import { BOOK_STATUS } from '../constants/bookStatus';
@@ -28,16 +28,17 @@ export const getUserReadingLogs = async (uid) => {
 };
 
 export const addReadingLog = async (uid, bookId, delta) => {
-  if (delta === 0) return;
+  if (delta <= 0) return;
   try {
-    const todayStr = new Date().toISOString().split('T')[0];
-    const logsRef = collection(db, 'users', uid, 'readingLogs');
-    await addDoc(logsRef, {
-      bookId,
-      pagesRead: delta,
+    const todayStr = getLocalDateString();
+    const logRef = doc(db, 'users', uid, 'readingLogs', todayStr);
+    
+    await setDoc(logRef, {
+      pagesRead: increment(delta),
+      lastBookId: bookId,
       date: todayStr,
       timestamp: serverTimestamp()
-    });
+    }, { merge: true });
   } catch (error) {
     console.error("Error adding reading log:", error);
   }
@@ -98,54 +99,53 @@ export const updateBookProgress = async (uid, book, newPage, timeSeconds, streak
     throw new Error("Erro de validação: Verifique os números informados.");
   }
 
-  const { streak, lastReadDate, totalPagesRead, maxReadingSession = 0, totalBooksCompleted = 0 } = streakData;
-  const todayStr = new Date().toISOString().split('T')[0];
-  const newStreak = calculateStreak(lastReadDate, todayStr, streak);
+  const { streak, lastReadDate, maxReadingSession = 0 } = streakData;
+  const todayStr = getLocalDateString();
+  const newStreak = updateStreak(lastReadDate, streak);
   const pagesReadToday = Math.max(0, nPage - book.currentPage);
-    const isCompleted = nPage >= book.totalPages;
-    const wasCompleted = book.status === BOOK_STATUS.READ;
-    const isRegressing = !isCompleted && wasCompleted;
+  const isCompleted = nPage >= book.totalPages;
+  const wasCompleted = book.status === BOOK_STATUS.READ;
+  const isRegressing = !isCompleted && wasCompleted;
     
-    // Determine new status
-    let newStatus = book.status;
-    if (isCompleted) newStatus = BOOK_STATUS.READ;
-    else if (isRegressing) newStatus = BOOK_STATUS.READING;
+  // Determine new status
+  let newStatus = book.status;
+  if (isCompleted) newStatus = BOOK_STATUS.READ;
+  else if (isRegressing) newStatus = BOOK_STATUS.READING;
 
-    try {
-      // 1. Update book progress
-      const bookRef = doc(db, 'users', uid, 'books', book.id);
-      await updateDoc(bookRef, {
-        currentPage: nPage,
-        status: newStatus,
-        logs: arrayUnion({
-          date: todayStr,
-          pagesRead: pagesReadToday,
-          timeSeconds: tSeconds,
-          pagesPerHour: tSeconds > 0 ? Math.round((pagesReadToday / tSeconds) * 3600) : 0
-        })
-      });
+  try {
+    // 1. Update book progress
+    const bookRef = doc(db, 'users', uid, 'books', book.id);
+    await updateDoc(bookRef, {
+      currentPage: nPage,
+      status: newStatus,
+      logs: arrayUnion({
+        date: todayStr,
+        pagesRead: pagesReadToday,
+        timeSeconds: tSeconds,
+        pagesPerHour: tSeconds > 0 ? Math.round((pagesReadToday / tSeconds) * 3600) : 0
+      })
+    });
 
-      // 2. Update user stats
-      const userRef = doc(db, 'users', uid);
-      const newMaxSession = Math.max(maxReadingSession, tSeconds);
-      
-      // Calculate completion increment: +1 if finishing, -1 if regressing
-      const completedIncrement = (isCompleted && !wasCompleted) ? 1 : (isRegressing ? -1 : 0);
-      const finalTotalPages = totalPagesRead + pagesReadToday;
+    // 2. Update user stats
+    const userRef = doc(db, 'users', uid);
+    const newMaxSession = Math.max(maxReadingSession, tSeconds);
+    
+    // Calculate completion increment: +1 if finishing, -1 if regressing
+    const completedIncrement = (isCompleted && !wasCompleted) ? 1 : (isRegressing ? -1 : 0);
 
-      await updateDoc(userRef, {
-        total_pages_read: increment(pagesReadToday),
-        current_streak: newStreak,
-        last_reading_date: todayStr,
-        max_reading_session: newMaxSession,
-        last_reading_session: tSeconds,
-        total_books_completed: increment(completedIncrement),
-        // 📊 Denormalized Social Summary - Atomic updates via dot notation
-        'socialSummary.totalPagesRead': increment(pagesReadToday),
-        'socialSummary.currentStreak': newStreak,
-        'socialSummary.lastBookTitle': book.title,
-        'socialSummary.lastActive': todayStr,
-      });
+    await updateDoc(userRef, {
+      total_pages_read: increment(pagesReadToday),
+      current_streak: newStreak,
+      last_reading_date: todayStr,
+      max_reading_session: newMaxSession,
+      last_reading_session: tSeconds,
+      total_books_completed: increment(completedIncrement),
+      // 📊 Denormalized Social Summary - Atomic updates via dot notation
+      'socialSummary.totalPagesRead': increment(pagesReadToday),
+      'socialSummary.currentStreak': newStreak,
+      'socialSummary.lastBookTitle': book.title,
+      'socialSummary.lastActive': todayStr,
+    });
 
     // 🌟 Add Global Reading Log
     await addReadingLog(uid, book.id, pagesReadToday);

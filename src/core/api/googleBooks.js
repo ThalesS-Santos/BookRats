@@ -24,7 +24,10 @@ export const searchBooks = async (options = {}) => {
     title, 
     author, 
     isbn, 
+    subjects = [], // Array of subjects
     generalQuery, 
+    printType = 'all', 
+    orderBy = 'relevance', 
     startIndex = 0, 
     maxResults = 20 
   } = options;
@@ -35,19 +38,26 @@ export const searchBooks = async (options = {}) => {
   if (isbn) {
     queryParts.push(`isbn:${isbn}`);
   } else {
-    if (title) queryParts.push(`intitle:${title}`);
-    if (author) queryParts.push(`inauthor:${author}`);
+    if (title) queryParts.push(`intitle:"${title}"`);
+    if (author) queryParts.push(`inauthor:"${author}"`);
+    
+    // Add subjects (categories)
+    if (Array.isArray(subjects) && subjects.length > 0) {
+      subjects.forEach(s => queryParts.push(`subject:${s}`));
+    }
+    
     if (generalQuery) queryParts.push(generalQuery);
   }
 
-  const q = queryParts.join('+');
-  if (!q) return { items: [], totalItems: 0 };
+  const q = queryParts.join(' ');
+  if (!q.trim()) return { items: [], totalItems: 0 };
 
   const params = new URLSearchParams({
     q,
+    printType,
+    orderBy,
     startIndex: startIndex.toString(),
-    maxResults: maxResults.toString(),
-    orderBy: 'relevance'
+    maxResults: maxResults.toString()
   });
 
   const apiKey = process.env.EXPO_PUBLIC_GOOGLE_BOOKS_API_KEY;

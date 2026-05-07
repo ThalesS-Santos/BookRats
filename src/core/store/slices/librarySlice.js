@@ -1,8 +1,9 @@
 import { usePopupStore } from '../../../store/usePopupStore';
 import { addBook as apiAddBook, updateBookProgress, markAsDNF as apiMarkAsDNF, updateBookStatus as apiUpdateBookStatus } from '@core/api/books';
 import { db } from '@core/firebase/firebase';
-import { doc, collection, onSnapshot, updateDoc } from 'firebase/firestore';
+import { doc, collection, onSnapshot, updateDoc, increment } from 'firebase/firestore';
 import { BOOK_STATUS, VALID_STATUSES } from '../../constants/bookStatus';
+import { getLocalDateString } from '@utils/streak';
 
 /**
  * Library Slice handles all book-related logic.
@@ -59,7 +60,7 @@ export const createLibrarySlice = (set, get) => ({
               totalPagesRead: dbTotal,
               currentStreak: dbStreak,
               lastBookTitle: summary.lastBookTitle || "Recém chegado",
-              lastActive: data.last_reading_date || new Date().toISOString().split('T')[0],
+              lastActive: data.last_reading_date || getLocalDateString(),
               profilePic: data.profilePic || null
             }
           }).then(() => {}).catch(err => {
@@ -219,7 +220,7 @@ export const createLibrarySlice = (set, get) => ({
           total_pages_read: increment(pageDelta),
           total_books_completed: increment(completedIncrement),
           'socialSummary.totalPagesRead': increment(pageDelta),
-          'socialSummary.lastActive': new Date().toISOString().split('T')[0]
+          'socialSummary.lastActive': getLocalDateString()
         });
 
         // 🌟 Add Global Reading Log if progress increased

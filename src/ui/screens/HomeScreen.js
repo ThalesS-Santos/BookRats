@@ -1,4 +1,5 @@
-import React, { useCallback, useState, useMemo } from 'react';
+import React, { useCallback, useState, useMemo, useEffect } from 'react';
+import { useRoute } from '@react-navigation/native';
 import { View, Text, TouchableOpacity, FlatList, Dimensions, Animated, ScrollView } from 'react-native';
 import { useThemeStore } from '../../store/useThemeStore';
 import { Ionicons } from '@expo/vector-icons';
@@ -37,7 +38,7 @@ const BookListItem = React.memo(({ item, navigation, COLORS, isDarkMode, accentC
     <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
       <ProgressBookCard 
         book={item}
-        onPress={() => navigation.navigate('Timer', { bookId: item.id })}
+        onPress={() => navigation.navigate('BookDetails', { book: item })}
         onConfigPress={() => onConfigPress?.(item)}
       />
     </Animated.View>
@@ -61,6 +62,14 @@ export default function HomeScreen({ navigation }) {
     slideAnim,
     recentNotes
   } = useHomeLogic();
+  
+  const route = useRoute();
+
+  useEffect(() => {
+    if (route.params?.filter) {
+      setActiveFilter(route.params.filter);
+    }
+  }, [route.params?.filter]);
 
   const FILTERS = [
     { id: BOOK_STATUS.READING, label: 'Lendo Agora', icon: 'book' },
@@ -172,7 +181,7 @@ export default function HomeScreen({ navigation }) {
                 <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-[3px] text-xs font-bold mb-1">Biblioteca</Text>
               </View>
               <TouchableOpacity
-                onPress={() => navigation.navigate('AddBook')}
+                onPress={() => navigation.navigate('Search')}
                 className="bg-primary dark:bg-primary-dark w-10 h-10 rounded-full items-center justify-center shadow-lg"
               >
                 <Ionicons name="add" size={24} color="white" />
@@ -248,7 +257,7 @@ export default function HomeScreen({ navigation }) {
             </Text>
             <TouchableOpacity
               className="mt-8 border-b-2 border-primary dark:border-primary-dark pb-1"
-              onPress={() => navigation.navigate('AddBook')}
+              onPress={() => navigation.navigate('Search')}
             >
               <Text className="text-primary dark:text-primary-dark font-bold text-lg">
                 Começar nova história

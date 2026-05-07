@@ -4,7 +4,7 @@ import { View } from 'react-native';
 import { BookLoader } from '@ui/components';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AuthScreen from '@ui/screens/AuthScreen';
-import AddBookScreen from '@ui/screens/AddBookScreen';
+import SearchScreen from '@ui/screens/SearchScreen';
 import TimerScreen from '@ui/screens/TimerScreen';
 import GroupChatScreen from '@ui/screens/GroupChatScreen';
 import GroupDetailsScreen from '@ui/screens/GroupDetailsScreen';
@@ -13,6 +13,7 @@ import EchoDetailScreen from '@ui/screens/EchoDetailScreen';
 import GalleryScreen from '@ui/screens/GalleryScreen';
 import NotificationsScreen from '@ui/screens/NotificationsScreen';
 import BookEditScreen from '@ui/screens/BookEditScreen';
+import BookDetailsScreen from '@ui/screens/BookDetailsScreen';
 import TabNavigator from './TabNavigator';
 import { LoadingScreen } from '@ui/components';
 
@@ -38,7 +39,7 @@ export default function AppNavigator() {
       {user ? (
         <>
           <Stack.Screen name="MainTabs" component={TabNavigator} />
-          <Stack.Screen name="AddBook" component={AddBookScreen} options={{ presentation: 'modal' }} />
+          <Stack.Screen name="Search" component={SearchScreen} options={{ presentation: 'modal' }} />
           <Stack.Screen name="Timer" component={TimerScreen} options={{ presentation: 'fullScreenModal' }} />
           <Stack.Screen name="GroupChat" component={GroupChatScreen} />
           <Stack.Screen name="GroupDetails" component={GroupDetailsScreen} />
@@ -55,6 +56,7 @@ export default function AppNavigator() {
               headerShown: false
             }} 
           />
+          <Stack.Screen name="BookDetails" component={BookDetailsScreen} />
         </>
       ) : (
         <Stack.Screen name="Auth" component={AuthScreen} />
