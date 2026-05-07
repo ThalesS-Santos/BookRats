@@ -18,7 +18,8 @@ export const useBookSearch = () => {
   // and can be properly cancelled on cleanup.
   const debouncedSearch = useRef(
     debounce(async (searchQuery) => {
-      if (!searchQuery.trim()) {
+      const trimmedQuery = searchQuery.trim();
+      if (!trimmedQuery) {
         setResults([]);
         setTotalItems(0);
         setLoading(false);
@@ -26,7 +27,7 @@ export const useBookSearch = () => {
       }
 
       try {
-        const data = await searchBooks({ generalQuery: searchQuery });
+        const data = await searchBooks({ generalQuery: trimmedQuery });
         setResults(data.items);
         setTotalItems(data.totalItems);
         setError(null);
@@ -36,7 +37,8 @@ export const useBookSearch = () => {
       } finally {
         setLoading(false);
       }
-    }, 500)
+    }, 800)
+
   ).current;
 
   useEffect(() => {

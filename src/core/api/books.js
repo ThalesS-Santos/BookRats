@@ -1,9 +1,47 @@
 import { db } from '@core/firebase/firebase';
-import { doc, updateDoc, collection, setDoc, arrayUnion, serverTimestamp, getDocs, addDoc } from 'firebase/firestore';
+import { doc, updateDoc, collection, setDoc, arrayUnion, serverTimestamp, getDocs, addDoc, deleteDoc, increment, query, orderBy, where } from 'firebase/firestore';
 import { calculateStreak } from '@utils/streak';
 import { mapFirebaseError } from '@utils/errorMapper';
 
 import { BOOK_STATUS } from '../constants/bookStatus';
+
+export const deleteBook = async (uid, bookId) => {
+  try {
+    const bookRef = doc(db, 'users', uid, 'books', bookId);
+    await deleteDoc(bookRef);
+  } catch (error) {
+    console.error("Error deleting book:", error);
+    throw new Error(mapFirebaseError(error));
+  }
+};
+
+export const getUserReadingLogs = async (uid) => {
+  try {
+    const logsRef = collection(db, 'users', uid, 'readingLogs');
+    const q = query(logsRef, orderBy('timestamp', 'desc'));
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    console.error("Error getting reading logs:", error);
+    return [];
+  }
+};
+
+export const addReadingLog = async (uid, bookId, delta) => {
+  if (delta === 0) return;
+  try {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const logsRef = collection(db, 'users', uid, 'readingLogs');
+    await addDoc(logsRef, {
+      bookId,
+      pagesRead: delta,
+      date: todayStr,
+      timestamp: serverTimestamp()
+    });
+  } catch (error) {
+    console.error("Error adding reading log:", error);
+  }
+};
 
 export const addBook = async (uid, title, totalPages, id = null, description = '', extraMetadata = {}, status = BOOK_STATUS.WANT_TO_READ) => {
   // 🛡️ Validation Guard
@@ -64,44 +102,53 @@ export const updateBookProgress = async (uid, book, newPage, timeSeconds, streak
   const todayStr = new Date().toISOString().split('T')[0];
   const newStreak = calculateStreak(lastReadDate, todayStr, streak);
   const pagesReadToday = Math.max(0, nPage - book.currentPage);
-  const isCompleted = nPage >= book.totalPages;
-  const previouslyCompleted = book.status === 'completed';
+    const isCompleted = nPage >= book.totalPages;
+    const wasCompleted = book.status === BOOK_STATUS.READ;
+    const isRegressing = !isCompleted && wasCompleted;
+    
+    // Determine new status
+    let newStatus = book.status;
+    if (isCompleted) newStatus = BOOK_STATUS.READ;
+    else if (isRegressing) newStatus = BOOK_STATUS.READING;
 
-  try {
-    // 1. Update book progress
-    const bookRef = doc(db, 'users', uid, 'books', book.id);
-    await updateDoc(bookRef, {
-      currentPage: nPage,
-      status: isCompleted ? BOOK_STATUS.READ : book.status,
-      logs: arrayUnion({
-        date: todayStr,
-        pagesRead: pagesReadToday,
-        timeSeconds: tSeconds,
-        pagesPerHour: tSeconds > 0 ? Math.round((pagesReadToday / tSeconds) * 3600) : 0
-      })
-    });
+    try {
+      // 1. Update book progress
+      const bookRef = doc(db, 'users', uid, 'books', book.id);
+      await updateDoc(bookRef, {
+        currentPage: nPage,
+        status: newStatus,
+        logs: arrayUnion({
+          date: todayStr,
+          pagesRead: pagesReadToday,
+          timeSeconds: tSeconds,
+          pagesPerHour: tSeconds > 0 ? Math.round((pagesReadToday / tSeconds) * 3600) : 0
+        })
+      });
 
-    // 2. Update user stats
-    const userRef = doc(db, 'users', uid);
-    const newMaxSession = Math.max(maxReadingSession, tSeconds);
-    const completedIncrement = (isCompleted && !previouslyCompleted) ? 1 : 0;
+      // 2. Update user stats
+      const userRef = doc(db, 'users', uid);
+      const newMaxSession = Math.max(maxReadingSession, tSeconds);
+      
+      // Calculate completion increment: +1 if finishing, -1 if regressing
+      const completedIncrement = (isCompleted && !wasCompleted) ? 1 : (isRegressing ? -1 : 0);
+      const finalTotalPages = totalPagesRead + pagesReadToday;
 
-    await updateDoc(userRef, {
-      total_pages_read: totalPagesRead + pagesReadToday,
-      current_streak: newStreak,
-      last_reading_date: todayStr,
-      max_reading_session: newMaxSession,
-      last_reading_session: tSeconds,
-      total_books_completed: totalBooksCompleted + completedIncrement,
-      // 📊 Denormalized Social Summary for O(1) rendering
-      socialSummary: {
-        totalPagesRead: totalPagesRead + pagesReadToday,
-        currentStreak: newStreak,
-        lastBookTitle: book.title,
-        lastActive: todayStr,
-        // profilePic is handled elsewhere or preserved if already there
-      }
-    });
+      await updateDoc(userRef, {
+        total_pages_read: increment(pagesReadToday),
+        current_streak: newStreak,
+        last_reading_date: todayStr,
+        max_reading_session: newMaxSession,
+        last_reading_session: tSeconds,
+        total_books_completed: increment(completedIncrement),
+        // 📊 Denormalized Social Summary - Atomic updates via dot notation
+        'socialSummary.totalPagesRead': increment(pagesReadToday),
+        'socialSummary.currentStreak': newStreak,
+        'socialSummary.lastBookTitle': book.title,
+        'socialSummary.lastActive': todayStr,
+      });
+
+    // 🌟 Add Global Reading Log
+    await addReadingLog(uid, book.id, pagesReadToday);
 
     return { pagesReadToday, isCompleted };
   } catch (error) {
@@ -176,10 +223,14 @@ export const addAnnotation = async (uid, bookId, page, text, isPublic = true, us
   }
 };
 
-export const getUserAnnotations = async (uid, bookId) => {
+export const getUserAnnotations = async (uid, bookId, onlyPublic = false) => {
   try {
     const annotRef = collection(db, 'users', uid, 'books', bookId, 'annotations');
-    const snap = await getDocs(annotRef);
+    let q = annotRef;
+    if (onlyPublic) {
+      q = query(annotRef, where('isPublic', '==', true));
+    }
+    const snap = await getDocs(q);
     return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
     console.error("Error getting annotations:", error);

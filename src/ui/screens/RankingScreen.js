@@ -206,12 +206,15 @@ export default function RankingScreen({ navigation }) {
     setRefreshing(false);
   };
 
+  const myTotalPages = useMainStore(state => state.totalPagesRead);
+
   const rankingData = useMemo(() => {
-    return listData.map((u, index) => ({
+    // 🚀 Optimistic Update & Local Re-sorting
+    const mapped = listData.map((u) => ({
       id: u.id,
       isSkeleton: u.isSkeleton,
       name: u.id === user?.uid ? `${u.username || u.email?.split('@')[0]} (Você)` : (u.username || u.email?.split('@')[0]),
-      pages: u.total_pages_read || 0,
+      pages: u.id === user?.uid ? myTotalPages : (u.total_pages_read || 0),
       isMe: u.id === user?.uid,
       isOnline: u.isOnline,
       profilePic: u.profilePic,
@@ -220,7 +223,14 @@ export default function RankingScreen({ navigation }) {
       lastSession: u.last_reading_session || 0,
       completedBooks: u.total_books_completed || 0
     }));
-  }, [listData, user]);
+
+    // Re-sort only if we have real data (not skeletons)
+    if (!loadingRanking && rankingList.length > 0) {
+      return mapped.sort((a, b) => b.pages - a.pages);
+    }
+    
+    return mapped;
+  }, [listData, user, myTotalPages, loadingRanking]);
 
   const renderMedal = (index) => {
     if (index === 0) return <Text className="text-2xl">🥇</Text>;

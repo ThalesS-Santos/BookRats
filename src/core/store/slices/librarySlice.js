@@ -171,13 +171,63 @@ export const createLibrarySlice = (set, get) => ({
     const { user, books } = get();
     if (!user) return;
 
+    const book = books.find(b => b.id === bookId);
+    if (!book) return;
+
+    // 🚀 Automatic State Transitions Logic
+    let finalUpdates = { ...updates };
+    let pageDelta = 0;
+
+    if (finalUpdates.currentPage !== undefined) {
+      pageDelta = finalUpdates.currentPage - book.currentPage;
+      
+      // 1. If currentPage >= totalPages -> Set Status to READ
+      if (finalUpdates.currentPage >= book.totalPages) {
+        finalUpdates.status = BOOK_STATUS.READ;
+      }
+      // 2. If it was READ but now current < total -> Revert to READING
+      else if (book.status === BOOK_STATUS.READ) {
+        finalUpdates.status = BOOK_STATUS.READING;
+      }
+    }
+
+    // 3. If status is manually set to READ -> Jump progress to 100%
+    if (finalUpdates.status === BOOK_STATUS.READ && book.status !== BOOK_STATUS.READ) {
+      finalUpdates.currentPage = book.totalPages;
+      pageDelta = book.totalPages - book.currentPage;
+    }
+
     const previousBooks = [...books];
-    const updatedBooks = books.map(b => b.id === bookId ? { ...b, ...updates } : b);
+    const updatedBooks = books.map(b => b.id === bookId ? { ...b, ...finalUpdates } : b);
     set({ books: updatedBooks });
 
     try {
       const { updateBook: apiUpdateBook } = require('@core/api/books');
-      await apiUpdateBook(user.uid, bookId, updates);
+      await apiUpdateBook(user.uid, bookId, finalUpdates);
+
+      // 📈 Update User Stats if pages changed
+      if (pageDelta !== 0 || finalUpdates.status !== undefined) {
+        const { db } = require('@core/firebase/firebase');
+        const { doc, updateDoc, increment } = require('firebase/firestore');
+        const userRef = doc(db, 'users', user.uid);
+        
+        const wasRead = book.status === BOOK_STATUS.READ;
+        const isRead = finalUpdates.status === BOOK_STATUS.READ;
+        const completedIncrement = (isRead && !wasRead) ? 1 : (!isRead && wasRead) ? -1 : 0;
+
+        await updateDoc(userRef, {
+          total_pages_read: increment(pageDelta),
+          total_books_completed: increment(completedIncrement),
+          'socialSummary.totalPagesRead': increment(pageDelta),
+          'socialSummary.lastActive': new Date().toISOString().split('T')[0]
+        });
+
+        // 🌟 Add Global Reading Log if progress increased
+        if (pageDelta > 0) {
+          const { addReadingLog } = require('@core/api/books');
+          await addReadingLog(user.uid, bookId, pageDelta);
+        }
+      }
     } catch (error) {
       console.error(`[Library] Failed to update book ${bookId}:`, error.message);
       set({ books: previousBooks });
@@ -193,5 +243,25 @@ export const createLibrarySlice = (set, get) => ({
     // 🛡️ Pre-validation
     if (!VALID_STATUSES.includes(status)) return;
     return get().updateBook(bookId, { status });
+  },
+
+  removeBook: async (bookId) => {
+    const { user, books } = get();
+    if (!user) return;
+
+    const previousBooks = [...books];
+    set({ books: books.filter(b => b.id !== bookId) });
+
+    try {
+      const { deleteBook } = require('@core/api/books');
+      await deleteBook(user.uid, bookId);
+    } catch (error) {
+      set({ books: previousBooks });
+      usePopupStore.getState().showPopup({
+        title: 'Erro ao Excluir',
+        message: 'Não foi possível excluir o livro da sua biblioteca.',
+        type: 'error'
+      });
+    }
   },
 });

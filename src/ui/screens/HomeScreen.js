@@ -1,11 +1,12 @@
-import React, { useCallback, useState } from 'react';
-import { View, Text, TouchableOpacity, FlatList, Dimensions, Animated } from 'react-native';
+import React, { useCallback, useState, useMemo } from 'react';
+import { View, Text, TouchableOpacity, FlatList, Dimensions, Animated, ScrollView } from 'react-native';
 import { useThemeStore } from '../../store/useThemeStore';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from '../../utils/haptics';
 import { ProgressBookCard, FastAvatar, Skeleton } from '@ui/components';
 import { useHomeLogic } from '@ui/hooks/useHomeLogic';
 import { useMainStore } from '@core/store';
+import { BOOK_STATUS } from '@core/constants/bookStatus';
 
 const BookListItem = React.memo(({ item, navigation, COLORS, isDarkMode, accentColor, fadeAnim, slideAnim, onConfigPress }) => {
   const handleOpenGallery = () => {
@@ -47,18 +48,36 @@ export default function HomeScreen({ navigation }) {
   const { isDarkMode } = useThemeStore();
   const { COLORS } = require('@constants/colors');
   const accentColor = isDarkMode ? COLORS.primary.dark : COLORS.primary.light;
-
+  
+  const [activeFilter, setActiveFilter] = useState(BOOK_STATUS.READING);
 
   const {
     user,
     streak,
     loadingBooks,
     isReady,
-    listData,
-    recentNotes,
+    books,
     fadeAnim,
-    slideAnim
+    slideAnim,
+    recentNotes
   } = useHomeLogic();
+
+  const FILTERS = [
+    { id: BOOK_STATUS.READING, label: 'Lendo Agora', icon: 'book' },
+    { id: BOOK_STATUS.WANT_TO_READ, label: 'Quero Ler', icon: 'bookmark' },
+    { id: BOOK_STATUS.READ, label: 'Lidos', icon: 'checkmark-done' },
+    { id: 'shopping', label: 'Comprados / Desejos', icon: 'cart' },
+  ];
+
+  const filteredBooks = useMemo(() => {
+    if (loadingBooks || !isReady) return [{id: 's1'}, {id: 's2'}, {id: 's3'}];
+    
+    if (activeFilter === 'shopping') {
+      return books.filter(b => b.status === BOOK_STATUS.BOUGHT || b.status === BOOK_STATUS.WISH_LIST);
+    }
+    
+    return books.filter(b => b.status === activeFilter);
+  }, [books, activeFilter, loadingBooks, isReady]);
 
   const handleOpenConfig = useCallback((book) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -106,10 +125,19 @@ export default function HomeScreen({ navigation }) {
     />
   ), [navigation, COLORS, isDarkMode, accentColor, fadeAnim, slideAnim, handleOpenConfig]);
 
+  const getEmptyMessage = () => {
+    switch(activeFilter) {
+      case BOOK_STATUS.READ: return "Você ainda não terminou nenhum livro. Continue lendo! 🚀";
+      case BOOK_STATUS.WANT_TO_READ: return "Sua lista de espera está vazia. Que tal um título novo?";
+      case 'shopping': return "Nada no carrinho ou nos desejos por enquanto.";
+      default: return "A estante está vazia.";
+    }
+  };
+
   return (
     <View className="flex-1 bg-background-light dark:bg-background-dark px-6 pt-4">
       <FlatList
-        data={listData}
+        data={filteredBooks}
         keyExtractor={item => item.id}
         showsVerticalScrollIndicator={false}
         removeClippedSubviews={true}
@@ -138,24 +166,62 @@ export default function HomeScreen({ navigation }) {
               </TouchableOpacity>
             </View>
             {listHeader()}
-            <View className="flex-row justify-between items-end mb-6">
+            
+            <View className="flex-row justify-between items-center mb-4">
               <View>
                 <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-[3px] text-xs font-bold mb-1">Biblioteca</Text>
-                <Text className="text-text-light dark:text-text-dark text-3xl font-serif font-bold">Lendo agora</Text>
               </View>
               <TouchableOpacity
                 onPress={() => navigation.navigate('AddBook')}
-                className="bg-primary dark:bg-primary-dark w-12 h-12 rounded-full items-center justify-center shadow-lg"
+                className="bg-primary dark:bg-primary-dark w-10 h-10 rounded-full items-center justify-center shadow-lg"
               >
-                <Ionicons name="add" size={30} color="white" />
+                <Ionicons name="add" size={24} color="white" />
               </TouchableOpacity>
             </View>
+
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false} 
+              className="mb-8"
+              contentContainerStyle={{ paddingRight: 20 }}
+            >
+              {FILTERS.map((filter) => {
+                const isActive = activeFilter === filter.id;
+                return (
+                  <TouchableOpacity
+                    key={filter.id}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setActiveFilter(filter.id);
+                    }}
+                    className={`flex-row items-center px-6 py-3 rounded-2xl mr-3 border ${
+                      isActive 
+                        ? 'bg-primary dark:bg-primary-dark border-primary dark:border-primary-dark shadow-md' 
+                        : 'bg-card-light dark:bg-card-dark border-border-light dark:border-border-dark'
+                    }`}
+                  >
+                    <Ionicons 
+                      name={filter.icon} 
+                      size={18} 
+                      color={isActive ? 'white' : (isDarkMode ? COLORS.text.muted.dark : COLORS.text.muted.light)} 
+                    />
+                    <Text 
+                      className={`ml-2 font-bold text-xs ${
+                        isActive ? 'text-white' : 'text-text-muted-light dark:text-text-muted-dark'
+                      }`}
+                    >
+                      {filter.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
           </Animated.View>
         )}
         renderItem={renderItem}
         ListFooterComponent={() => (
           <View className="mb-20">
-            {recentNotes.length > 0 && (
+            {recentNotes.length > 0 && activeFilter === BOOK_STATUS.READING && (
               <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }], marginBottom: 40 }}>
                 <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-4 ml-2">Suas Anotações Recentes</Text>
                 {recentNotes.map((note, idx) => (
@@ -175,11 +241,13 @@ export default function HomeScreen({ navigation }) {
           </View>
         )}
         ListEmptyComponent={() => (
-          <View className="flex-1 justify-center items-center bg-card-light dark:bg-card-dark rounded-3xl p-10 border border-dashed border-border-light dark:border-border-dark mt-4">
+          <View className="flex-1 justify-center items-center bg-card-light dark:bg-card-dark rounded-ultra p-12 border border-dashed border-border-light dark:border-border-dark mt-4">
             <Ionicons name="cafe-outline" size={60} color={isDarkMode ? COLORS.text.muted.dark : COLORS.text.muted.light} />
-            <Text className="text-text-muted-light dark:text-text-muted-dark text-center text-lg mt-4 font-serif">A estante está vazia.</Text>
+            <Text className="text-text-muted-light dark:text-text-muted-dark text-center text-lg mt-6 font-serif px-4">
+              {getEmptyMessage()}
+            </Text>
             <TouchableOpacity
-              className="mt-6 border-b-2 border-primary dark:border-primary-dark pb-1"
+              className="mt-8 border-b-2 border-primary dark:border-primary-dark pb-1"
               onPress={() => navigation.navigate('AddBook')}
             >
               <Text className="text-primary dark:text-primary-dark font-bold text-lg">
@@ -189,7 +257,6 @@ export default function HomeScreen({ navigation }) {
           </View>
         )}
       />
-      
     </View>
   );
 }

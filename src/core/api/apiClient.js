@@ -41,48 +41,65 @@ class ApiClient {
       headers
     };
 
-    try {
-      const response = await fetch(url, config);
+    const maxRetries = 2;
+    let attempt = 0;
 
-      // --- Response Interceptor ---
-      if (!response.ok) {
-        const status = response.status;
+    while (attempt <= maxRetries) {
+      try {
+        const response = await fetch(url, config);
 
-        // 1. Handle 401 / 403 (Unauthorized / Forbidden)
-        if (status === 401 || status === 403) {
-          Logger.warn(`${status} Unauthorized. Triggering logout...`, { url });
-          const { signOut } = useMainStore.getState();
-          if (signOut) {
-            await signOut();
+        // --- Response Interceptor ---
+        if (!response.ok) {
+          const status = response.status;
+
+          // 1. Handle 401 / 403 (Unauthorized / Forbidden)
+          if (status === 401 || status === 403) {
+            Logger.warn(`${status} Unauthorized. Triggering logout...`, { url });
+            const { signOut } = useMainStore.getState();
+            if (signOut) {
+              await signOut();
+            }
+            throw new Error('Sessão expirada ou acesso negado. Por favor, faça login novamente.');
           }
-          throw new Error('Sessão expirada ou acesso negado. Por favor, faça login novamente.');
+
+          // 2. Handle 500+ (Server Errors) - Specific Retry for 503
+          if (status >= 500) {
+            if (status === 503 && attempt < maxRetries) {
+              attempt++;
+              const delay = Math.pow(2, attempt) * 500; // Exponential backoff
+              Logger.warn(`Received 503. Retrying in ${delay}ms... (Attempt ${attempt})`, { url });
+              await new Promise(resolve => setTimeout(resolve, delay));
+              continue;
+            }
+            Logger.error(`Server Error ${status} on ${url}`, null, { url, status });
+            throw new Error('Erro interno no servidor remoto. Tente novamente mais tarde.');
+          }
+
+          // 3. Handle 400s (Client Errors)
+          let errorMessage = `Erro na requisição: ${status}`;
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorData.error?.message || errorMessage;
+          } catch (_) {
+            // Response is not JSON, fallback to standard message
+          }
+          
+          throw new Error(errorMessage);
         }
 
-        // 2. Handle 500+ (Server Errors)
-        if (status >= 500) {
-          Logger.error(`Server Error ${status} on ${url}`, null, { url, status });
-          throw new Error('Erro interno no servidor remoto. Tente novamente mais tarde.');
-        }
+        // Success
+        return await response.json();
 
-        // 3. Handle 400s (Client Errors)
-        let errorMessage = `Erro na requisição: ${status}`;
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorData.error?.message || errorMessage;
-        } catch (_) {
-          // Response is not JSON, fallback to standard message
+      } catch (error) {
+        if (attempt >= maxRetries) {
+          Logger.error(`Request failed after ${attempt} attempts: ${url}`, error);
+          throw error;
         }
-        
-        throw new Error(errorMessage);
+        attempt++;
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
-
-      // Success
-      return await response.json();
-
-    } catch (error) {
-      Logger.error(`Request failed: ${url}`, error);
-      throw error; // Propagate the standardized error
     }
+
   }
 
   get(endpoint, headers = {}) {

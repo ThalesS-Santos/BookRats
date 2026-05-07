@@ -84,6 +84,7 @@ export const useHomeLogic = () => {
     streak,
     loadingBooks,
     isReady,
+    books, // Return raw books for dynamic filtering
     listData,
     recentNotes,
     fadeAnim,

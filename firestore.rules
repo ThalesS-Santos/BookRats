@@ -13,13 +13,20 @@ service cloud.firestore {
         allow create: if request.auth != null; // Qualquer usuário logado pode te notificar!
       }
       
+      // 📊 Logs de Leitura
+      match /readingLogs/{logId} {
+        allow read, create, delete: if request.auth != null && request.auth.uid == userId;
+      }
+      
       // 📚 Subcoleção de Livros
       match /books/{bookId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read: if request.auth != null;
+        allow write: if request.auth != null && request.auth.uid == userId;
 
-        // 🏠 Acesso Local (Dono) - Garante acesso mesmo sem o campo userId no documento
+        // 🏠 Acesso Local (Dono)
         match /annotations/{annotId} {
-          allow read, write: if request.auth != null && request.auth.uid == userId;
+          allow read: if request.auth != null && (resource.data.isPublic == true || request.auth.uid == userId);
+          allow write: if request.auth != null && request.auth.uid == userId;
         }
       }
     }

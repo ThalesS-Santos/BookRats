@@ -1,5 +1,5 @@
-import React from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import React, { useMemo } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { BOOK_STATUS } from '../../../core/constants/bookStatus';
 import { useThemeStore } from '../../../store/useThemeStore';
 import { COLORS } from '../../constants/colors';
@@ -20,57 +20,103 @@ const STATUS_LABELS = {
 
 /**
  * StatusSelector Molecule
- * Componente de seleção de status em formato de Chips.
- * 
- * @param {Object} props
- * @param {string} props.currentStatus - O status atual do livro.
- * @param {function} props.onStatusChange - Callback chamado ao trocar o status.
+ * Componente de seleção de status isolado de contexto de navegação.
+ * Utiliza StyleSheet puro para evitar conflitos com CSS-Interop durante transições.
  */
 const StatusSelector = ({ currentStatus, onStatusChange }) => {
   const { isDarkMode } = useThemeStore();
-  const accentColor = isDarkMode ? COLORS.primary.dark : COLORS.primary.light;
 
   const handleSelect = (status) => {
     if (status === currentStatus) return;
-    
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onStatusChange(status);
   };
 
-  return (
-    <View className="flex-row flex-wrap justify-center py-2 px-1">
-      {Object.entries(STATUS_LABELS).map(([status, label]) => {
-        const isActive = currentStatus === status;
-        
-        return (
-          <TouchableOpacity
-            key={status}
-            onPress={() => handleSelect(status)}
-            activeOpacity={0.7}
-            className={`m-1.5 px-4 py-2.5 rounded-2xl border ${
-              isActive 
-                ? 'bg-primary dark:bg-primary-dark border-primary dark:border-primary-dark shadow-sm' 
-                : 'bg-card-light dark:bg-card-dark border-border-light dark:border-border-dark'
-            }`}
-            style={{ 
-              minWidth: '28%', // Ajusta para caber 3 por linha em telas médias
-              alignItems: 'center'
-            }}
+  const statusChips = useMemo(() => {
+    return Object.entries(STATUS_LABELS).map(([status, label]) => {
+      const isActive = currentStatus === status;
+      
+      return (
+        <TouchableOpacity
+          key={status}
+          onPress={() => handleSelect(status)}
+          activeOpacity={0.7}
+          style={[
+            styles.chip,
+            isActive ? styles.chipActive : styles.chipInactive,
+            { 
+              backgroundColor: isActive 
+                ? (isDarkMode ? COLORS.primary.dark : COLORS.primary.light)
+                : (isDarkMode ? COLORS.card.dark : COLORS.white),
+              borderColor: isActive
+                ? (isDarkMode ? COLORS.primary.dark : COLORS.primary.light)
+                : (isDarkMode ? COLORS.border.dark : COLORS.border.light)
+            }
+          ]}
+        >
+          <Text 
+            style={[
+              styles.chipText,
+              isActive ? styles.textActive : styles.textInactive,
+              {
+                color: isActive 
+                  ? '#FFFFFF' 
+                  : (isDarkMode ? COLORS.text.muted.dark : COLORS.text.muted.light)
+              }
+            ]}
           >
-            <Text 
-              className={`text-[11px] font-bold ${
-                isActive 
-                  ? 'text-white' 
-                  : 'text-text-muted-light dark:text-text-muted-dark'
-              }`}
-            >
-              {label}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
+            {label}
+          </Text>
+        </TouchableOpacity>
+      );
+    });
+  }, [currentStatus, isDarkMode]);
+
+  return (
+    <View style={styles.container}>
+      {statusChips}
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  chip: {
+    margin: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    minWidth: '28%',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  chipActive: {
+    // Cores dinâmicas via prop style
+  },
+  chipInactive: {
+    // Cores dinâmicas via prop style
+  },
+  chipText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  textActive: {
+    color: '#FFFFFF',
+  },
+  textInactive: {
+    // Cor dinâmica via prop style
+  }
+});
 
 export default StatusSelector;

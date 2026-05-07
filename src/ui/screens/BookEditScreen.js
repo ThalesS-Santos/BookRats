@@ -7,13 +7,16 @@ import {
   KeyboardAvoidingView, 
   Platform,
   ScrollView,
-  TouchableWithoutFeedback
+  TouchableWithoutFeedback,
+  Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeStore } from '../../store/useThemeStore';
 import { useMainStore } from '../../core/store';
+import { usePopupStore } from '../../store/usePopupStore';
 import { COLORS } from '../constants/colors';
 import { StatusSelector } from '../components';
+import { BOOK_STATUS } from '../../core/constants/bookStatus';
 import * as Haptics from '../../utils/haptics';
 
 /**
@@ -24,26 +27,59 @@ const BookEditScreen = ({ navigation, route }) => {
   const { book } = route.params || {};
   const { isDarkMode } = useThemeStore();
   const updateBook = useMainStore(state => state.updateBook);
+  const removeBook = useMainStore(state => state.removeBook);
+  const showPopup = usePopupStore(state => state.showPopup);
   
   const [tempTitle, setTempTitle] = useState(book?.title || '');
   const [tempPage, setTempPage] = useState(book?.currentPage?.toString() || '0');
   const [tempStatus, setTempStatus] = useState(book?.status || '');
 
+  const handleDelete = () => {
+    Alert.alert(
+      "Excluir Livro",
+      `Tem certeza que deseja remover "${book.title}" da sua biblioteca? Esta ação não pode ser desfeita.`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        { 
+          text: "Excluir", 
+          style: "destructive", 
+          onPress: async () => {
+            await removeBook(book.id);
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            navigation.goBack();
+          } 
+        }
+      ]
+    );
+  };
+
   const handleSave = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     
+    const nPage = parseInt(tempPage, 10) || 0;
     const updates = {
       title: tempTitle,
-      currentPage: parseInt(tempPage, 10) || 0,
+      currentPage: nPage,
       status: tempStatus
     };
 
-    // Validações básicas
+    // Bounds Check
     if (book && updates.currentPage > book.totalPages) updates.currentPage = book.totalPages;
     if (updates.currentPage < 0) updates.currentPage = 0;
 
+    const isFinishing = (updates.currentPage >= book.totalPages || updates.status === BOOK_STATUS.READ) && book.status !== BOOK_STATUS.READ;
+
     if (book?.id) {
       await updateBook(book.id, updates);
+      
+      if (isFinishing) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        showPopup({
+          title: '🎉 Parabéns!',
+          message: `Você concluiu a leitura de "${book.title}"! Que tal começar outro?`,
+          type: 'success'
+        });
+      }
     }
     navigation.goBack();
   };
@@ -111,14 +147,23 @@ const BookEditScreen = ({ navigation, route }) => {
             />
           </View>
 
-          {/* Save Button */}
-          <TouchableOpacity
-            onPress={handleSave}
-            className="bg-primary dark:bg-primary-dark p-5 rounded-2xl items-center shadow-lg"
-            style={{ backgroundColor: accentColor }}
-          >
-            <Text className="text-white font-bold text-lg uppercase tracking-widest">Salvar Alterações</Text>
-          </TouchableOpacity>
+          {/* Action Buttons */}
+          <View className="space-y-4 gap-4">
+            <TouchableOpacity
+              onPress={handleSave}
+              className="bg-primary dark:bg-primary-dark p-5 rounded-2xl items-center shadow-lg"
+              style={{ backgroundColor: accentColor }}
+            >
+              <Text className="text-white font-bold text-lg uppercase tracking-widest">Salvar Alterações</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={handleDelete}
+              className="p-5 rounded-2xl items-center border border-red-500/30"
+            >
+              <Text className="text-red-500 font-bold uppercase tracking-widest">Excluir Livro</Text>
+            </TouchableOpacity>
+          </View>
           
           <View className="h-4" />
         </ScrollView>

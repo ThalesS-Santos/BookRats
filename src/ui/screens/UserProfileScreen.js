@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { BookLoader } from '@ui/components';
 import { Ionicons } from '@expo/vector-icons';
-import { getUserBooks, getUserAnnotations } from '@core/api/books';
+import { getUserBooks, getUserAnnotations, getUserReadingLogs } from '@core/api/books';
 import { getUserDetails } from '@core/api/social';
+import { useMainStore } from '../../core/store';
+import { calculateStreakFromLogs } from '@utils/streak';
 import { useSocialStore } from '../../store/useSocialStore';
 import { useThemeStore } from '../../store/useThemeStore';
 import { usePopupStore } from '../../store/usePopupStore';
@@ -11,6 +13,7 @@ import * as Haptics from '../../utils/haptics';
 import { FastAvatar } from '@ui/components';
 import { COLORS } from '@constants/colors';
 import { ALL_BADGES } from '@constants/badges';
+import { useMemo } from 'react';
 
 const formatDuration = (totalSeconds) => {
   if (!totalSeconds) return "---";
@@ -25,33 +28,63 @@ export default function UserProfileScreen({ route, navigation }) {
   const { isDarkMode } = useThemeStore();
   const { removeFriend } = useSocialStore();
   const { showPopup } = usePopupStore();
+  
+  const user = useMainStore(state => state.user);
+  const myTotalPages = useMainStore(state => state.totalPagesRead);
+  const myStreak = useMainStore(state => state.streak);
+
   const [loading, setLoading] = useState(true);
   const [friend, setFriend] = useState(null);
   const [books, setBooks] = useState([]);
   const [notes, setNotes] = useState([]);
+  const [logs, setLogs] = useState([]);
 
   const loadData = async () => {
     try {
       const userData = await getUserDetails(userId);
       setFriend(userData);
       
+      const isMe = userId === user?.uid;
+
+      // 1. Fetch Books (Now public in rules)
       try {
         const userBooks = await getUserBooks(userId);
         setBooks(userBooks);
+      } catch (e) {
+        console.warn("Could not load user books:", e.message);
+      }
 
-        // Fetch Annotations for each book
-        const allNotes = [];
-        for (const book of userBooks) {
-          const annots = await getUserAnnotations(userId, book.id);
-          // Only show public notes
-          const publicAnnots = annots.filter(a => a.isPublic === true);
-          allNotes.push(...publicAnnots.map(a => ({ ...a, bookTitle: book.title })));
+      // 2. Fetch Logs (Private - Only for Me)
+      if (isMe) {
+        try {
+          const userLogs = await getUserReadingLogs(userId);
+          setLogs(userLogs);
+        } catch (e) {
+          console.warn("Could not load logs:", e.message);
         }
-        // Sort by timestamp
-        allNotes.sort((a,b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
-        setNotes(allNotes);
-      } catch (bookError) {
-        console.warn("Could not load user books (Permission/Privacy):", bookError.message);
+      }
+
+      // 3. Fetch Annotations
+      try {
+        // We only fetch annotations if we have books
+        // Wait, for performance we should only do this if needed
+        if (books.length > 0 || userId) {
+          const allNotes = [];
+          // Note: This loop might be slow if many books. 
+          // Usually we'd use a collectionGroup query here too, but for simplicity:
+          const targetBooks = books.length > 0 ? books : (await getUserBooks(userId).catch(() => []));
+          
+          for (const book of targetBooks) {
+            try {
+              const annots = await getUserAnnotations(userId, book.id, !isMe);
+              allNotes.push(...annots.map(a => ({ ...a, bookTitle: book.title })));
+            } catch (e) {}
+          }
+          allNotes.sort((a,b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+          setNotes(allNotes);
+        }
+      } catch (noteError) {
+        console.warn("Could not load user notes:", noteError.message);
       }
     } catch (error) {
       showPopup({ title: 'Erro', message: "Falha ao carregar perfil.", type: 'error' });
@@ -63,6 +96,19 @@ export default function UserProfileScreen({ route, navigation }) {
   useEffect(() => {
     loadData();
   }, [userId]);
+
+  const totalPagesRead = useMemo(() => {
+    if (userId === user?.uid) return myTotalPages;
+    const sum = logs.reduce((acc, log) => acc + (log.pagesRead || 0), 0);
+    // Fallback to friend data if logs are empty but friend has data (legacy migration)
+    return sum || friend?.total_pages_read || 0;
+  }, [logs, friend, userId, user?.uid, myTotalPages]);
+
+  const currentStreak = useMemo(() => {
+    if (userId === user?.uid) return myStreak;
+    const streak = calculateStreakFromLogs(logs);
+    return streak || friend?.current_streak || 0;
+  }, [logs, friend, userId, user?.uid, myStreak]);
 
   const handleRemoveFriend = () => {
     showPopup({
@@ -86,8 +132,8 @@ export default function UserProfileScreen({ route, navigation }) {
   const readingBooksCount = books.filter(b => b.status === 'reading').length;
 
   const userData = {
-    streak: friend.current_streak || 0,
-    totalPagesRead: friend.total_pages_read || 0,
+    streak: currentStreak,
+    totalPagesRead: totalPagesRead,
     completedBooks: completedBooksCount,
     readingBooks: readingBooksCount
   };
@@ -117,11 +163,11 @@ export default function UserProfileScreen({ route, navigation }) {
       {/* Stats Cards Row 1 */}
       <View className="flex-row justify-between mb-4">
         <View className="bg-card-light dark:bg-card-dark p-4 rounded-xl border border-border-light dark:border-border-dark flex-1 mr-2 items-center">
-          <Text className="text-primary font-bold text-2xl">{friend.total_pages_read || 0}</Text>
+          <Text className="text-primary font-bold text-2xl">{totalPagesRead}</Text>
           <Text className="text-text-muted-light dark:text-text-muted-dark text-[10px] uppercase">Páginas Totais</Text>
         </View>
         <View className="bg-card-light dark:bg-card-dark p-4 rounded-xl border border-border-light dark:border-border-dark flex-1 ml-2 items-center">
-          <Text style={{ color: COLORS.streak }} className="font-bold text-2xl">{friend.current_streak || 0}🔥</Text>
+          <Text style={{ color: COLORS.streak }} className="font-bold text-2xl">{currentStreak}🔥</Text>
           <Text className="text-text-muted-light dark:text-text-muted-dark text-[10px] uppercase">Streak Atual</Text>
         </View>
       </View>
