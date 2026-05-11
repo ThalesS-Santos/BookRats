@@ -42,8 +42,11 @@ export const searchBooks = async (options = {}) => {
     if (author) queryParts.push(`inauthor:"${author}"`);
     
     // Add subjects (categories)
-    if (Array.isArray(subjects) && subjects.length > 0) {
-      subjects.forEach(s => queryParts.push(`subject:${s}`));
+    if (subjects) {
+      const subjectArray = Array.isArray(subjects) ? subjects : [subjects];
+      subjectArray.forEach(s => {
+        if (s && s.trim()) queryParts.push(`subject:${s.trim()}`);
+      });
     }
     
     if (generalQuery) queryParts.push(generalQuery);

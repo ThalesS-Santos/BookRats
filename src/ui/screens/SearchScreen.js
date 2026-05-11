@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { 
   View, 
   Text, 
@@ -48,7 +48,6 @@ export default function SearchScreen({ navigation }) {
     clearSearch 
   } = useBookSearch();
   const [showFilters, setShowFilters] = useState(false);
-  const [reverseResults, setReverseResults] = useState(false);
 
   const accentColor = isDarkMode ? COLORS.primary.dark : COLORS.primary.light;
   const mutedTextColor = isDarkMode ? '#94A3B8' : '#64748B';
@@ -66,11 +65,7 @@ export default function SearchScreen({ navigation }) {
     }
   };
 
-  // Client-side sorting for "Least Relevant" or "Oldest"
-  const finalResults = useMemo(() => {
-    if (!results) return [];
-    return reverseResults ? [...results].reverse() : results;
-  }, [results, reverseResults]);
+
 
   return (
     <KeyboardAvoidingView
@@ -162,22 +157,7 @@ export default function SearchScreen({ navigation }) {
               </View>
             </View>
 
-            {/* Invert Logic */}
-            <View className="mb-6">
-              <Text className="text-text-light dark:text-text-dark font-bold text-[10px] uppercase tracking-widest mb-3 ml-1">Refinar Ordem</Text>
-              <TouchableOpacity 
-                onPress={() => setReverseResults(!reverseResults)}
-                className={`flex-row items-center justify-center p-3 rounded-2xl border ${reverseResults ? 'bg-primary/10 border-primary' : 'bg-background-light dark:bg-background-dark border-border-light/50 dark:border-border-dark/50'}`}
-              >
-                <Ionicons name="swap-vertical-outline" size={18} color={reverseResults ? accentColor : mutedTextColor} />
-                <Text className={`ml-2 text-xs font-bold ${reverseResults ? 'text-primary' : 'text-text-muted-light dark:text-text-muted-dark'}`}>
-                  {filters.orderBy === 'relevance' 
-                    ? (reverseResults ? 'MENOS RELEVANTE PRIMEIRO' : 'MAIS RELEVANTE PRIMEIRO')
-                    : (reverseResults ? 'MAIS ANTIGO PRIMEIRO' : 'MAIS RECENTE PRIMEIRO')
-                  }
-                </Text>
-              </TouchableOpacity>
-            </View>
+
 
             {/* Subjects Scroll */}
             <View className="flex-row justify-between items-center mb-3 ml-1">
@@ -232,13 +212,13 @@ export default function SearchScreen({ navigation }) {
         {/* Results Feedback */}
         {results.length > 0 && !loading && (
           <Text className="text-text-muted-light dark:text-text-muted-dark text-[10px] uppercase font-bold tracking-widest mb-4 ml-1">
-            {results.length} resultados encontrados {reverseResults ? '(Ordem Invertida)' : ''}
+            {results.length} resultados encontrados
           </Text>
         )}
 
         <SearchPreview 
           query={query || filters.author || (filters.subjects.length > 0 ? "Filtros Ativos" : "")}
-          results={finalResults}
+          results={results}
           loading={loading}
           onSelect={handleSelectBook}
         />

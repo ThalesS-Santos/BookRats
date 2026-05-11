@@ -21,8 +21,9 @@ export const useBookSearch = () => {
   const performSearch = useCallback(async (searchQuery, currentFilters) => {
     const trimmedQuery = searchQuery.trim();
     const hasAuthor = currentFilters.author.trim().length > 0;
+    const hasSubjects = currentFilters.subjects && currentFilters.subjects.length > 0;
     
-    if (!trimmedQuery && !hasAuthor) {
+    if (!trimmedQuery && !hasAuthor && !hasSubjects) {
       setResults([]);
       setTotalItems(0);
       setLoading(false);
@@ -31,15 +32,47 @@ export const useBookSearch = () => {
 
     setLoading(true);
     try {
-      const data = await searchBooks({ 
-        generalQuery: trimmedQuery,
-        author: currentFilters.author,
-        subjects: currentFilters.subjects,
-        printType: currentFilters.printType,
-        orderBy: currentFilters.orderBy
-      });
-      setResults(data.items);
-      setTotalItems(data.totalItems);
+      let items = [];
+      let totalItemsCount = 0;
+
+      if (currentFilters.subjects && currentFilters.subjects.length > 1) {
+        // Simulating OR by making concurrent calls for each subject
+        const promises = currentFilters.subjects.map(s => 
+          searchBooks({ 
+            generalQuery: trimmedQuery,
+            author: currentFilters.author,
+            subjects: [s],
+            printType: currentFilters.printType,
+            orderBy: currentFilters.orderBy
+          })
+        );
+        
+        const responses = await Promise.all(promises);
+        
+        // Merge and Deduplicate by ID
+        const mergedItems = responses.flatMap(r => r.items || []);
+        const seenIds = new Set();
+        items = mergedItems.filter(item => {
+          if (seenIds.has(item.id)) return false;
+          seenIds.add(item.id);
+          return true;
+        });
+        
+        totalItemsCount = items.length;
+      } else {
+        const data = await searchBooks({ 
+          generalQuery: trimmedQuery,
+          author: currentFilters.author,
+          subjects: currentFilters.subjects,
+          printType: currentFilters.printType,
+          orderBy: currentFilters.orderBy
+        });
+        items = data.items;
+        totalItemsCount = data.totalItems;
+      }
+
+      setResults(items);
+      setTotalItems(totalItemsCount);
       setError(null);
     } catch (err) {
       setError('Erro ao buscar livros. Tente novamente.');
