@@ -2,6 +2,7 @@ import { createLibrarySlice } from '@core/store/slices/librarySlice';
 import { addBook as apiAddBook, updateBookProgress, markAsDNF as apiMarkAsDNF } from '@core/api/books';
 import { usePopupStore } from '../../src/store/usePopupStore';
 import { doc, collection, onSnapshot, updateDoc } from 'firebase/firestore';
+import { BOOK_STATUS } from '../../src/core/constants/bookStatus';
 
 // Mock dependencies
 jest.mock('firebase/firestore', () => ({
@@ -9,6 +10,8 @@ jest.mock('firebase/firestore', () => ({
   collection: jest.fn(),
   onSnapshot: jest.fn(),
   updateDoc: jest.fn(),
+  increment: jest.fn().mockImplementation((val) => val),
+  serverTimestamp: jest.fn().mockReturnValue('mock-timestamp')
 }));
 
 jest.mock('@core/firebase/firebase', () => ({
@@ -19,6 +22,9 @@ jest.mock('@core/api/books', () => ({
   addBook: jest.fn(),
   updateBookProgress: jest.fn(),
   markAsDNF: jest.fn(),
+  updateBook: jest.fn(),
+  deleteBook: jest.fn(),
+  addReadingLog: jest.fn(),
 }));
 
 jest.mock('../../src/store/usePopupStore', () => ({
@@ -48,7 +54,8 @@ describe('Library Slice', () => {
     
     state = {};
     setMock = jest.fn((newState) => {
-      state = { ...state, ...(typeof newState === 'function' ? newState(state) : newState) };
+      const current = typeof newState === 'function' ? newState(state) : newState;
+      state = { ...state, ...current };
     });
     
     getMock = jest.fn(() => state);
@@ -63,7 +70,8 @@ describe('Library Slice', () => {
       totalPagesRead: 100,
       maxReadingSession: 50,
       totalBooksCompleted: 2,
-      sendMessage: jest.fn()
+      sendMessage: jest.fn(),
+      repairLocked: false
     };
   });
 
@@ -349,6 +357,83 @@ describe('Library Slice', () => {
       
       expect(errorSpy).toHaveBeenCalledWith('DNF failed');
       errorSpy.mockRestore();
+    });
+  });
+
+  describe('updateBook & updateBookStatus', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should update book and handle automatic status transitions (Reading -> Read)', async () => {
+      const book = { id: 'b1', title: 'B1', currentPage: 50, totalPages: 100, status: BOOK_STATUS.READING };
+      state.books = [book];
+      const api = require('@core/api/books');
+      api.updateBook.mockResolvedValueOnce();
+
+      await state.updateBook('b1', { currentPage: 100 });
+
+      const updatedBook = getMock().books.find(b => b.id === 'b1');
+      expect(updatedBook.status).toBe(BOOK_STATUS.READ);
+      expect(updatedBook.currentPage).toBe(100);
+    });
+
+    it('should revert status to reading if progress is rolled back from 100%', async () => {
+      const book = { id: 'b1', title: 'B1', currentPage: 100, totalPages: 100, status: BOOK_STATUS.READ };
+      state.books = [book];
+      
+      await state.updateBook('b1', { currentPage: 90 });
+
+      const updatedBook = getMock().books.find(b => b.id === 'b1');
+      expect(updatedBook.status).toBe(BOOK_STATUS.READING);
+      expect(updatedBook.currentPage).toBe(90);
+    });
+
+    it('should jump to 100% progress if status is manually set to read', async () => {
+      const book = { id: 'b1', title: 'B1', currentPage: 50, totalPages: 100, status: BOOK_STATUS.READING };
+      state.books = [book];
+      
+      await state.updateBook('b1', { status: BOOK_STATUS.READ });
+
+      const updatedBook = getMock().books.find(b => b.id === 'b1');
+      expect(updatedBook.status).toBe(BOOK_STATUS.READ);
+      expect(updatedBook.currentPage).toBe(100);
+    });
+  });
+
+  describe('removeBook', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should remove book from state and call API', async () => {
+      state.books = [{ id: 'b1' }];
+      const api = require('@core/api/books');
+      api.deleteBook.mockResolvedValueOnce();
+
+      await state.removeBook('b1');
+
+      expect(setMock).toHaveBeenCalledWith(expect.objectContaining({
+        books: []
+      }));
+      expect(api.deleteBook).toHaveBeenCalledWith('user1', 'b1');
+    });
+
+    it('should rollback and show popup on API failure', async () => {
+      const originalBooks = [{ id: 'b1' }];
+      state.books = originalBooks;
+      const api = require('@core/api/books');
+      api.deleteBook.mockRejectedValueOnce(new Error('Delete failed'));
+
+      await state.removeBook('b1');
+
+      expect(setMock).toHaveBeenCalledWith(expect.objectContaining({ books: [] }));
+      expect(setMock).toHaveBeenCalledWith(expect.objectContaining({ books: originalBooks }));
+      
+      expect(usePopupStore.getState().showPopup).toHaveBeenCalledWith(expect.objectContaining({
+        title: 'Erro ao Excluir',
+        type: 'error'
+      }));
     });
   });
 });

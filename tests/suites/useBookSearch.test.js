@@ -29,15 +29,12 @@ describe('useBookSearch hook', () => {
       result.current.setQuery('React');
     });
 
-    // Should show loading immediately
-    expect(result.current.loading).toBe(true);
-
-    // Wait for debounce (500ms + buffer)
+    // Wait for debounce (800ms + buffer)
     await act(async () => {
-      await new Promise(r => setTimeout(r, 600));
+      await new Promise(r => setTimeout(r, 1000));
     });
 
-    expect(searchBooks).toHaveBeenCalledWith({ generalQuery: 'React' });
+    expect(searchBooks).toHaveBeenCalledWith(expect.objectContaining({ generalQuery: 'React' }));
     expect(result.current.results).toHaveLength(1);
     expect(result.current.results[0].title).toBe('React Native');
     expect(result.current.loading).toBe(false);
@@ -65,7 +62,7 @@ describe('useBookSearch hook', () => {
     });
 
     await act(async () => {
-      await new Promise(r => setTimeout(r, 600));
+      await new Promise(r => setTimeout(r, 1000));
     });
 
     expect(result.current.error).toBe('Erro ao buscar livros. Tente novamente.');

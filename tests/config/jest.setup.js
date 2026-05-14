@@ -125,8 +125,8 @@ jest.mock('react-native-safe-area-context', () => ({
 // --- Utilities & Clean Output ---
 
 // Silent logs for clean test output
-jest.spyOn(console, 'log').mockImplementation(() => {});
-jest.spyOn(console, 'warn').mockImplementation(() => {});
+// jest.spyOn(console, 'log').mockImplementation(() => {});
+// jest.spyOn(console, 'warn').mockImplementation(() => {});
 // jest.spyOn(console, 'error').mockImplementation(() => {});
 
 // --- MSW Lifecycle ---

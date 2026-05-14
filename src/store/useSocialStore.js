@@ -111,22 +111,10 @@ export const useSocialStore = create((set, get) => ({
     set({ loadingSearch: true, errorSearch: null });
     
     try {
-      // 🚀 Fallback Robusto: Usar dados locais do Ranking ou buscar da API com filtro
-      const { users: localUsers } = useMainStore.getState();
-      let searchSource = localUsers;
+      // 🚀 Busca direta na API (Filtro no Firestore) para melhor performance e economia de dados
+      const searchResults = await apiSearchUsers(queryText);
 
-      if (!searchSource || searchSource.length === 0) {
-        // Se não houver cache do ranking, busca da API (agora com filtro direto no Firestore)
-        searchSource = await apiSearchUsers(queryText);
-      } else {
-        // Se houver dados locais, filtra localmente
-        searchSource = searchSource.filter(u => 
-          ((u.username && u.username.toLowerCase().includes(queryText.toLowerCase())) || 
-           (u.email && u.email.toLowerCase().includes(queryText.toLowerCase())))
-        );
-      }
-
-      const filtered = searchSource.filter(u => u.id !== currentUserId);
+      const filtered = searchResults.filter(u => u.id !== currentUserId);
       set({ searchResults: filtered, loadingSearch: false });
     } catch (error) {
       set({ errorSearch: error.message, loadingSearch: false });

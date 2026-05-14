@@ -78,6 +78,13 @@ export default function HomeScreen({ navigation }) {
     { id: 'shopping', label: 'Comprados / Desejos', icon: 'cart' },
   ];
 
+  const counts = useMemo(() => ({
+    [BOOK_STATUS.READING]: books.filter(b => b.status === BOOK_STATUS.READING).length,
+    [BOOK_STATUS.WANT_TO_READ]: books.filter(b => b.status === BOOK_STATUS.WANT_TO_READ).length,
+    [BOOK_STATUS.READ]: books.filter(b => b.status === BOOK_STATUS.READ).length,
+    shopping: books.filter(b => b.status === BOOK_STATUS.BOUGHT || b.status === BOOK_STATUS.WISH_LIST).length,
+  }), [books]);
+
   const filteredBooks = useMemo(() => {
     if (loadingBooks || !isReady) return [{id: 's1'}, {id: 's2'}, {id: 's3'}];
     
@@ -196,6 +203,9 @@ export default function HomeScreen({ navigation }) {
             >
               {FILTERS.map((filter) => {
                 const isActive = activeFilter === filter.id;
+                const count = counts[filter.id] || 0;
+                const isEmpty = count === 0;
+
                 return (
                   <TouchableOpacity
                     key={filter.id}
@@ -207,7 +217,7 @@ export default function HomeScreen({ navigation }) {
                       isActive 
                         ? 'bg-primary dark:bg-primary-dark border-primary dark:border-primary-dark shadow-md' 
                         : 'bg-card-light dark:bg-card-dark border-border-light dark:border-border-dark'
-                    }`}
+                    } ${isEmpty && !isActive ? 'opacity-50' : 'opacity-100'}`}
                   >
                     <Ionicons 
                       name={filter.icon} 
@@ -219,7 +229,7 @@ export default function HomeScreen({ navigation }) {
                         isActive ? 'text-white' : 'text-text-muted-light dark:text-text-muted-dark'
                       }`}
                     >
-                      {filter.label}
+                      {filter.label} {count > 0 ? `(${count})` : ''}
                     </Text>
                   </TouchableOpacity>
                 );

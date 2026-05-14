@@ -1,5 +1,5 @@
 import { addBook, updateBookProgress, markAsDNF, getUserBooks, addAnnotation, getUserAnnotations } from '@core/api/books';
-import { doc, updateDoc, collection, setDoc, arrayUnion, serverTimestamp, getDocs, addDoc } from 'firebase/firestore';
+import { doc, updateDoc, collection, setDoc, arrayUnion, serverTimestamp, getDocs, addDoc, increment } from 'firebase/firestore';
 
 jest.mock('firebase/firestore', () => ({
   doc: jest.fn(),
@@ -8,6 +8,7 @@ jest.mock('firebase/firestore', () => ({
   updateDoc: jest.fn(),
   addDoc: jest.fn(),
   getDocs: jest.fn(),
+  increment: jest.fn().mockImplementation((val) => val),
   arrayUnion: jest.fn().mockImplementation((val) => val),
   serverTimestamp: jest.fn().mockReturnValue('mock-timestamp')
 }));
@@ -38,7 +39,8 @@ describe('Books API Methods', () => {
       expect(setDoc).toHaveBeenCalledWith('doc-ref', expect.objectContaining({
         title: 'New Book',
         totalPages: 300,
-        status: 'quero_ler'
+        status: 'quero_ler',
+        createdAt: 'mock-timestamp'
       }));
     });
 
@@ -127,7 +129,10 @@ describe('Books API Methods', () => {
     it('should update status to abandonado', async () => {
       doc.mockReturnValue('doc-ref');
       await markAsDNF('u1', 'b1');
-      expect(updateDoc).toHaveBeenCalledWith('doc-ref', { status: 'abandonado' });
+      expect(updateDoc).toHaveBeenCalledWith('doc-ref', expect.objectContaining({ 
+        status: 'abandonado',
+        updatedAt: expect.anything()
+      }));
     });
 
     it('should map error and throw', async () => {

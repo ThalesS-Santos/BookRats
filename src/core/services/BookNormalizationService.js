@@ -13,7 +13,7 @@ import { BOOK_STATUS } from '../constants/bookStatus';
  * @property {string|null} isbn - ISBN-13 or ISBN-10.
  * @property {string[]} categories - Genre tags.
  * @property {string} language - Language code (pt, en, etc).
- * @property {import('../constants/bookStatus').BookStatus} status - Current state in library.
+ * @property {'quero_ler' | 'lendo' | 'lido' | 'comprado' | 'lista_desejos' | 'recomendado' | 'abandonado'} status - Current state in library.
  * @property {string|null} publishedDate - Publication date.
  * @property {number|null} averageRating - Rating from 1 to 5.
  * @property {number|null} ratingsCount - Number of ratings.

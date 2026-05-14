@@ -14,11 +14,8 @@ export const createSocialSlice = (set, get) => ({
   notifications: [],
   unreadCount: 0,
   
-  // Chat & Ranking State
-  users: [],
   messages: [],
   chatError: null,
-  rankingError: null,
 
   // --- Notifications Logic ---
   startNotificationsListener: (uid) => {
@@ -85,22 +82,6 @@ export const createSocialSlice = (set, get) => ({
     return unsub;
   },
 
-  subscribeToUsers: () => {
-    const usersRef = collection(db, 'users');
-    set({ rankingError: null });
-    const unsub = onSnapshot(usersRef, (snapshot) => {
-      const usersList = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      set({ users: usersList, rankingError: null });
-    }, (error) => {
-      set({ rankingError: error.message });
-      console.error("Firestore (Users):", error.message);
-    });
-
-    return unsub;
-  },
 
   sendMessage: async (groupId = 'squad-geral', messageData) => {
     const { user } = get();

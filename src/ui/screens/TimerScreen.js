@@ -1,6 +1,6 @@
 import { useMainStore } from '@core/store';
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Dimensions, TouchableWithoutFeedback, Keyboard, Animated, Easing } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Dimensions, TouchableWithoutFeedback, Keyboard, Animated, Easing, ScrollView } from 'react-native';
 import { useKeepAwake } from 'expo-keep-awake';
 import * as Haptics from '../../utils/haptics';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,18 +19,16 @@ export default function TimerScreen({ route, navigation }) {
   const { showPopup } = usePopupStore();
   const user = useMainStore(state => state.user);
   const updateProgress = useMainStore(state => state.updateProgress);
-  const markAsDNF = useMainStore(state => state.markAsDNF);
   const updateReadingStatus = useMainStore(state => state.updateReadingStatus);
 
   const book = books.find(b => b.id === bookId);
 
-  const { seconds, setSeconds, isActive, setIsActive, resetTimer } = useTimer(true);
+  const { seconds, setSeconds, isActive, setIsActive } = useTimer(true);
   const [showFinishForm, setShowFinishForm] = useState(false);
   const [endPage, setEndPage] = useState(book ? book.currentPage.toString() : '0');
   const [annotation, setAnnotation] = useState('');
   const [isPublic, setIsPublic] = useState(true);
 
-  // Update Reading Status in Firestore
   useEffect(() => {
     if (isActive && book) {
       updateReadingStatus(book.title);
@@ -42,7 +40,6 @@ export default function TimerScreen({ route, navigation }) {
     };
   }, [isActive, book, updateReadingStatus]);
 
-  // 🌟 Social Layer: Neon Pulse Animation
   const neonPulse = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -73,7 +70,6 @@ export default function TimerScreen({ route, navigation }) {
     setIsPublic(!isPublic);
   };
 
-
   const handleFinish = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setIsActive(false);
@@ -92,8 +88,13 @@ export default function TimerScreen({ route, navigation }) {
     setEndPage(cleaned);
   };
 
-  const handleSaveProgress = async () => {
-    const newPage = parseInt(endPage, 10);
+  const handleSaveProgress = async (forceComplete = false) => {
+    let newPage = parseInt(endPage, 10);
+    
+    if (forceComplete && book.totalPages > 0) {
+      newPage = book.totalPages;
+    }
+
     if (isNaN(newPage) || newPage < book.currentPage || (newPage === book.currentPage && newPage !== book.totalPages)) {
       showPopup({ 
         title: 'Valor Inválido', 
@@ -115,7 +116,21 @@ export default function TimerScreen({ route, navigation }) {
       }
     }
 
-    updateProgress(bookId, newPage, seconds);
+    if (forceComplete) {
+       await useMainStore.getState().updateBook(bookId, { 
+         status: 'lido', 
+         currentPage: newPage,
+         completedAt: new Date().toISOString()
+       });
+       showPopup({
+         title: 'Parabéns! 🎉',
+         message: `Você concluiu a leitura de "${book.title}". O livro foi movido para sua lista de Lidos.`,
+         type: 'success'
+       });
+    } else {
+      updateProgress(bookId, newPage, seconds);
+    }
+
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     navigation.goBack();
   };
@@ -136,154 +151,209 @@ export default function TimerScreen({ route, navigation }) {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       className="flex-1 bg-background-light dark:bg-background-dark"
     >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-        <View className="flex-1 p-6">
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            className="mt-12 mb-4"
-          >
-            <Ionicons name="chevron-down" size={32} color={textColor} />
-          </TouchableOpacity>
-
-          {!showFinishForm ? (
-            <View className="flex-1 justify-between py-12">
-              <View className="items-center">
-                <Text className="text-primary dark:text-primary-dark font-serif text-lg mb-2">Lendo agora</Text>
-                <Text className="text-text-light dark:text-text-dark text-3xl font-bold text-center px-4" numberOfLines={2}>
-                  {book.title}
-                </Text>
-              </View>
-
-              <View className="items-center">
-                <View
-                  className="border-4 border-primary dark:border-primary-dark rounded-full items-center justify-center"
-                  style={{ width: width * 0.7, height: width * 0.7 }}
-                >
-                  <Text className="text-text-light dark:text-text-dark text-6xl font-mono tracking-tighter">
-                    {formatTime(seconds)}
-                  </Text>
-                  <Text className="text-text-muted-light dark:text-text-muted-dark mt-2 uppercase tracking-widest text-xs">
-                    {isActive ? 'Sessão Ativa' : 'Pausado'}
-                  </Text>
-                </View>
-              </View>
-
-              <View className="flex-row justify-center space-x-12 items-center">
-                <TouchableOpacity
-                  className="w-16 h-16 rounded-full items-center justify-center bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark"
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setIsActive(!isActive);
-                  }}
-                >
-                  <Ionicons
-                    name={isActive ? "pause" : "play"}
-                    size={28}
-                    color={isActive ? "#D97706" : accentColor}
-                  />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  className="w-24 h-24 rounded-full items-center justify-center bg-primary dark:bg-primary-dark shadow-xl"
-                  onPress={handleFinish}
-                >
-                  <Text className="text-white font-bold text-lg">Finalizar</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  className="w-16 h-16 rounded-full items-center justify-center bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark"
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    showPopup({
-                      title: 'Zerar',
-                      message: 'Deseja realmente zerar o cronômetro?',
-                      type: 'confirm',
-                      onConfirm: () => setSeconds(0)
-                    });
-                  }}
-                >
-                  <Ionicons name="refresh" size={24} color={mutedTextColor} />
-                </TouchableOpacity>
-              </View>
-            </View>
-          ) : (
-            <View className="flex-1 justify-center px-4">
-              <Text className="text-text-light dark:text-text-dark text-4xl font-serif font-bold mb-8">Belo esforço!</Text>
-
-              <View className="bg-card-light dark:bg-card-dark p-6 rounded-3xl border border-border-light dark:border-border-dark mb-8">
-                <View className="flex-row justify-between mb-4">
-                  <Text className="text-text-muted-light dark:text-text-muted-dark">Tempo total</Text>
-                  <Text className="text-text-light dark:text-text-dark font-bold">{formatTime(seconds)}</Text>
-                </View>
-                <View className="flex-row justify-between">
-                  <Text className="text-text-muted-light dark:text-text-muted-dark">Velocidade est.</Text>
-                  <Text className="text-text-light dark:text-text-dark font-bold">{calculateSpeed()}</Text>
-                </View>
-              </View>
-
-              <Text className="text-text-muted-light dark:text-text-muted-dark mb-3 ml-2">Página atual:</Text>
-              <TextInput
-                className="bg-card-light dark:bg-card-dark text-text-light dark:text-text-dark p-4 rounded-2xl text-xl font-bold border border-border-light dark:border-border-dark mb-4"
-                keyboardType="numeric"
-                value={endPage}
-                onChangeText={handlePageInputChange}
-                placeholder={`Pág. ${book.currentPage}`}
-                placeholderTextColor={mutedTextColor}
-              />
-
-              <Text className="text-text-muted-light dark:text-text-muted-dark mb-3 ml-2">Anotação / Pensamento:</Text>
-              <TextInput
-                className="bg-card-light dark:bg-card-dark text-text-light dark:text-text-dark p-4 rounded-2xl text-sm border border-border-light dark:border-border-dark mb-4 font-serif italic"
-                value={annotation}
-                onChangeText={setAnnotation}
-                placeholder="O que você achou dessa leitura?"
-                placeholderTextColor={mutedTextColor}
-                multiline
-                numberOfLines={3}
-              />
-
-              <TouchableOpacity 
-                onPress={handlePublicToggle} 
-                className="flex-row items-center mb-6 ml-2"
-              >
-                <Animated.View 
-                  style={{ 
-                    opacity: isPublic ? neonPulse : 1,
-                    transform: [{ scale: isPublic ? neonPulse : 1 }],
-                    shadowColor: '#22C55E', // Green-500
-                    shadowOpacity: isPublic ? 0.8 : 0,
-                    shadowRadius: 10,
-                  }}
-                  className={`w-6 h-6 rounded-full items-center justify-center mr-3 ${isPublic ? 'bg-primary dark:bg-primary-dark shadow-lg shadow-primary' : 'bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark'}`}
-                >
-                  <Ionicons name={isPublic ? "globe-outline" : "lock-closed-outline"} size={14} color="white" />
-                </Animated.View>
-                <View>
-                  <Text className={`text-sm font-bold ${isPublic ? 'text-primary dark:text-primary-dark' : 'text-text-muted-light dark:text-text-muted-dark'}`}>
-                    {isPublic ? 'Deixando um rastro na página...' : 'Privada (Só eu)'}
-                  </Text>
-                  {isPublic && (
-                    <Text className="text-[10px] text-text-muted-light dark:text-text-muted-dark italic">Sua nota ficará visível para outros leitores deste livro</Text>
-                  )}
-                </View>
-              </TouchableOpacity>
-
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView 
+          className="flex-1"
+          contentContainerStyle={{ flexGrow: 1 }}
+          showsVerticalScrollIndicator={false}
+        >
+          <View className="px-6 pt-12 pb-10">
+            {/* Header Navigation */}
+            <View className="flex-row justify-between items-center mb-8">
               <TouchableOpacity
-                className="bg-primary dark:bg-primary-dark p-5 rounded-2xl items-center shadow-lg"
-                onPress={handleSaveProgress}
+                onPress={() => navigation.goBack()}
+                className="p-2 -ml-2"
               >
-                <Text className="text-white font-bold text-lg">Salvar Sessão</Text>
+                <Ionicons name="chevron-down" size={32} color={textColor} />
               </TouchableOpacity>
-
-              <TouchableOpacity className="mt-8 items-center" onPress={() => setShowFinishForm(false)}>
-                <Text className="text-text-muted-light dark:text-text-muted-dark">Voltar ao cronômetro</Text>
-              </TouchableOpacity>
+              <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-[4px] text-[10px] font-black">
+                {showFinishForm ? 'Sessão Finalizada' : 'Lendo Agora'}
+              </Text>
+              <View className="w-10" />
             </View>
-          )}
-        </View>
+
+            {!showFinishForm ? (
+              /* --- TIMER VIEW --- */
+              <View className="flex-1 justify-around">
+                <View className="items-center mb-10">
+                  <Text className="text-primary dark:text-primary-dark font-serif text-xl mb-3">Mergulhado em</Text>
+                  <Text className="text-text-light dark:text-text-dark text-4xl font-serif font-black text-center leading-tight">
+                    {book.title}
+                  </Text>
+                  <Text className="text-text-muted-light dark:text-text-muted-dark mt-2 font-medium">por {book.author}</Text>
+                </View>
+
+                <View className="items-center py-10">
+                  <View
+                    className="rounded-full items-center justify-center border-[6px]"
+                    style={{ 
+                      width: width * 0.8, 
+                      height: width * 0.8,
+                      borderColor: isActive ? accentColor : (isDarkMode ? '#262626' : '#F3F4F6'),
+                      backgroundColor: isDarkMode ? '#121212' : '#FFFFFF',
+                      shadowColor: accentColor,
+                      shadowOpacity: isActive ? 0.3 : 0,
+                      shadowRadius: 20,
+                      elevation: isActive ? 10 : 0
+                    }}
+                  >
+                    <Text className="text-text-light dark:text-text-dark text-7xl font-mono tracking-tighter font-black">
+                      {formatTime(seconds)}
+                    </Text>
+                    <View className={`mt-4 px-4 py-1.5 rounded-full ${isActive ? 'bg-primary/10' : 'bg-amber-500/10'}`}>
+                      <Text className={`uppercase tracking-widest text-[10px] font-black ${isActive ? 'text-primary' : 'text-amber-600'}`}>
+                        {isActive ? 'Foco Ativo' : 'Pausado'}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                <View className="flex-row justify-between items-center mt-10 px-4">
+                  <TouchableOpacity
+                    className="w-20 h-20 rounded-full items-center justify-center bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark shadow-sm"
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setIsActive(!isActive);
+                    }}
+                  >
+                    <Ionicons
+                      name={isActive ? "pause" : "play"}
+                      size={32}
+                      color={isActive ? "#D97706" : accentColor}
+                    />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    className="flex-1 h-20 mx-6 rounded-3xl items-center justify-center bg-primary dark:bg-primary-dark shadow-xl"
+                    onPress={handleFinish}
+                  >
+                    <Text className="text-white font-black text-xl tracking-wider uppercase">Finalizar</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    className="w-20 h-20 rounded-full items-center justify-center bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark shadow-sm"
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      showPopup({
+                        title: 'Reiniciar?',
+                        message: 'Deseja zerar o tempo desta sessão?',
+                        type: 'confirm',
+                        onConfirm: () => setSeconds(0)
+                      });
+                    }}
+                  >
+                    <Ionicons name="refresh" size={28} color={mutedTextColor} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              /* --- FINISH FORM VIEW --- */
+              <View className="flex-1">
+                <Text className="text-text-light dark:text-text-dark text-5xl font-serif font-black mb-2">Belo Esforço!</Text>
+                <Text className="text-text-muted-light dark:text-text-muted-dark text-lg mb-8 font-medium">Sua mente agradece por este momento.</Text>
+
+                {/* Stats Cards Row */}
+                <View className="flex-row space-x-4 mb-8">
+                  <View className="flex-1 bg-card-light dark:bg-card-dark p-6 rounded-[32px] border border-border-light dark:border-border-dark items-center">
+                    <Ionicons name="time-outline" size={24} color={accentColor} />
+                    <Text className="text-text-light dark:text-text-dark font-black text-xl mt-2">{formatTime(seconds)}</Text>
+                    <Text className="text-text-muted-light dark:text-text-muted-dark text-[10px] uppercase font-bold mt-1">Duração</Text>
+                  </View>
+                  <View className="flex-1 bg-card-light dark:bg-card-dark p-6 rounded-[32px] border border-border-light dark:border-border-dark items-center">
+                    <Ionicons name="speedometer-outline" size={24} color="#6366F1" />
+                    <Text className="text-text-light dark:text-text-dark font-black text-xl mt-2">{calculateSpeed()}</Text>
+                    <Text className="text-text-muted-light dark:text-text-muted-dark text-[10px] uppercase font-bold mt-1">Velocidade</Text>
+                  </View>
+                </View>
+
+                {/* Progress Input Section */}
+                <View className="mb-8">
+                  <View className="flex-row justify-between items-end mb-3 px-2">
+                    <Text className="text-text-muted-light dark:text-text-muted-dark text-xs uppercase font-black tracking-widest">Onde você parou?</Text>
+                    <Text className="text-primary dark:text-primary-dark text-[10px] font-bold">LIVRO TEM {book.totalPages} PÁGS</Text>
+                  </View>
+                  <View className="bg-card-light dark:bg-card-dark rounded-3xl border-2 border-border-light dark:border-border-dark overflow-hidden">
+                    <TextInput
+                      className="text-text-light dark:text-text-dark p-6 text-3xl font-black text-center"
+                      keyboardType="numeric"
+                      value={endPage}
+                      onChangeText={handlePageInputChange}
+                      placeholder={`Pág. ${book.currentPage}`}
+                      placeholderTextColor={mutedTextColor}
+                    />
+                    <View className="bg-primary/5 dark:bg-primary-dark/5 py-3 items-center border-t border-border-light/50 dark:border-border-dark/50">
+                      <Text className="text-text-muted-light dark:text-text-muted-dark text-[10px] font-bold">ESTAVA NA PÁGINA {book.currentPage}</Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Annotation Section */}
+                <View className="mb-8">
+                  <Text className="text-text-muted-light dark:text-text-muted-dark text-xs uppercase font-black tracking-widest mb-3 px-2">Ecos desta leitura</Text>
+                  <View className="bg-card-light dark:bg-card-dark rounded-3xl border border-border-light dark:border-border-dark p-5">
+                    <TextInput
+                      className="text-text-light dark:text-text-dark text-lg font-serif italic leading-7"
+                      value={annotation}
+                      onChangeText={setAnnotation}
+                      placeholder="Algum pensamento ou insight valioso hoje?"
+                      placeholderTextColor={mutedTextColor}
+                      multiline
+                      numberOfLines={4}
+                      textAlignVertical="top"
+                    />
+                  </View>
+                </View>
+
+                {/* Privacy Toggle */}
+                <TouchableOpacity 
+                  onPress={handlePublicToggle} 
+                  className="bg-card-light dark:bg-card-dark flex-row items-center p-5 rounded-[24px] border border-border-light dark:border-border-dark mb-10"
+                >
+                  <View className={`w-12 h-12 rounded-2xl items-center justify-center mr-4 ${isPublic ? 'bg-primary' : 'bg-zinc-500'}`}>
+                    <Ionicons name={isPublic ? "globe" : "lock-closed"} size={22} color="white" />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-text-light dark:text-text-dark font-black text-sm uppercase tracking-wider">
+                      {isPublic ? 'Público (Ecoando)' : 'Privado (Só Eu)'}
+                    </Text>
+                    <Text className="text-text-muted-light dark:text-text-muted-dark text-[10px] font-medium mt-1">
+                      {isPublic ? 'Outros leitores verão seu insight nesta página' : 'Esta nota ficará guardada apenas para você'}
+                    </Text>
+                  </View>
+                  <View className={`w-6 h-6 rounded-full border-2 items-center justify-center ${isPublic ? 'border-primary' : 'border-zinc-500'}`}>
+                    {isPublic && <View className="w-3 h-3 rounded-full bg-primary" />}
+                  </View>
+                </TouchableOpacity>
+
+                {/* Action Buttons */}
+                <View className="space-y-4">
+                  <TouchableOpacity
+                    className="bg-primary dark:bg-primary-dark h-20 rounded-[28px] items-center justify-center shadow-lg"
+                    onPress={() => handleSaveProgress(false)}
+                  >
+                    <Text className="text-white font-black text-xl tracking-widest uppercase">Salvar Sessão</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    className="bg-amber-500 h-20 rounded-[28px] items-center justify-center shadow-xl border-b-4 border-amber-700"
+                    onPress={() => handleSaveProgress(true)}
+                  >
+                    <View className="flex-row items-center">
+                      <Ionicons name="trophy" size={24} color="white" />
+                      <Text className="text-white font-black text-xl tracking-widest uppercase ml-3">TERMINEI ESTA JORNADA!</Text>
+                    </View>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity className="py-6 items-center" onPress={() => setShowFinishForm(false)}>
+                    <Text className="text-text-muted-light dark:text-text-muted-dark font-bold uppercase tracking-widest text-[10px]">Ainda não terminei, voltar ao foco</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          </View>
+        </ScrollView>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );

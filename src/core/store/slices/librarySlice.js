@@ -1,9 +1,10 @@
 import { usePopupStore } from '../../../store/usePopupStore';
 import { addBook as apiAddBook, updateBookProgress, markAsDNF as apiMarkAsDNF, updateBookStatus as apiUpdateBookStatus } from '@core/api/books';
 import { db } from '@core/firebase/firebase';
-import { doc, collection, onSnapshot, updateDoc, increment } from 'firebase/firestore';
+import { doc, collection, onSnapshot, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
 import { BOOK_STATUS, VALID_STATUSES } from '../../constants/bookStatus';
 import { getLocalDateString } from '@utils/streak';
+import { Logger } from '../../services/Logger';
 
 /**
  * Library Slice handles all book-related logic.
@@ -99,8 +100,14 @@ export const createLibrarySlice = (set, get) => ({
     }
 
     if (id && books.some(b => b.id === id)) {
-      console.warn(`[Library Integrity] Duplicate ID detected: ${id}. Skipping.`);
+      Logger.warn(`[Library Integrity] Duplicate ID detected: ${id}. Skipping.`);
       return;
+    }
+
+    // 🛡️ Strict Status Validation
+    if (!status || !VALID_STATUSES.includes(status)) {
+      Logger.warn(`[Library] Invalid or missing status: ${status}. Defaulting to WANT_TO_READ.`);
+      status = BOOK_STATUS.WANT_TO_READ;
     }
 
     try {
@@ -193,20 +200,37 @@ export const createLibrarySlice = (set, get) => ({
     }
 
     // 3. If status is manually set to READ -> Jump progress to 100%
-    if (finalUpdates.status === BOOK_STATUS.READ && book.status !== BOOK_STATUS.READ) {
-      finalUpdates.currentPage = book.totalPages;
-      pageDelta = book.totalPages - book.currentPage;
+    if (finalUpdates.status !== undefined) {
+      if (!VALID_STATUSES.includes(finalUpdates.status)) {
+        Logger.error(`[Library] Aborted update: Invalid status "${finalUpdates.status}" for book ${bookId}`);
+        return;
+      }
+
+      if (finalUpdates.status === BOOK_STATUS.READ && book.status !== BOOK_STATUS.READ) {
+        // Auto-fill progress if totalPages is known
+        if (book.totalPages > 0) {
+          finalUpdates.currentPage = book.totalPages;
+          pageDelta = book.totalPages - book.currentPage;
+        }
+        finalUpdates.completedAt = new Date().toISOString();
+      }
     }
 
     const previousBooks = [...books];
     const updatedBooks = books.map(b => b.id === bookId ? { ...b, ...finalUpdates } : b);
+    
+    // 1. Optimistic Update (UI reacts instantly)
     set({ books: updatedBooks });
 
+    // 2. Background Sync
     try {
       const { updateBook: apiUpdateBook } = require('@core/api/books');
-      await apiUpdateBook(user.uid, bookId, finalUpdates);
+      await apiUpdateBook(user.uid, bookId, {
+        ...finalUpdates,
+        updatedAt: serverTimestamp()
+      });
 
-      // 📈 Update User Stats if pages changed
+      // 📈 Update User Stats if pages changed (handled in background)
       if (pageDelta !== 0 || finalUpdates.status !== undefined) {
         const { db } = require('@core/firebase/firebase');
         const { doc, updateDoc, increment } = require('firebase/firestore');
@@ -230,11 +254,13 @@ export const createLibrarySlice = (set, get) => ({
         }
       }
     } catch (error) {
-      console.error(`[Library] Failed to update book ${bookId}:`, error.message);
+      // 3. Rollback Mechanism on failure
+      Logger.error(`[Library Sync] Failed to update book ${bookId}. Rolling back.`, error);
       set({ books: previousBooks });
+      
       usePopupStore.getState().showPopup({
-        title: 'Erro ao Salvar',
-        message: 'Não foi possível salvar as alterações.',
+        title: 'Erro de Sincronização',
+        message: 'Não foi possível salvar as alterações na nuvem. O estado local foi revertido.',
         type: 'error'
       });
     }

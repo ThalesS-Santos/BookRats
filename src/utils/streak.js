@@ -18,15 +18,15 @@ export const getLocalDateString = (date = new Date()) => {
  * @param {number} currentStreak - Current streak count
  * @returns {number} New streak count
  */
-export const updateStreak = (lastDateStr, currentStreak) => {
-  const todayStr = getLocalDateString();
+export const updateStreak = (lastDateStr, currentStreak, todayOverride = null) => {
+  const todayStr = todayOverride || getLocalDateString();
   
   if (!lastDateStr) return 1;
   if (lastDateStr === todayStr) return currentStreak || 1;
 
   // Calculate yesterday in local time
-  const today = new Date();
-  const yesterday = new Date(today);
+  const todayDate = todayOverride ? new Date(todayOverride + 'T12:00:00') : new Date();
+  const yesterday = new Date(todayDate);
   yesterday.setDate(yesterday.getDate() - 1);
   const yesterdayStr = getLocalDateString(yesterday);
 
@@ -67,5 +67,5 @@ export const calculateStreakFromLogs = (logs) => {
 
 // Keep calculateStreak for backward compatibility if needed, but point to updateStreak logic
 export const calculateStreak = (lastDateStr, newDateStr, currentStreak) => {
-  return updateStreak(lastDateStr, currentStreak);
+  return updateStreak(lastDateStr, currentStreak, newDateStr);
 };

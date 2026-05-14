@@ -119,8 +119,8 @@ describe('Google Books API Module', () => {
       await searchBooks({ title: 'Amanhã & Depois', author: 'João Silva' });
       
       const callUrl = apiClient.get.mock.calls[0][0];
-      expect(callUrl).toContain('intitle%3AAmanh%C3%A3+%26+Depois');
-      expect(callUrl).toContain('inauthor%3AJo%C3%A3o+Silva');
+      expect(callUrl).toContain('intitle%3A%22Amanh%C3%A3+%26+Depois%22');
+      expect(callUrl).toContain('inauthor%3A%22Jo%C3%A3o+Silva%22');
     });
 
     it('should prioritize ISBN and return normalized data', async () => {
@@ -146,6 +146,23 @@ describe('Google Books API Module', () => {
         mockError,
         expect.objectContaining({ options: expect.objectContaining({ title: 'Fail' }) })
       );
+    });
+
+    it('should handle multiple subjects in search', async () => {
+      apiClient.get.mockResolvedValue({ items: [], totalItems: 0 });
+      await searchBooks({ subjects: ['Fiction', 'History'] });
+      
+      const callUrl = apiClient.get.mock.calls[0][0];
+      expect(callUrl).toContain('subject%3AFiction');
+      expect(callUrl).toContain('subject%3AHistory');
+    });
+
+    it('should handle single subject string', async () => {
+      apiClient.get.mockResolvedValue({ items: [], totalItems: 0 });
+      await searchBooks({ subjects: 'Science' });
+      
+      const callUrl = apiClient.get.mock.calls[0][0];
+      expect(callUrl).toContain('subject%3AScience');
     });
   });
 });

@@ -147,28 +147,6 @@ describe('Social Slice', () => {
       errorSpy.mockRestore();
     });
 
-    it('subscribeToUsers should load users', () => {
-      onSnapshot.mockImplementation((q, callback) => {
-        callback({ docs: [{ id: 'u1', data: () => ({ name: 'John' }) }] });
-        return jest.fn();
-      });
-
-      state.subscribeToUsers();
-      expect(setMock).toHaveBeenCalledWith({ users: [{ id: 'u1', name: 'John' }], rankingError: null });
-    });
-
-    it('subscribeToUsers should handle error', () => {
-      onSnapshot.mockImplementation((q, callback, errCb) => {
-        errCb(new Error('Users fail'));
-        return jest.fn();
-      });
-      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
-
-      state.subscribeToUsers();
-      expect(setMock).toHaveBeenCalledWith({ rankingError: 'Users fail' });
-      errorSpy.mockRestore();
-    });
-
     it('sendMessage should send text message', async () => {
       await state.sendMessage('group1', 'Hello');
       expect(addDoc).toHaveBeenCalledWith(undefined, expect.objectContaining({

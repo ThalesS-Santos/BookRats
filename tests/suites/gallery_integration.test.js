@@ -41,7 +41,7 @@ jest.mock('@react-navigation/native', () => {
     
     // Let VirtualizedList settle its internal timers
     await act(async () => {
-      await new Promise(r => setTimeout(r, 0));
+      await new Promise(r => setTimeout(r, 100));
     });
     
     return renderResult;
@@ -108,7 +108,7 @@ jest.mock('@react-navigation/native', () => {
           layoutMeasurement: { height: 800, width: 400 },
         },
       });
-      await new Promise(r => setTimeout(r, 0));
+      await new Promise(r => setTimeout(r, 100));
     });
 
     // Verify it's still there

@@ -13,6 +13,13 @@ jest.mock('../../src/core/store');
 jest.mock('../../src/store/useThemeStore');
 jest.mock('../../src/core/api/social');
 jest.mock('../../src/utils/haptics');
+jest.mock('../../src/ui/components/organisms/BookLoader', () => {
+  const { View } = require('react-native');
+  return {
+    __esModule: true,
+    default: ({ isVisible }) => isVisible ? <View testID="book-loader-container" /> : null
+  };
+});
 
 describe('GalleryScreen', () => {
   const mockNavigation = { navigate: jest.fn(), goBack: jest.fn() };
@@ -31,7 +38,10 @@ describe('GalleryScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     useNavigation.mockReturnValue(mockNavigation);
-    useMainStore.mockReturnValue({ user: { uid: 'u1', displayName: 'Tester' } });
+    useMainStore.mockReturnValue({ 
+      user: { uid: 'u1', displayName: 'Tester' },
+      updateBookStatus: jest.fn()
+    });
     useThemeStore.mockReturnValue({ isDarkMode: false });
     getPublicEchoes.mockResolvedValue(mockEchoes);
   });

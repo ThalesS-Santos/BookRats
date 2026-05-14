@@ -22,13 +22,22 @@ export const useMainStore = create(
     {
       name: 'bookrats-main-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      version: 1, // Versionamento do cache (aumente se mudar o schema estrutural no futuro)
+      version: 2, // 🚀 Version Bump for Data Integrity
       
-      // Lida com a migração silenciosa para usuários que já tinham o app instalado (version 0)
+      // Lida com a migração silenciosa para usuários que já tinham o app instalado
       migrate: (persistedState, version) => {
-        if (version === 0) {
-          // Nenhuma mudança estrutural destrutiva foi feita, apenas retornamos o estado salvo
-          return persistedState;
+        const { BOOK_STATUS } = require('../constants/bookStatus');
+
+        if (version < 2) {
+          // Deep copy to avoid mutation
+          const state = { ...persistedState };
+          if (state.books && Array.isArray(state.books)) {
+            state.books = state.books.map(book => ({
+              ...book,
+              status: book.status || BOOK_STATUS.WANT_TO_READ // Inject missing status
+            }));
+          }
+          return state;
         }
         return persistedState;
       },
