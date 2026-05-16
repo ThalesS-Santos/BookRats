@@ -8,7 +8,32 @@ import { ALL_BADGES } from '@constants/badges';
 import * as Haptics from '../../utils/haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { FastAvatar } from '@ui/components';
-
+import { COLORS } from '@constants/colors'; // ✅ FIX #3: import no topo, fora do componente
+ 
+// ✅ FIX #1: InfoRow definida FORA do ProfileScreen.
+// Assim React não recria o tipo do componente a cada render,
+// evitando o ciclo de desmontagem/remontagem que causava o erro de navegação.
+const InfoRow = ({ label, value, icon, onPress, accentColor, showCompleted, isDarkMode }) => (
+  <TouchableOpacity
+    onPress={onPress}
+    disabled={!onPress}
+    className="flex-row items-center justify-between p-5 bg-card-light dark:bg-card-dark rounded-2xl mb-4 border border-border-light dark:border-border-dark"
+  >
+    <View className="flex-row items-center">
+      <View className="bg-primary/10 dark:bg-primary-dark/10 p-2 rounded-lg mr-4">
+        <Ionicons name={icon} size={22} color={accentColor} />
+      </View>
+      <Text className="text-text-light dark:text-text-dark font-serif font-bold text-lg">{label}</Text>
+    </View>
+    <View className="flex-row items-center">
+      <Text className="text-text-muted-light dark:text-text-muted-dark font-mono font-bold text-lg mr-2">{value}</Text>
+      {onPress && (
+        <Ionicons name={showCompleted ? "chevron-up" : "chevron-down"} size={16} color={accentColor} />
+      )}
+    </View>
+  </TouchableOpacity>
+);
+ 
 export default function ProfileScreen({ navigation }) {
   const { isDarkMode, toggleTheme, hapticsEnabled, setHapticsEnabled } = useThemeStore();
   const [showCompleted, setShowCompleted] = useState(false);
@@ -17,43 +42,39 @@ export default function ProfileScreen({ navigation }) {
   const totalPagesRead = useMainStore(state => state.totalPagesRead);
   const user = useMainStore(state => state.user);
   const unlockedBadges = useMainStore(state => state.unlockedBadges) || {};
-  const { hasInfluencerBadge, unreadCount, totalBooksCompleted } = useMainStore();
+  // ✅ FIX #2: seletores individuais evitam re-render em qualquer mudança do store
+  const hasInfluencerBadge = useMainStore(state => state.hasInfluencerBadge);
+  const unreadCount = useMainStore(state => state.unreadCount);
+  const totalBooksCompleted = useMainStore(state => state.totalBooksCompleted);
   const signOut = useMainStore(state => state.signOut);
   const { showPopup } = usePopupStore();
-  const { COLORS } = require('@constants/colors');
-
+ 
   const [badgeFilter, setBadgeFilter] = useState('all'); // 'all', 'unlocked', 'locked', 'recent'
   const [badgeLimit, setBadgeLimit] = useState(9);
   const [showTrophyWall, setShowTrophyWall] = useState(false);
-
+ 
   const accentColor = isDarkMode ? COLORS.primary.dark : COLORS.primary.light;
   const readingBooks = books.filter(b => b.status === BOOK_STATUS.READING).length;
-
+ 
   const userData = useMemo(() => ({
     streak,
     totalPagesRead,
     completedBooks: totalBooksCompleted,
     readingBooks
   }), [streak, totalPagesRead, totalBooksCompleted, readingBooks]);
-
+ 
   const totalUnlocked = useMemo(() => {
     return ALL_BADGES.filter(badge => badge.check(userData)).length;
   }, [userData]);
-
+ 
   const processedBadges = useMemo(() => {
-    // 1. Map all badges with their unlock status and unlock date if available
     const badgesWithStatus = ALL_BADGES.map(badge => {
       const isUnlocked = badge.check(userData);
       const unlockInfo = unlockedBadges[badge.id];
       const dateUnlocked = unlockInfo?.dateUnlocked ? new Date(unlockInfo.dateUnlocked).getTime() : 0;
-      return {
-        ...badge,
-        isUnlocked,
-        dateUnlocked
-      };
+      return { ...badge, isUnlocked, dateUnlocked };
     });
-
-    // 2. Filter based on selected filter
+ 
     let filtered = badgesWithStatus;
     if (badgeFilter === 'unlocked') {
       filtered = badgesWithStatus.filter(b => b.isUnlocked);
@@ -62,45 +83,35 @@ export default function ProfileScreen({ navigation }) {
     } else if (badgeFilter === 'recent') {
       filtered = badgesWithStatus.filter(b => b.isUnlocked);
     }
-
-    // 3. Sort based on filter / requirements:
-    // "Se for todos os troféus, seria primeiro os novos que ela adquiriu, depois todos os que ela adquiriu já, e depois todos os bloqueados"
+ 
     if (badgeFilter === 'all') {
       filtered.sort((a, b) => {
         if (a.isUnlocked && !b.isUnlocked) return -1;
         if (!a.isUnlocked && b.isUnlocked) return 1;
-        
-        // If both are unlocked
         if (a.isUnlocked && b.isUnlocked) {
-          if (a.dateUnlocked > 0 && b.dateUnlocked > 0) {
-            return b.dateUnlocked - a.dateUnlocked; // Newest first
-          }
+          if (a.dateUnlocked > 0 && b.dateUnlocked > 0) return b.dateUnlocked - a.dateUnlocked;
           if (a.dateUnlocked > 0 && b.dateUnlocked === 0) return -1;
           if (a.dateUnlocked === 0 && b.dateUnlocked > 0) return 1;
-          return 0; // maintain original order
+          return 0;
         }
-        
-        return 0; // both locked, maintain original order
+        return 0;
       });
     } else if (badgeFilter === 'recent' || badgeFilter === 'unlocked') {
-      // Sort exclusively by unlock date (newest first)
       filtered.sort((a, b) => {
-        if (a.dateUnlocked > 0 && b.dateUnlocked > 0) {
-          return b.dateUnlocked - a.dateUnlocked;
-        }
+        if (a.dateUnlocked > 0 && b.dateUnlocked > 0) return b.dateUnlocked - a.dateUnlocked;
         if (a.dateUnlocked > 0) return -1;
         if (b.dateUnlocked > 0) return 1;
         return 0;
       });
     }
-
+ 
     return filtered;
   }, [badgeFilter, unlockedBadges, userData]);
-
+ 
   const visibleBadges = useMemo(() => {
     return processedBadges.slice(0, badgeLimit);
   }, [processedBadges, badgeLimit]);
-
+ 
   const handleSignOut = () => {
     showPopup({
       title: 'Sair da Conta',
@@ -109,34 +120,13 @@ export default function ProfileScreen({ navigation }) {
       onConfirm: signOut
     });
   };
-
-  const InfoRow = ({ label, value, icon, onPress }) => (
-    <TouchableOpacity 
-      onPress={onPress}
-      disabled={!onPress}
-      className="flex-row items-center justify-between p-5 bg-card-light dark:bg-card-dark rounded-2xl mb-4 border border-border-light dark:border-border-dark"
-    >
-      <View className="flex-row items-center">
-        <View className="bg-primary/10 dark:bg-primary-dark/10 p-2 rounded-lg mr-4">
-          <Ionicons name={icon} size={22} color={accentColor} />
-        </View>
-        <Text className="text-text-light dark:text-text-dark font-serif font-bold text-lg">{label}</Text>
-      </View>
-      <View className="flex-row items-center">
-        <Text className="text-text-muted-light dark:text-text-muted-dark font-mono font-bold text-lg mr-2">{value}</Text>
-        {onPress && (
-          <Ionicons name={showCompleted ? "chevron-up" : "chevron-down"} size={16} color={accentColor} />
-        )}
-      </View>
-    </TouchableOpacity>
-  );
-
+ 
   return (
     <ScrollView className="flex-1 bg-background-light dark:bg-background-dark p-6" showsVerticalScrollIndicator={false}>
-      
+ 
       {/* Top Header Row for Notifications */}
       <View className="flex-row justify-end items-center mb-2 z-10">
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => navigation.navigate('Notifications')}
           className="p-3 bg-card-light dark:bg-card-dark rounded-full shadow-sm border border-border-light dark:border-border-dark relative"
         >
@@ -146,13 +136,13 @@ export default function ProfileScreen({ navigation }) {
           )}
         </TouchableOpacity>
       </View>
-
+ 
       <View className="items-center mt-2 mb-10">
-        <FastAvatar 
-          source={user?.profilePic} 
-          size={100} 
-          style={{ marginBottom: 16 }} 
-          border 
+        <FastAvatar
+          source={user?.profilePic}
+          size={100}
+          style={{ marginBottom: 16 }}
+          border
         />
         <View className="flex-row items-center">
           <Text className="text-text-light dark:text-text-dark text-3xl font-serif font-bold" numberOfLines={1}>
@@ -167,7 +157,7 @@ export default function ProfileScreen({ navigation }) {
           <Text className="text-streak font-bold font-mono ml-1">Streak: {streak} dias</Text>
         </View>
       </View>
-
+ 
       <View className="mb-10">
         <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-4 ml-2">Personalização</Text>
         <View className="flex-row items-center justify-between p-5 bg-card-light dark:bg-card-dark rounded-2xl border border-border-light dark:border-border-dark shadow-sm">
@@ -184,7 +174,7 @@ export default function ProfileScreen({ navigation }) {
             thumbColor={'#ffffff'}
           />
         </View>
-
+ 
         <View className="flex-row items-center justify-between p-5 bg-card-light dark:bg-card-dark rounded-2xl border border-border-light dark:border-border-dark mt-4 shadow-sm">
           <View className="flex-row items-center">
             <View className="bg-primary/10 dark:bg-primary-dark/10 p-2 rounded-lg mr-4">
@@ -200,7 +190,7 @@ export default function ProfileScreen({ navigation }) {
           />
         </View>
       </View>
-
+ 
       {/* Botão Expandível - Meus Troféus */}
       <TouchableOpacity
         onPress={() => {
@@ -220,7 +210,7 @@ export default function ProfileScreen({ navigation }) {
           <Ionicons name={showTrophyWall ? "chevron-up" : "chevron-down"} size={16} color={accentColor} />
         </View>
       </TouchableOpacity>
-
+ 
       {/* Seção Expandida do Mural de Troféus */}
       {showTrophyWall && (
         <View className="mb-10 bg-card-light/40 dark:bg-card-dark/40 p-4 rounded-2xl border border-border-light dark:border-border-dark -mt-2">
@@ -239,7 +229,7 @@ export default function ProfileScreen({ navigation }) {
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     setBadgeFilter(tab.id);
-                    setBadgeLimit(9); // Reset to 3x3 matrix on change
+                    setBadgeLimit(9);
                   }}
                   className={`py-2 rounded-xl flex-1 items-center ${isActive ? 'bg-primary dark:bg-primary-dark shadow-sm' : ''}`}
                 >
@@ -248,43 +238,46 @@ export default function ProfileScreen({ navigation }) {
               );
             })}
           </View>
-
+ 
           {visibleBadges.length > 0 ? (
             <View className="flex-row flex-wrap justify-between">
-              {visibleBadges.map(badge => {
-                return (
-                  <TouchableOpacity 
-                    key={badge.id} 
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-                      showPopup({ title: badge.title, message: `Missão: ${badge.mission}`, type: badge.isUnlocked ? 'success' : 'info' });
-                    }}
-                    className={`p-3 rounded-xl border items-center mb-2 w-[31%] ${
-                      badge.isUnlocked 
-                        ? 'bg-card-light dark:bg-card-dark border-primary/20 dark:border-primary-dark/20' 
-                        : 'bg-card-light dark:bg-card-dark border-dashed border-gray-400 dark:border-gray-600 opacity-40'
-                    }`}
+              {visibleBadges.map(badge => (
+                <TouchableOpacity
+                  key={badge.id}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                    showPopup({ title: badge.title, message: `Missão: ${badge.mission}`, type: badge.isUnlocked ? 'success' : 'info' });
+                  }}
+                  className={`p-3 rounded-xl border items-center mb-2 w-[31%] ${
+                    badge.isUnlocked
+                      ? 'bg-card-light dark:bg-card-dark border-primary/20 dark:border-primary-dark/20'
+                      : 'bg-card-light dark:bg-card-dark border-dashed border-gray-400 dark:border-gray-600 opacity-40'
+                  }`}
+                >
+                  <View className="relative">
+                    <Ionicons name={badge.icon} size={28} color={badge.isUnlocked ? "#D97706" : "#4B5563"} />
+                    {!badge.isUnlocked && (
+                      <View className="absolute -top-1 -right-1 bg-background-light dark:bg-background-dark rounded-full p-0.5">
+                        <Ionicons name="lock-closed" size={10} color="#EF4444" />
+                      </View>
+                    )}
+                  </View>
+                  <Text
+                    className={`text-[10px] font-bold mt-1 text-center ${badge.isUnlocked ? 'text-text-light dark:text-text-dark font-serif' : 'text-text-muted-light dark:text-text-muted-dark'}`}
+                    numberOfLines={1}
                   >
-                    <View className="relative">
-                      <Ionicons name={badge.icon} size={28} color={badge.isUnlocked ? "#D97706" : "#4B5563"} />
-                      {!badge.isUnlocked && (
-                        <View className="absolute -top-1 -right-1 bg-background-light dark:bg-background-dark rounded-full p-0.5">
-                          <Ionicons name="lock-closed" size={10} color="#EF4444" />
-                        </View>
-                      )}
-                    </View>
-                    <Text className={`text-[10px] font-bold mt-1 text-center ${badge.isUnlocked ? 'text-text-light dark:text-text-dark font-serif' : 'text-text-muted-light dark:text-text-muted-dark'}`} numberOfLines={1}>{badge.title}</Text>
-                  </TouchableOpacity>
-                );
-              })}
+                    {badge.title}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
           ) : (
             <View className="py-6 items-center">
               <Text className="text-text-muted-light dark:text-text-muted-dark text-xs italic">Nenhum troféu nesta categoria.</Text>
             </View>
           )}
-
-          {/* Botões de Paginação - Mais / Menos Troféus */}
+ 
+          {/* Botões de Paginação */}
           <View className="flex-row justify-between mt-2">
             {processedBadges.length > badgeLimit && (
               <TouchableOpacity
@@ -298,7 +291,6 @@ export default function ProfileScreen({ navigation }) {
                 <Text className="text-primary dark:text-primary-dark font-bold text-xs uppercase tracking-wider">Mais Troféus</Text>
               </TouchableOpacity>
             )}
-
             {badgeLimit > 9 && (
               <TouchableOpacity
                 onPress={() => {
@@ -314,16 +306,19 @@ export default function ProfileScreen({ navigation }) {
           </View>
         </View>
       )}
-
+ 
       <View>
         <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-4 ml-2">Estatísticas</Text>
-        <InfoRow 
-          label="Livros Lidos" 
-          value={totalBooksCompleted} 
-          icon="ribbon-outline" 
-          onPress={() => setShowCompleted(!showCompleted)} 
+        <InfoRow
+          label="Livros Lidos"
+          value={totalBooksCompleted}
+          icon="ribbon-outline"
+          onPress={() => setShowCompleted(!showCompleted)}
+          accentColor={accentColor}
+          showCompleted={showCompleted}
+          isDarkMode={isDarkMode}
         />
-        
+ 
         {showCompleted && (
           <View className="mb-4 bg-background-light dark:bg-background-dark p-4 rounded-2xl border border-border-light dark:border-border-dark -mt-2">
             {books.filter(b => b.status === BOOK_STATUS.READ).map((b, idx, arr) => (
@@ -337,10 +332,17 @@ export default function ProfileScreen({ navigation }) {
             )}
           </View>
         )}
-
-        <InfoRow label="Total de Páginas" value={totalPagesRead.toLocaleString()} icon="layers-outline" />
+ 
+        <InfoRow
+          label="Total de Páginas"
+          value={totalPagesRead.toLocaleString()}
+          icon="layers-outline"
+          accentColor={accentColor}
+          showCompleted={showCompleted}
+          isDarkMode={isDarkMode}
+        />
       </View>
-
+ 
       <TouchableOpacity
         className="mt-8 mb-6 p-5 items-center bg-red-500/10 rounded-2xl border border-red-500/20"
         onPress={handleSignOut}
@@ -350,3 +352,4 @@ export default function ProfileScreen({ navigation }) {
     </ScrollView>
   );
 }
+ 
