@@ -25,6 +25,12 @@ import { mapFirebaseError } from '@utils/errorMapper';
 import { NotificationService } from '../services/NotificationService';
 
 export const subscribeToRanking = (onUpdate, pageSize = 50) => {
+  const { getAuth } = require('firebase/auth');
+  const currentUser = getAuth().currentUser;
+  if (!currentUser) {
+    // Auth not yet restored from persistence — skip silently
+    return () => {};
+  }
   const q = query(
     collection(db, 'users'),
     orderBy('total_pages_read', 'desc'),
@@ -160,6 +166,8 @@ export const subscribeToSentRequests = (uid, onUpdate) => {
   const q = query(collection(db, 'friendships'), where('senderId', '==', uid));
   return onSnapshot(q, (snapshot) => {
     onUpdate(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+  }, (error) => {
+    console.error("[Friendships] Error in sent requests listener:", error.message);
   });
 };
 
@@ -167,6 +175,8 @@ export const subscribeToReceivedRequests = (uid, onUpdate) => {
   const q = query(collection(db, 'friendships'), where('receiverId', '==', uid));
   return onSnapshot(q, (snapshot) => {
     onUpdate(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+  }, (error) => {
+    console.error("[Friendships] Error in received requests listener:", error.message);
   });
 };
 
@@ -185,11 +195,15 @@ export const subscribeToFriends = (uid, onUpdate) => {
   const unsubSent = onSnapshot(qSent, (snap) => {
     sentFriends = snap.docs.map(doc => doc.data());
     update();
+  }, (error) => {
+    console.error("[Friends] Error in sent friends listener:", error.message);
   });
 
   const unsubReceived = onSnapshot(qReceived, (snap) => {
     receivedFriends = snap.docs.map(doc => doc.data());
     update();
+  }, (error) => {
+    console.error("[Friends] Error in received friends listener:", error.message);
   });
 
   return () => {
@@ -198,10 +212,13 @@ export const subscribeToFriends = (uid, onUpdate) => {
   };
 };
 
-export const subscribeToGroups = (uid, onUpdate) => {
+export const subscribeToGroups = (uid, onUpdate, onError) => {
   const q = query(collection(db, 'groups'), where('members', 'array-contains', uid));
   return onSnapshot(q, (snapshot) => {
     onUpdate(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+  }, (error) => {
+    console.error("[Groups] Error in groups listener:", error.message);
+    if (onError) onError(error);
   });
 };
 
@@ -531,6 +548,8 @@ export const subscribeToNotifications = (uid, onUpdate) => {
   );
   return onSnapshot(q, (snapshot) => {
     onUpdate(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+  }, (error) => {
+    console.error("[Notifications] Error in notifications listener:", error.message);
   });
 };
 

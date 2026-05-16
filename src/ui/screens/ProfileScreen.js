@@ -1,7 +1,6 @@
 import { useMainStore } from '@core/store';
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, Switch, TouchableOpacity, ScrollView } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import { useThemeStore } from '../../store/useThemeStore';
 import { usePopupStore } from '../../store/usePopupStore';
 import { BOOK_STATUS } from '@core/constants/bookStatus';
@@ -10,28 +9,97 @@ import * as Haptics from '../../utils/haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { FastAvatar } from '@ui/components';
 
-export default function ProfileScreen() {
-  const navigation = useNavigation();
+export default function ProfileScreen({ navigation }) {
   const { isDarkMode, toggleTheme, hapticsEnabled, setHapticsEnabled } = useThemeStore();
   const [showCompleted, setShowCompleted] = useState(false);
   const books = useMainStore(state => state.books);
   const streak = useMainStore(state => state.streak);
   const totalPagesRead = useMainStore(state => state.totalPagesRead);
   const user = useMainStore(state => state.user);
+  const unlockedBadges = useMainStore(state => state.unlockedBadges) || {};
   const { hasInfluencerBadge, unreadCount, totalBooksCompleted } = useMainStore();
   const signOut = useMainStore(state => state.signOut);
   const { showPopup } = usePopupStore();
   const { COLORS } = require('@constants/colors');
 
+  const [badgeFilter, setBadgeFilter] = useState('all'); // 'all', 'unlocked', 'locked', 'recent'
+  const [badgeLimit, setBadgeLimit] = useState(9);
+  const [showTrophyWall, setShowTrophyWall] = useState(false);
+
   const accentColor = isDarkMode ? COLORS.primary.dark : COLORS.primary.light;
   const readingBooks = books.filter(b => b.status === BOOK_STATUS.READING).length;
 
-  const userData = {
+  const userData = useMemo(() => ({
     streak,
     totalPagesRead,
     completedBooks: totalBooksCompleted,
     readingBooks
-  };
+  }), [streak, totalPagesRead, totalBooksCompleted, readingBooks]);
+
+  const totalUnlocked = useMemo(() => {
+    return ALL_BADGES.filter(badge => badge.check(userData)).length;
+  }, [userData]);
+
+  const processedBadges = useMemo(() => {
+    // 1. Map all badges with their unlock status and unlock date if available
+    const badgesWithStatus = ALL_BADGES.map(badge => {
+      const isUnlocked = badge.check(userData);
+      const unlockInfo = unlockedBadges[badge.id];
+      const dateUnlocked = unlockInfo?.dateUnlocked ? new Date(unlockInfo.dateUnlocked).getTime() : 0;
+      return {
+        ...badge,
+        isUnlocked,
+        dateUnlocked
+      };
+    });
+
+    // 2. Filter based on selected filter
+    let filtered = badgesWithStatus;
+    if (badgeFilter === 'unlocked') {
+      filtered = badgesWithStatus.filter(b => b.isUnlocked);
+    } else if (badgeFilter === 'locked') {
+      filtered = badgesWithStatus.filter(b => !b.isUnlocked);
+    } else if (badgeFilter === 'recent') {
+      filtered = badgesWithStatus.filter(b => b.isUnlocked);
+    }
+
+    // 3. Sort based on filter / requirements:
+    // "Se for todos os troféus, seria primeiro os novos que ela adquiriu, depois todos os que ela adquiriu já, e depois todos os bloqueados"
+    if (badgeFilter === 'all') {
+      filtered.sort((a, b) => {
+        if (a.isUnlocked && !b.isUnlocked) return -1;
+        if (!a.isUnlocked && b.isUnlocked) return 1;
+        
+        // If both are unlocked
+        if (a.isUnlocked && b.isUnlocked) {
+          if (a.dateUnlocked > 0 && b.dateUnlocked > 0) {
+            return b.dateUnlocked - a.dateUnlocked; // Newest first
+          }
+          if (a.dateUnlocked > 0 && b.dateUnlocked === 0) return -1;
+          if (a.dateUnlocked === 0 && b.dateUnlocked > 0) return 1;
+          return 0; // maintain original order
+        }
+        
+        return 0; // both locked, maintain original order
+      });
+    } else if (badgeFilter === 'recent' || badgeFilter === 'unlocked') {
+      // Sort exclusively by unlock date (newest first)
+      filtered.sort((a, b) => {
+        if (a.dateUnlocked > 0 && b.dateUnlocked > 0) {
+          return b.dateUnlocked - a.dateUnlocked;
+        }
+        if (a.dateUnlocked > 0) return -1;
+        if (b.dateUnlocked > 0) return 1;
+        return 0;
+      });
+    }
+
+    return filtered;
+  }, [badgeFilter, unlockedBadges, userData]);
+
+  const visibleBadges = useMemo(() => {
+    return processedBadges.slice(0, badgeLimit);
+  }, [processedBadges, badgeLimit]);
 
   const handleSignOut = () => {
     showPopup({
@@ -133,38 +201,119 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      <View className="mb-10">
-        <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-4 ml-2">Mural de Troféus</Text>
-        <View className="flex-row flex-wrap">
-          {ALL_BADGES.map(badge => {
-            const isUnlocked = badge.check(userData);
-            return (
-              <TouchableOpacity 
-                key={badge.id} 
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-                  showPopup({ title: badge.title, message: `Missão: ${badge.mission}`, type: isUnlocked ? 'success' : 'info' });
-                }}
-                className={`p-3 rounded-xl border items-center mr-2 mb-2 w-[30%] ${
-                  isUnlocked 
-                    ? 'bg-card-light dark:bg-card-dark border-primary/20 dark:border-primary-dark/20' 
-                    : 'bg-card-light dark:bg-card-dark border-dashed border-gray-400 dark:border-gray-600 opacity-40'
-                }`}
-              >
-                <View className="relative">
-                  <Ionicons name={badge.icon} size={28} color={isUnlocked ? "#D97706" : "#4B5563"} />
-                  {!isUnlocked && (
-                    <View className="absolute -top-1 -right-1 bg-background-light dark:bg-background-dark rounded-full p-0.5">
-                      <Ionicons name="lock-closed" size={10} color="#EF4444" />
-                    </View>
-                  )}
-                </View>
-                <Text className={`text-[10px] font-bold mt-1 text-center ${isUnlocked ? 'text-text-light dark:text-text-dark' : 'text-text-muted-light dark:text-text-muted-dark'}`} numberOfLines={1}>{badge.title}</Text>
-              </TouchableOpacity>
-            );
-          })}
+      {/* Botão Expandível - Meus Troféus */}
+      <TouchableOpacity
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          setShowTrophyWall(!showTrophyWall);
+        }}
+        className="flex-row items-center justify-between p-5 bg-card-light dark:bg-card-dark rounded-2xl mb-4 border border-border-light dark:border-border-dark"
+      >
+        <View className="flex-row items-center">
+          <View className="bg-primary/10 dark:bg-primary-dark/10 p-2 rounded-lg mr-4">
+            <Ionicons name="trophy-outline" size={22} color={accentColor} />
+          </View>
+          <Text className="text-text-light dark:text-text-dark font-serif font-bold text-lg">Meus Troféus</Text>
         </View>
-      </View>
+        <View className="flex-row items-center">
+          <Text className="text-text-muted-light dark:text-text-muted-dark font-mono font-bold text-lg mr-2">{totalUnlocked} / {ALL_BADGES.length}</Text>
+          <Ionicons name={showTrophyWall ? "chevron-up" : "chevron-down"} size={16} color={accentColor} />
+        </View>
+      </TouchableOpacity>
+
+      {/* Seção Expandida do Mural de Troféus */}
+      {showTrophyWall && (
+        <View className="mb-10 bg-card-light/40 dark:bg-card-dark/40 p-4 rounded-2xl border border-border-light dark:border-border-dark -mt-2">
+          {/* Filter Pills */}
+          <View className="flex-row justify-between mb-4 bg-gray-100 dark:bg-gray-800/50 p-1.5 rounded-2xl border border-border-light dark:border-border-dark">
+            {[
+              { id: 'all', label: 'Todos' },
+              { id: 'unlocked', label: 'Conquistados' },
+              { id: 'locked', label: 'Bloqueados' },
+              { id: 'recent', label: 'Recentes' }
+            ].map(tab => {
+              const isActive = badgeFilter === tab.id;
+              return (
+                <TouchableOpacity
+                  key={tab.id}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setBadgeFilter(tab.id);
+                    setBadgeLimit(9); // Reset to 3x3 matrix on change
+                  }}
+                  className={`py-2 rounded-xl flex-1 items-center ${isActive ? 'bg-primary dark:bg-primary-dark shadow-sm' : ''}`}
+                >
+                  <Text className={`text-[10px] font-bold ${isActive ? 'text-white font-serif' : 'text-text-muted-light dark:text-text-muted-dark'}`}>{tab.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {visibleBadges.length > 0 ? (
+            <View className="flex-row flex-wrap justify-between">
+              {visibleBadges.map(badge => {
+                return (
+                  <TouchableOpacity 
+                    key={badge.id} 
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                      showPopup({ title: badge.title, message: `Missão: ${badge.mission}`, type: badge.isUnlocked ? 'success' : 'info' });
+                    }}
+                    className={`p-3 rounded-xl border items-center mb-2 w-[31%] ${
+                      badge.isUnlocked 
+                        ? 'bg-card-light dark:bg-card-dark border-primary/20 dark:border-primary-dark/20' 
+                        : 'bg-card-light dark:bg-card-dark border-dashed border-gray-400 dark:border-gray-600 opacity-40'
+                    }`}
+                  >
+                    <View className="relative">
+                      <Ionicons name={badge.icon} size={28} color={badge.isUnlocked ? "#D97706" : "#4B5563"} />
+                      {!badge.isUnlocked && (
+                        <View className="absolute -top-1 -right-1 bg-background-light dark:bg-background-dark rounded-full p-0.5">
+                          <Ionicons name="lock-closed" size={10} color="#EF4444" />
+                        </View>
+                      )}
+                    </View>
+                    <Text className={`text-[10px] font-bold mt-1 text-center ${badge.isUnlocked ? 'text-text-light dark:text-text-dark font-serif' : 'text-text-muted-light dark:text-text-muted-dark'}`} numberOfLines={1}>{badge.title}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          ) : (
+            <View className="py-6 items-center">
+              <Text className="text-text-muted-light dark:text-text-muted-dark text-xs italic">Nenhum troféu nesta categoria.</Text>
+            </View>
+          )}
+
+          {/* Botões de Paginação - Mais / Menos Troféus */}
+          <View className="flex-row justify-between mt-2">
+            {processedBadges.length > badgeLimit && (
+              <TouchableOpacity
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  setBadgeLimit(prev => prev + 9);
+                }}
+                className="flex-1 p-4 rounded-xl border border-primary/30 dark:border-primary-dark/30 bg-primary/5 dark:bg-primary-dark/5 flex-row justify-center items-center mr-1"
+              >
+                <Ionicons name="chevron-down" size={16} color={accentColor} style={{ marginRight: 6 }} />
+                <Text className="text-primary dark:text-primary-dark font-bold text-xs uppercase tracking-wider">Mais Troféus</Text>
+              </TouchableOpacity>
+            )}
+
+            {badgeLimit > 9 && (
+              <TouchableOpacity
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  setBadgeLimit(prev => Math.max(9, prev - 9));
+                }}
+                className="flex-1 p-4 rounded-xl border border-gray-400/30 bg-gray-400/5 flex-row justify-center items-center ml-1"
+              >
+                <Ionicons name="chevron-up" size={16} color={isDarkMode ? '#A1A1AA' : '#71717A'} style={{ marginRight: 6 }} />
+                <Text className="text-text-muted-light dark:text-text-muted-dark font-bold text-xs uppercase tracking-wider">Menos Troféus</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      )}
 
       <View>
         <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-4 ml-2">Estatísticas</Text>
@@ -183,7 +332,7 @@ export default function ProfileScreen() {
                 <Text className="text-text-muted-light dark:text-text-muted-dark text-xs">{b.totalPages} pág.</Text>
               </View>
             ))}
-            {completedBooks === 0 && (
+            {totalBooksCompleted === 0 && (
               <Text className="text-text-muted-light dark:text-text-muted-dark text-sm text-center">Nenhum livro lido ainda.</Text>
             )}
           </View>
