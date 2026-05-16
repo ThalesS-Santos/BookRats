@@ -9,7 +9,7 @@ import * as Haptics from '../../utils/haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { FastAvatar } from '@ui/components';
 import { COLORS } from '@constants/colors'; // ✅ FIX #3: import no topo, fora do componente
- 
+
 // ✅ FIX #1: InfoRow definida FORA do ProfileScreen.
 // Assim React não recria o tipo do componente a cada render,
 // evitando o ciclo de desmontagem/remontagem que causava o erro de navegação.
@@ -33,7 +33,7 @@ const InfoRow = ({ label, value, icon, onPress, accentColor, showCompleted, isDa
     </View>
   </TouchableOpacity>
 );
- 
+
 export default function ProfileScreen({ navigation }) {
   const { isDarkMode, toggleTheme, hapticsEnabled, setHapticsEnabled } = useThemeStore();
   const [showCompleted, setShowCompleted] = useState(false);
@@ -48,25 +48,25 @@ export default function ProfileScreen({ navigation }) {
   const totalBooksCompleted = useMainStore(state => state.totalBooksCompleted);
   const signOut = useMainStore(state => state.signOut);
   const { showPopup } = usePopupStore();
- 
+
   const [badgeFilter, setBadgeFilter] = useState('all'); // 'all', 'unlocked', 'locked', 'recent'
   const [badgeLimit, setBadgeLimit] = useState(9);
   const [showTrophyWall, setShowTrophyWall] = useState(false);
- 
+
   const accentColor = isDarkMode ? COLORS.primary.dark : COLORS.primary.light;
   const readingBooks = books.filter(b => b.status === BOOK_STATUS.READING).length;
- 
+
   const userData = useMemo(() => ({
     streak,
     totalPagesRead,
     completedBooks: totalBooksCompleted,
     readingBooks
   }), [streak, totalPagesRead, totalBooksCompleted, readingBooks]);
- 
+
   const totalUnlocked = useMemo(() => {
     return ALL_BADGES.filter(badge => badge.check(userData)).length;
   }, [userData]);
- 
+
   const processedBadges = useMemo(() => {
     const badgesWithStatus = ALL_BADGES.map(badge => {
       const isUnlocked = badge.check(userData);
@@ -74,7 +74,7 @@ export default function ProfileScreen({ navigation }) {
       const dateUnlocked = unlockInfo?.dateUnlocked ? new Date(unlockInfo.dateUnlocked).getTime() : 0;
       return { ...badge, isUnlocked, dateUnlocked };
     });
- 
+
     let filtered = badgesWithStatus;
     if (badgeFilter === 'unlocked') {
       filtered = badgesWithStatus.filter(b => b.isUnlocked);
@@ -83,7 +83,7 @@ export default function ProfileScreen({ navigation }) {
     } else if (badgeFilter === 'recent') {
       filtered = badgesWithStatus.filter(b => b.isUnlocked);
     }
- 
+
     if (badgeFilter === 'all') {
       filtered.sort((a, b) => {
         if (a.isUnlocked && !b.isUnlocked) return -1;
@@ -104,14 +104,14 @@ export default function ProfileScreen({ navigation }) {
         return 0;
       });
     }
- 
+
     return filtered;
   }, [badgeFilter, unlockedBadges, userData]);
- 
+
   const visibleBadges = useMemo(() => {
     return processedBadges.slice(0, badgeLimit);
   }, [processedBadges, badgeLimit]);
- 
+
   const handleSignOut = () => {
     showPopup({
       title: 'Sair da Conta',
@@ -120,10 +120,10 @@ export default function ProfileScreen({ navigation }) {
       onConfirm: signOut
     });
   };
- 
+
   return (
     <ScrollView className="flex-1 bg-background-light dark:bg-background-dark p-6" showsVerticalScrollIndicator={false}>
- 
+
       {/* Top Header Row for Notifications */}
       <View className="flex-row justify-end items-center mb-2 z-10">
         <TouchableOpacity
@@ -136,7 +136,7 @@ export default function ProfileScreen({ navigation }) {
           )}
         </TouchableOpacity>
       </View>
- 
+
       <View className="items-center mt-2 mb-10">
         <FastAvatar
           source={user?.profilePic}
@@ -157,7 +157,7 @@ export default function ProfileScreen({ navigation }) {
           <Text className="text-streak font-bold font-mono ml-1">Streak: {streak} dias</Text>
         </View>
       </View>
- 
+
       <View className="mb-10">
         <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-4 ml-2">Personalização</Text>
         <View className="flex-row items-center justify-between p-5 bg-card-light dark:bg-card-dark rounded-2xl border border-border-light dark:border-border-dark shadow-sm">
@@ -174,7 +174,7 @@ export default function ProfileScreen({ navigation }) {
             thumbColor={'#ffffff'}
           />
         </View>
- 
+
         <View className="flex-row items-center justify-between p-5 bg-card-light dark:bg-card-dark rounded-2xl border border-border-light dark:border-border-dark mt-4 shadow-sm">
           <View className="flex-row items-center">
             <View className="bg-primary/10 dark:bg-primary-dark/10 p-2 rounded-lg mr-4">
@@ -190,7 +190,7 @@ export default function ProfileScreen({ navigation }) {
           />
         </View>
       </View>
- 
+
       {/* Botão Expandível - Meus Troféus */}
       <TouchableOpacity
         onPress={() => {
@@ -210,7 +210,7 @@ export default function ProfileScreen({ navigation }) {
           <Ionicons name={showTrophyWall ? "chevron-up" : "chevron-down"} size={16} color={accentColor} />
         </View>
       </TouchableOpacity>
- 
+
       {/* Seção Expandida do Mural de Troféus */}
       {showTrophyWall && (
         <View className="mb-10 bg-card-light/40 dark:bg-card-dark/40 p-4 rounded-2xl border border-border-light dark:border-border-dark -mt-2">
@@ -238,7 +238,7 @@ export default function ProfileScreen({ navigation }) {
               );
             })}
           </View>
- 
+
           {visibleBadges.length > 0 ? (
             <View className="flex-row flex-wrap justify-between">
               {visibleBadges.map(badge => (
@@ -276,7 +276,7 @@ export default function ProfileScreen({ navigation }) {
               <Text className="text-text-muted-light dark:text-text-muted-dark text-xs italic">Nenhum troféu nesta categoria.</Text>
             </View>
           )}
- 
+
           {/* Botões de Paginação */}
           <View className="flex-row justify-between mt-2">
             {processedBadges.length > badgeLimit && (
@@ -306,7 +306,7 @@ export default function ProfileScreen({ navigation }) {
           </View>
         </View>
       )}
- 
+
       <View>
         <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-4 ml-2">Estatísticas</Text>
         <InfoRow
@@ -318,7 +318,7 @@ export default function ProfileScreen({ navigation }) {
           showCompleted={showCompleted}
           isDarkMode={isDarkMode}
         />
- 
+
         {showCompleted && (
           <View className="mb-4 bg-background-light dark:bg-background-dark p-4 rounded-2xl border border-border-light dark:border-border-dark -mt-2">
             {books.filter(b => b.status === BOOK_STATUS.READ).map((b, idx, arr) => (
@@ -332,7 +332,7 @@ export default function ProfileScreen({ navigation }) {
             )}
           </View>
         )}
- 
+
         <InfoRow
           label="Total de Páginas"
           value={totalPagesRead.toLocaleString()}
@@ -342,7 +342,7 @@ export default function ProfileScreen({ navigation }) {
           isDarkMode={isDarkMode}
         />
       </View>
- 
+
       <TouchableOpacity
         className="mt-8 mb-6 p-5 items-center bg-red-500/10 rounded-2xl border border-red-500/20"
         onPress={handleSignOut}
@@ -352,4 +352,3 @@ export default function ProfileScreen({ navigation }) {
     </ScrollView>
   );
 }
- 

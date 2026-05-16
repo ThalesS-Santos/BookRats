@@ -1,7 +1,9 @@
 import { useMainStore } from '@core/store';
 import React, { useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
+// ✅ FIX PRINCIPAL: BottomTabNavigator não usa PagerView nativo,
+// eliminando o conflito entre React 19 concurrent mode + css-interop + PagerView
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeStore } from '../../store/useThemeStore';
 import { COLORS } from '@constants/colors';
@@ -12,7 +14,7 @@ import RankingScreen from '@ui/screens/RankingScreen';
 import GroupsScreen from '@ui/screens/GroupsScreen';
 import ProfileScreen from '@ui/screens/ProfileScreen';
 
-const Tab = createMaterialTopTabNavigator();
+const Tab = createBottomTabNavigator();
 
 const TABS = [
   { name: 'Início', icon: 'book', component: HomeScreen },
@@ -30,14 +32,13 @@ function CustomTabBar({ state, descriptors, navigation, isDarkMode }) {
   return (
     <View style={[
       styles.tabBarContainer,
-      { 
+      {
         backgroundColor: isDarkMode ? COLORS.background.dark : COLORS.background.light,
         borderTopColor: isDarkMode ? COLORS.border.dark : '#F1F1E6',
       }
     ]}>
       <View style={[styles.tabBar, { height: 65 + insets.bottom, paddingBottom: insets.bottom }]}>
         {state.routes.map((route, index) => {
-          const { options } = descriptors[route.key];
           const isFocused = state.index === index;
           const tabConfig = TABS[index];
 
@@ -85,43 +86,35 @@ function CustomTabBar({ state, descriptors, navigation, isDarkMode }) {
 export default function TabNavigator({ navigation, route }) {
   const { isDarkMode } = useThemeStore();
 
-  // 🛰️ Tab Switch Listener (Handles navigation from child screens via param)
+  // 🛰️ Tab Switch Listener
   useEffect(() => {
     const targetIdx = route.params?.tabIndex;
     if (typeof targetIdx === 'number' && targetIdx >= 0 && targetIdx < TABS.length) {
       const routeName = TABS[targetIdx].name;
       navigation.navigate(routeName);
-      // Clear param to avoid re-triggering
       navigation.setParams({ tabIndex: undefined });
     }
   }, [route.params?.tabIndex]);
 
   return (
     <Tab.Navigator
-      tabBarPosition="bottom"
       tabBar={(props) => <CustomTabBar {...props} isDarkMode={isDarkMode} />}
       initialRouteName="Início"
       screenOptions={{
-        tabBarShowLabel: true,
-        animationEnabled: true,
-        swipeEnabled: true,
+        headerShown: false,
+        // ✅ lazy ainda funciona no BottomTabNavigator
         lazy: true,
-        tabBarPressColor: 'transparent',
-        tabBarIndicatorStyle: {
-          backgroundColor: COLORS.neon_green,
-          height: 3,
-          bottom: 0,
-        },
-        sceneContainerStyle: { 
-          backgroundColor: COLORS.dark_blue 
+        // ✅ sceneContainerStyle sem className para não acionar o css-interop
+        sceneContainerStyle: {
+          backgroundColor: COLORS.dark_blue
         },
       }}
     >
       {TABS.map((tab) => (
-        <Tab.Screen 
-          key={tab.name} 
-          name={tab.name} 
-          component={tab.component} 
+        <Tab.Screen
+          key={tab.name}
+          name={tab.name}
+          component={tab.component}
         />
       ))}
     </Tab.Navigator>
@@ -163,7 +156,7 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
     elevation: 3,
-    shadowOffset: { width: 0, height: 0 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.8,
     shadowRadius: 4,
   }
