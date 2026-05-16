@@ -1,30 +1,47 @@
 import { useMainStore } from '@core/store';
 import React from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeStore } from '../../store/useThemeStore';
-import { FastAvatar } from '@ui/components';
+import { FastAvatar, FriendRequestCard } from '@ui/components';
 import { COLORS } from '@constants/colors';
+import { useEffect } from 'react';
 
 export default function NotificationsScreen() {
   const navigation = useNavigation();
-  const { notifications, markAsRead, markAllAsRead } = useMainStore();
+  const insets = useSafeAreaInsets();
+  const { 
+    notifications, 
+    markAsRead, 
+    markAllAsRead, 
+    user,
+    receivedRequests,
+    startSocialListeners
+  } = useMainStore();
   const { isDarkMode } = useThemeStore();
-  const { user } = useMainStore();
+
+  useEffect(() => {
+    if (!user) return;
+    const unsub = startSocialListeners(user.uid);
+    return unsub;
+  }, [user]);
 
   const handleNotificationPress = (notif) => {
     if (!notif.read && user) markAsRead(user.uid, notif.id);
     
-    // In order for EchoDetailScreen to work, it expects the `echo` object. 
-    // We pass a skeleton here so it can fetch the replies, though the header display might be missing full text
-    // A robust app would fetch the full original echo, but passing the IDs lets it fetch replies.
+    if (notif.type === 'FRIEND_ACCEPT') {
+      navigation.navigate('Ranking'); // Navigate to social/ranking to see friends
+      return;
+    }
+
+    // Navigating to EchoDetail
     navigation.navigate('EchoDetail', { 
-      echoId: notif.echoId, 
+      echoId: notif.relatedId, 
       bookId: notif.bookId, 
       echo: { 
-        id: notif.echoId, 
+        id: notif.relatedId, 
         bookId: notif.bookId, 
         userId: user?.uid,
         userMetadata: { displayName: user?.displayName || user?.username } 
@@ -32,20 +49,39 @@ export default function NotificationsScreen() {
     });
   };
 
+  useEffect(() => {
+    // 🧹 Auto-mark as read when entering the screen
+    if (user && notifications.some(n => !n.read)) {
+      const timer = setTimeout(() => {
+        markAllAsRead(user.uid);
+      }, 2000); // Wait 2s to give user time to see them
+      return () => clearTimeout(timer);
+    }
+  }, [user, notifications.length]);
+
   const renderItem = ({ item }) => {
+    const isUnread = !item.read;
+    const icon = item.type === 'FRIEND_ACCEPT' ? 'people' : (item.type === 'CLAP_ECHO' ? 'heart' : 'chatbubble-ellipses');
+
     return (
       <TouchableOpacity 
         onPress={() => handleNotificationPress(item)}
-        className={`flex-row p-4 mb-4 rounded-2xl border ${!item.read ? 'bg-card-light dark:bg-card-dark border-primary/30 dark:border-primary-dark/30 shadow-sm' : 'bg-card-light dark:bg-card-dark border-border-light dark:border-border-dark opacity-70'}`}
+        className={`flex-row p-4 mb-4 rounded-3xl border ${isUnread ? 'bg-card-light dark:bg-card-dark border-primary/30 dark:border-primary-dark/30 shadow-md' : 'bg-card-light dark:bg-card-dark border-border-light dark:border-border-dark opacity-70'}`}
       >
-        <FastAvatar source={item.fromUser?.photoURL} size={40} style={{ marginRight: 16 }} />
+        <FastAvatar source={item.senderAvatar} name={item.senderName} size={42} style={{ marginRight: 12 }} />
         <View className="flex-1 justify-center">
+          <View className="flex-row items-center mb-0.5">
+            <Ionicons name={icon} size={12} color={COLORS.primary.light} style={{ marginRight: 4 }} />
+            <Text className="text-[10px] font-bold text-primary dark:text-primary-dark uppercase tracking-widest">
+              {item.type.replace('_', ' ')}
+            </Text>
+          </View>
           <Text className="text-text-light dark:text-text-dark font-serif text-[15px] leading-5">
-            <Text className="font-bold">{item.fromUser?.displayName || 'Alguém'} </Text>
-            {item.type === 'clap' ? 'aplaudiu seu Echo!' : 'respondeu ao seu Echo.'}
+            <Text className="font-bold">{item.senderName || 'Alguém'} </Text>
+            {item.message || (item.type === 'CLAP_ECHO' ? 'curtiu seu Echo!' : 'interagiu com você.')}
           </Text>
         </View>
-        {!item.read && (
+        {isUnread && (
           <View style={styles.neonDot} />
         )}
       </TouchableOpacity>
@@ -53,7 +89,10 @@ export default function NotificationsScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background-light dark:bg-background-dark">
+    <View
+      className="flex-1 bg-background-light dark:bg-background-dark"
+      style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
+    >
       <View className="flex-row items-center justify-between px-6 py-4 border-b border-border-light dark:border-border-dark">
         <View className="flex-row items-center">
           <TouchableOpacity onPress={() => navigation.goBack()} className="mr-5 w-10 h-10 items-center justify-center bg-card-light dark:bg-card-dark rounded-full shadow-sm border border-border-light dark:border-border-dark">
@@ -71,16 +110,32 @@ export default function NotificationsScreen() {
         keyExtractor={item => item.id}
         renderItem={renderItem}
         contentContainerStyle={{ padding: 24, paddingTop: 16 }}
+        ListHeaderComponent={
+          receivedRequests.length > 0 ? (
+            <View className="mb-6">
+              <View className="flex-row items-center mb-4">
+                <Ionicons name="people-outline" size={20} color={isDarkMode ? '#94a3b8' : '#64748b'} />
+                <Text className="ml-2 text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
+                  Pedidos de Amizade ({receivedRequests.length})
+                </Text>
+              </View>
+              {receivedRequests.map(req => (
+                <FriendRequestCard key={req.id} request={req} />
+              ))}
+              <View className="h-[1px] bg-border-light dark:bg-border-dark w-full my-4" />
+            </View>
+          ) : null
+        }
         ListEmptyComponent={
           <View className="items-center mt-20">
             <Ionicons name="notifications-off-outline" size={48} color={isDarkMode ? '#334155' : '#CBD5E1'} />
-            <Text className="text-center mt-4 font-serif italic text-text-muted-light dark:text-text-muted-dark">
-              Tranquilo por aqui. Sem novas notificações.
+            <Text className="text-center mt-4 font-serif italic text-text-muted-light dark:text-text-muted-dark px-10">
+              Tranquilo por aqui. Sem novas notificações ou pedidos pendentes.
             </Text>
           </View>
         }
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

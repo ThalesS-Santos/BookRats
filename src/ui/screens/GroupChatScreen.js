@@ -1,7 +1,7 @@
 import { useMainStore } from '@core/store';
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeStore } from '../../store/useThemeStore';
 import * as Haptics from '../../utils/haptics';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,6 +10,7 @@ export default function GroupChatScreen({ route, navigation }) {
   const { groupId, groupName } = route.params;
   const [messageText, setMessageText] = useState('');
   const flatListRef = useRef(null);
+  const insets = useSafeAreaInsets();
 
   const { isDarkMode } = useThemeStore();
   const user = useMainStore(state => state.user);
@@ -35,7 +36,10 @@ export default function GroupChatScreen({ route, navigation }) {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background-light dark:bg-background-dark" edges={['top', 'bottom']}>
+    <View
+      className="flex-1 bg-background-light dark:bg-background-dark"
+      style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
+    >
       <KeyboardAvoidingView 
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -151,6 +155,6 @@ export default function GroupChatScreen({ route, navigation }) {
           </View>
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }

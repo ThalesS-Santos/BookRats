@@ -44,10 +44,14 @@ export const addReadingLog = async (uid, bookId, delta) => {
   }
 };
 
-export const addBook = async (uid, title, totalPages, id = null, description = '', extraMetadata = {}, status = BOOK_STATUS.WANT_TO_READ) => {
+export const addBook = async (uid, title, totalPages, id = null, description = '', extraMetadata = {}, status) => {
   // 🛡️ Validation Guard
   if (!uid || !title || totalPages === null || totalPages === undefined) {
     throw new Error("Dados inválidos: Título e número de páginas são obrigatórios.");
+  }
+
+  if (!status) {
+    throw new Error("A valid status is required to add a book.");
   }
   
   const pages = parseInt(totalPages, 10);

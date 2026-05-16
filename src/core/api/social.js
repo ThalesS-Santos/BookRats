@@ -22,6 +22,7 @@ import {
   runTransaction
 } from 'firebase/firestore';
 import { mapFirebaseError } from '@utils/errorMapper';
+import { NotificationService } from '../services/NotificationService';
 
 export const subscribeToRanking = (onUpdate, pageSize = 50) => {
   const q = query(
@@ -104,10 +105,25 @@ export const sendFriendRequest = async (senderUid, receiverUid) => {
   }
 };
 
-export const acceptFriendRequest = async (requestId) => {
+export const acceptFriendRequest = async (requestId, currentUserId, currentUserName, currentUserAvatar) => {
   try {
     const docRef = doc(db, 'friendships', requestId);
+    const snap = await getDoc(docRef);
+    
+    if (!snap.exists()) return;
+    const requestData = snap.data();
+
     await updateDoc(docRef, { status: 'accepted' });
+
+    // Notify the requester
+    await NotificationService.sendNotification(requestData.senderId, {
+      type: 'FRIEND_ACCEPT',
+      senderId: currentUserId,
+      senderName: currentUserName,
+      senderAvatar: currentUserAvatar,
+      relatedId: requestId,
+      message: `${currentUserName} aceitou seu pedido de amizade!`
+    });
   } catch (error) {
     console.error("Accept friend request error:", error);
     throw new Error(mapFirebaseError(error));
@@ -152,6 +168,34 @@ export const subscribeToReceivedRequests = (uid, onUpdate) => {
   return onSnapshot(q, (snapshot) => {
     onUpdate(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
   });
+};
+
+export const subscribeToFriends = (uid, onUpdate) => {
+  const qSent = query(collection(db, 'friendships'), where('senderId', '==', uid), where('status', '==', 'accepted'));
+  const qReceived = query(collection(db, 'friendships'), where('receiverId', '==', uid), where('status', '==', 'accepted'));
+  
+  let sentFriends = [];
+  let receivedFriends = [];
+
+  const update = () => {
+    const friendIds = [...sentFriends.map(f => f.receiverId), ...receivedFriends.map(f => f.senderId)];
+    onUpdate(friendIds);
+  };
+
+  const unsubSent = onSnapshot(qSent, (snap) => {
+    sentFriends = snap.docs.map(doc => doc.data());
+    update();
+  });
+
+  const unsubReceived = onSnapshot(qReceived, (snap) => {
+    receivedFriends = snap.docs.map(doc => doc.data());
+    update();
+  });
+
+  return () => {
+    unsubSent();
+    unsubReceived();
+  };
 };
 
 export const subscribeToGroups = (uid, onUpdate) => {
@@ -283,17 +327,28 @@ export const removeGroupMember = async (groupId, userId) => {
  * 🌟 Social Layer: Get Public Echoes (Notes) for a specific book
  * Uses collectionGroup to fetch across all user sub-collections efficiently.
  */
-export const getPublicEchoes = async (bookId, userCurrentPage, currentUserId) => {
-  if (!bookId) return [];
+export const getPublicEchoes = async (bookId = null, userCurrentPage = 999999, currentUserId) => {
   try {
     const echoesRef = collectionGroup(db, 'annotations');
-    const q = query(
-      echoesRef, 
-      where('bookId', '==', bookId), 
-      where('isPublic', '==', true),
-      orderBy('timestamp', 'desc'),
-      limit(30)
-    );
+    let q;
+    
+    if (bookId) {
+      q = query(
+        echoesRef, 
+        where('bookId', '==', bookId), 
+        where('isPublic', '==', true),
+        orderBy('timestamp', 'desc'),
+        limit(30)
+      );
+    } else {
+      q = query(
+        echoesRef, 
+        where('isPublic', '==', true),
+        orderBy('timestamp', 'desc'),
+        limit(30)
+      );
+    }
+
     const snap = await getDocs(q);
     let echoes = snap.docs.map(doc => ({ id: doc.id, userId: doc.ref.parent.parent.id, ...doc.data() }));
 
@@ -341,7 +396,14 @@ export const addRatClap = async (userId, bookId, echoId, currentUserId, currentU
     });
 
     if (userId !== currentUserId) {
-      await createNotification(userId, 'clap', { displayName: currentUserName, uid: currentUserId }, bookId, echoId);
+      await NotificationService.sendNotification(userId, {
+        type: 'CLAP_ECHO',
+        senderId: currentUserId,
+        senderName: currentUserName,
+        senderAvatar: null, // Avatar can be added if available in context
+        relatedId: echoId,
+        message: `${currentUserName} curtiu seu Echo!`
+      });
     }
   } catch (error) {
     console.error("Error adding clap:", error);
@@ -391,13 +453,14 @@ export const replyToEcho = async (parentUserId, parentBookId, parentEchoId, text
     });
 
     if (parentUserId !== currentUserId) {
-      await createNotification(
-        parentUserId, 
-        'reply', 
-        { displayName: userMetadata.displayName || 'Leitor', uid: currentUserId }, 
-        parentBookId, 
-        parentEchoId
-      );
+      await NotificationService.sendNotification(parentUserId, {
+        type: 'COMMENT_ECHO',
+        senderId: currentUserId,
+        senderName: userMetadata.displayName || 'Leitor',
+        senderAvatar: userMetadata.photoURL || null,
+        relatedId: parentEchoId,
+        message: `${userMetadata.displayName || 'Leitor'} comentou no seu Echo!`
+      });
     }
 
     return replyRef.id;

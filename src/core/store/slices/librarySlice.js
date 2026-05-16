@@ -89,25 +89,19 @@ export const createLibrarySlice = (set, get) => ({
     };
   },
 
-  addBook: async (title, totalPages, id = null, description = '', extraMetadata = {}, status = BOOK_STATUS.WANT_TO_READ) => {
+  addBook: async (title, totalPages, id = null, description = '', extraMetadata = {}, status) => {
     const { user, books } = get();
     if (!user) return;
 
-    // 🛡️ Status Validation (Etapa 2)
-    if (!VALID_STATUSES.includes(status)) {
-      console.warn(`[Library] Invalid status provided: ${status}. Defaulting to WANT_TO_READ.`);
-      status = BOOK_STATUS.WANT_TO_READ;
+    // 🛡️ Strict Status Validation (Etapa 2)
+    if (!status || !VALID_STATUSES.includes(status)) {
+      Logger.error(`[Library] Aborted addition: Invalid or missing status "${status}".`);
+      return;
     }
 
     if (id && books.some(b => b.id === id)) {
       Logger.warn(`[Library Integrity] Duplicate ID detected: ${id}. Skipping.`);
       return;
-    }
-
-    // 🛡️ Strict Status Validation
-    if (!status || !VALID_STATUSES.includes(status)) {
-      Logger.warn(`[Library] Invalid or missing status: ${status}. Defaulting to WANT_TO_READ.`);
-      status = BOOK_STATUS.WANT_TO_READ;
     }
 
     try {
@@ -267,8 +261,6 @@ export const createLibrarySlice = (set, get) => ({
   },
 
   updateBookStatus: async (bookId, status) => {
-    // 🛡️ Pre-validation
-    if (!VALID_STATUSES.includes(status)) return;
     return get().updateBook(bookId, { status });
   },
 
@@ -292,3 +284,20 @@ export const createLibrarySlice = (set, get) => ({
     }
   },
 });
+
+/**
+ * 🎯 Zustand Memoized Selectors (Etapa 2)
+ * Centralizes filtering logic for performance and clean UI code.
+ * 🛡️ Defensive fallbacks added to prevent undefined crashes during hydration.
+ */
+export const selectReadingBooks = (state) => 
+  (state.books || []).filter(b => b.status === BOOK_STATUS.READING);
+
+export const selectReadBooks = (state) => 
+  (state.books || []).filter(b => b.status === BOOK_STATUS.READ);
+
+export const selectWishlistBooks = (state) => 
+  (state.books || []).filter(b => b.status === BOOK_STATUS.WANT_TO_READ || b.status === BOOK_STATUS.WISH_LIST);
+
+export const selectBooksByStatus = (status) => (state) => 
+  (state.books || []).filter(b => b.status === status);

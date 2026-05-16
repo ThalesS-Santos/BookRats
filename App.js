@@ -15,9 +15,10 @@ import { onAuthStateChanged } from 'firebase/auth';
 import AppNavigator from '@ui/navigation/AppNavigator';
 import { useThemeStore } from './src/store/useThemeStore';
 import { auth } from '@core/firebase/firebase';
+import BadgeListenerService from '@core/services/BadgeListenerService';
 
 import { COLORS } from '@constants/colors';
-import { CustomPopup, LoadingScreen, ErrorBoundary } from '@ui/components';
+import { CustomPopup, LoadingScreen, ErrorBoundary, BadgeUnlockPopup } from '@ui/components';
 
 const BookLightTheme = { 
   ...DefaultTheme, 
@@ -52,6 +53,8 @@ export default function App() {
   }, [isDarkMode]);
 
   useEffect(() => {
+    BadgeListenerService.initialize();
+    
     if (Platform.OS === 'android') {
       NavigationBar.setVisibilityAsync("hidden");
     }
@@ -100,6 +103,7 @@ export default function App() {
           <ErrorBoundary>
             <AppNavigator />
             <CustomPopup />
+            <BadgeUnlockPopup />
           </ErrorBoundary>
         </NavigationContainer>
       )}

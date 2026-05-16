@@ -5,7 +5,7 @@ import { createMaterialTopTabNavigator } from '@react-navigation/material-top-ta
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeStore } from '../../store/useThemeStore';
 import { COLORS } from '@constants/colors';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import HomeScreen from '@ui/screens/HomeScreen';
 import RankingScreen from '@ui/screens/RankingScreen';
@@ -25,6 +25,7 @@ function CustomTabBar({ state, descriptors, navigation, isDarkMode }) {
   const activeColor = isDarkMode ? COLORS.primary.dark : COLORS.primary.light;
   const inactiveColor = isDarkMode ? '#64748B' : '#94A3B8';
   const unreadCount = useMainStore(state => state.unreadCount);
+  const insets = useSafeAreaInsets();
 
   return (
     <View style={[
@@ -34,7 +35,7 @@ function CustomTabBar({ state, descriptors, navigation, isDarkMode }) {
         borderTopColor: isDarkMode ? COLORS.border.dark : '#F1F1E6',
       }
     ]}>
-      <SafeAreaView edges={['bottom']} style={styles.tabBar}>
+      <View style={[styles.tabBar, { height: 65 + insets.bottom, paddingBottom: insets.bottom }]}>
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
           const isFocused = state.index === index;
@@ -76,7 +77,7 @@ function CustomTabBar({ state, descriptors, navigation, isDarkMode }) {
             </TouchableOpacity>
           );
         })}
-      </SafeAreaView>
+      </View>
     </View>
   );
 }

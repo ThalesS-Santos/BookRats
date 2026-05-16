@@ -7,18 +7,18 @@ import * as Haptics from '../../utils/haptics';
 import { ProgressBookCard, FastAvatar, Skeleton } from '@ui/components';
 import { useHomeLogic } from '@ui/hooks/useHomeLogic';
 import { useMainStore } from '@core/store';
+import { useShallow } from 'zustand/react/shallow';
+import { 
+  selectReadingBooks, 
+  selectReadBooks, 
+  selectWishlistBooks,
+  selectBooksByStatus 
+} from '@core/store/slices/librarySlice';
 import { BOOK_STATUS } from '@core/constants/bookStatus';
 
-const BookListItem = React.memo(({ item, navigation, COLORS, isDarkMode, accentColor, fadeAnim, slideAnim, onConfigPress }) => {
-  const handleOpenGallery = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    navigation.navigate('EchoGallery', { 
-      bookId: item.id, 
-      bookTitle: item.title,
-      userCurrentPage: item.currentPage 
-    });
-  };
+const SKELETON_DATA = [{id: 's1'}, {id: 's2'}, {id: 's3'}];
 
+const BookListItem = React.memo(({ item, navigation, COLORS, isDarkMode, accentColor, fadeAnim, slideAnim, onConfigPress, onCommunityPress }) => {
   if (item.id.startsWith('s')) {
     return (
       <View className="bg-card-light dark:bg-card-dark p-4 rounded-3xl mb-4 border border-border-light dark:border-border-dark shadow-sm flex-row h-32 items-center">
@@ -40,6 +40,7 @@ const BookListItem = React.memo(({ item, navigation, COLORS, isDarkMode, accentC
         book={item}
         onPress={() => navigation.navigate('BookDetails', { book: item })}
         onConfigPress={() => onConfigPress?.(item)}
+        onCommunityPress={() => onCommunityPress?.(item)}
       />
     </Animated.View>
   );
@@ -78,68 +79,137 @@ export default function HomeScreen({ navigation }) {
     { id: 'shopping', label: 'Comprados / Desejos', icon: 'cart' },
   ];
 
+  const readingBooks = useMainStore(useShallow(selectReadingBooks));
+  const readBooks = useMainStore(useShallow(selectReadBooks));
+  const wishlistBooks = useMainStore(useShallow(selectWishlistBooks));
+  
   const counts = useMemo(() => ({
-    [BOOK_STATUS.READING]: books.filter(b => b.status === BOOK_STATUS.READING).length,
-    [BOOK_STATUS.WANT_TO_READ]: books.filter(b => b.status === BOOK_STATUS.WANT_TO_READ).length,
-    [BOOK_STATUS.READ]: books.filter(b => b.status === BOOK_STATUS.READ).length,
-    shopping: books.filter(b => b.status === BOOK_STATUS.BOUGHT || b.status === BOOK_STATUS.WISH_LIST).length,
-  }), [books]);
+    [BOOK_STATUS.READING]: readingBooks.length,
+    [BOOK_STATUS.WANT_TO_READ]: wishlistBooks.filter(b => b.status === BOOK_STATUS.WANT_TO_READ).length,
+    [BOOK_STATUS.READ]: readBooks.length,
+    shopping: wishlistBooks.length,
+  }), [readingBooks.length, readBooks.length, wishlistBooks.length]);
 
-  const filteredBooks = useMemo(() => {
-    if (loadingBooks || !isReady) return [{id: 's1'}, {id: 's2'}, {id: 's3'}];
-    
-    if (activeFilter === 'shopping') {
-      return books.filter(b => b.status === BOOK_STATUS.BOUGHT || b.status === BOOK_STATUS.WISH_LIST);
-    }
-    
-    return books.filter(b => b.status === activeFilter);
-  }, [books, activeFilter, loadingBooks, isReady]);
+  const filteredBooks = useMainStore(useShallow(state => {
+    if (loadingBooks || !isReady) return SKELETON_DATA;
+    if (activeFilter === 'shopping') return selectWishlistBooks(state);
+    return selectBooksByStatus(activeFilter)(state);
+  }));
 
   const handleOpenConfig = useCallback((book) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     navigation.navigate('BookEdit', { book });
   }, [navigation]);
 
-  const listHeader = () => (
-    <Animated.View 
-      className="mb-8 mt-4 items-center bg-card-light dark:bg-card-dark p-8 rounded-ultra border border-border-light dark:border-border-dark shadow-sm"
-      style={{ 
-        shadowColor: COLORS.dark_blue, 
-        shadowOpacity: 0.05, 
-        shadowRadius: 15, 
-        shadowOffset: { width: 0, height: 4 },
-        opacity: loadingBooks ? 1 : fadeAnim,
-        transform: [{ translateY: loadingBooks ? 0 : slideAnim }]
-      }}
-    >
-      {loadingBooks ? (
-         <>
-           <Skeleton width={120} height={60} style={{ marginBottom: 16 }} />
-           <Skeleton width={150} height={20} />
-         </>
-      ) : (
-         <>
-          <View className="flex-row items-center">
-            <Text className="text-streak text-6xl font-bold font-mono">🔥 {streak}</Text>
-          </View>
-          <Text className="text-text-muted-light dark:text-text-muted-dark text-lg mt-4 font-serif">Dias de leitura</Text>
-         </>
-      )}
-    </Animated.View>
-  );
+  const handleOpenCommunity = useCallback((book) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    navigation.navigate('EchoGallery', { 
+      bookId: book.id, 
+      bookTitle: book.title,
+      userCurrentPage: book.currentPage || 0 
+    });
+  }, [navigation]);
 
-  const renderItem = useCallback(({ item, index }) => (
-    <BookListItem 
-      item={item} 
-      navigation={navigation} 
-      COLORS={COLORS} 
-      isDarkMode={isDarkMode} 
-      accentColor={accentColor}
-      fadeAnim={fadeAnim}
-      slideAnim={slideAnim}
-      onConfigPress={handleOpenConfig}
-    />
-  ), [navigation, COLORS, isDarkMode, accentColor, fadeAnim, slideAnim, handleOpenConfig]);
+  const renderHeader = useCallback(() => (
+    <Animated.View style={{ opacity: loadingBooks ? 1 : fadeAnim, transform: [{ translateY: loadingBooks ? 0 : slideAnim }] }}>
+      <View className="flex-row justify-between items-center mt-6">
+        <View>
+          <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-1">Bem-vindo, {user?.email?.split('@')[0]}</Text>
+          <Text className="text-text-light dark:text-text-dark text-3xl font-serif font-bold">Resumo Diário</Text>
+        </View>
+        <TouchableOpacity 
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            navigation.navigate('Perfil');
+          }}
+        >
+          <FastAvatar 
+            source={user?.profilePic} 
+            size={50} 
+            priority="high"
+            border 
+          />
+        </TouchableOpacity>
+      </View>
+      
+      <View 
+        className="mb-8 mt-4 items-center bg-card-light dark:bg-card-dark p-8 rounded-ultra border border-border-light dark:border-border-dark shadow-sm"
+        style={{ 
+          shadowColor: COLORS.dark_blue, 
+          shadowOpacity: 0.05, 
+          shadowRadius: 15, 
+          shadowOffset: { width: 0, height: 4 }
+        }}
+      >
+        {loadingBooks ? (
+           <>
+             <Skeleton width={120} height={60} style={{ marginBottom: 16 }} />
+             <Skeleton width={150} height={20} />
+           </>
+        ) : (
+           <>
+            <View className="flex-row items-center">
+              <Text className="text-streak text-6xl font-bold font-mono">🔥 {streak}</Text>
+            </View>
+            <Text className="text-text-muted-light dark:text-text-muted-dark text-lg mt-4 font-serif">Dias de leitura</Text>
+           </>
+        )}
+      </View>
+      
+      <View className="flex-row justify-between items-center mb-4">
+        <View>
+          <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-[3px] text-xs font-bold mb-1">Biblioteca</Text>
+        </View>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Search')}
+          className="bg-primary dark:bg-primary-dark w-10 h-10 rounded-full items-center justify-center shadow-lg"
+        >
+          <Ionicons name="add" size={24} color="white" />
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false} 
+        className="mb-8"
+        contentContainerStyle={{ paddingRight: 20 }}
+      >
+        {FILTERS.map((filter) => {
+          const isActive = activeFilter === filter.id;
+          const count = counts[filter.id] || 0;
+          const isEmpty = count === 0;
+
+          return (
+            <TouchableOpacity
+              key={filter.id}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setActiveFilter(filter.id);
+              }}
+              className={`flex-row items-center px-6 py-3 rounded-2xl mr-3 border ${
+                isActive 
+                  ? 'bg-primary dark:bg-primary-dark border-primary dark:border-primary-dark shadow-md' 
+                  : 'bg-card-light dark:bg-card-dark border-border-light dark:border-border-dark'
+              } ${isEmpty && !isActive ? 'opacity-50' : 'opacity-100'}`}
+            >
+              <Ionicons 
+                name={filter.icon} 
+                size={18} 
+                color={isActive ? 'white' : (isDarkMode ? COLORS.text.muted.dark : COLORS.text.muted.light)} 
+              />
+              <Text 
+                className={`ml-2 font-bold text-xs ${
+                  isActive ? 'text-white' : 'text-text-muted-light dark:text-text-muted-dark'
+                }`}
+              >
+                {filter.label} {count > 0 ? `(${count})` : ''}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    </Animated.View>
+  ), [user, streak, loadingBooks, activeFilter, counts, COLORS, isDarkMode, fadeAnim, slideAnim]);
 
   const getEmptyMessage = () => {
     switch(activeFilter) {
@@ -149,6 +219,20 @@ export default function HomeScreen({ navigation }) {
       default: return "A estante está vazia.";
     }
   };
+
+  const renderItem = useCallback(({ item }) => (
+    <BookListItem
+      item={item}
+      navigation={navigation}
+      COLORS={COLORS}
+      isDarkMode={isDarkMode}
+      accentColor={accentColor}
+      fadeAnim={fadeAnim}
+      slideAnim={slideAnim}
+      onConfigPress={handleOpenConfig}
+      onCommunityPress={handleOpenCommunity}
+    />
+  ), [navigation, COLORS, isDarkMode, accentColor, fadeAnim, slideAnim, handleOpenConfig, handleOpenCommunity]);
 
   return (
     <View className="flex-1 bg-background-light dark:bg-background-dark px-6 pt-4">
@@ -160,83 +244,7 @@ export default function HomeScreen({ navigation }) {
         initialNumToRender={10}
         maxToRenderPerBatch={10}
         windowSize={5}
-        ListHeaderComponent={() => (
-          <Animated.View style={{ opacity: loadingBooks ? 1 : fadeAnim, transform: [{ translateY: loadingBooks ? 0 : slideAnim }] }}>
-            <View className="flex-row justify-between items-center mt-6">
-              <View>
-                <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-1">Bem-vindo, {user?.email?.split('@')[0]}</Text>
-                <Text className="text-text-light dark:text-text-dark text-3xl font-serif font-bold">Resumo Diário</Text>
-              </View>
-              <TouchableOpacity 
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  navigation.navigate('Perfil');
-                }}
-              >
-                <FastAvatar 
-                  source={user?.profilePic} 
-                  size={50} 
-                  priority="high"
-                  border 
-                />
-              </TouchableOpacity>
-            </View>
-            {listHeader()}
-            
-            <View className="flex-row justify-between items-center mb-4">
-              <View>
-                <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-[3px] text-xs font-bold mb-1">Biblioteca</Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => navigation.navigate('Search')}
-                className="bg-primary dark:bg-primary-dark w-10 h-10 rounded-full items-center justify-center shadow-lg"
-              >
-                <Ionicons name="add" size={24} color="white" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false} 
-              className="mb-8"
-              contentContainerStyle={{ paddingRight: 20 }}
-            >
-              {FILTERS.map((filter) => {
-                const isActive = activeFilter === filter.id;
-                const count = counts[filter.id] || 0;
-                const isEmpty = count === 0;
-
-                return (
-                  <TouchableOpacity
-                    key={filter.id}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setActiveFilter(filter.id);
-                    }}
-                    className={`flex-row items-center px-6 py-3 rounded-2xl mr-3 border ${
-                      isActive 
-                        ? 'bg-primary dark:bg-primary-dark border-primary dark:border-primary-dark shadow-md' 
-                        : 'bg-card-light dark:bg-card-dark border-border-light dark:border-border-dark'
-                    } ${isEmpty && !isActive ? 'opacity-50' : 'opacity-100'}`}
-                  >
-                    <Ionicons 
-                      name={filter.icon} 
-                      size={18} 
-                      color={isActive ? 'white' : (isDarkMode ? COLORS.text.muted.dark : COLORS.text.muted.light)} 
-                    />
-                    <Text 
-                      className={`ml-2 font-bold text-xs ${
-                        isActive ? 'text-white' : 'text-text-muted-light dark:text-text-muted-dark'
-                      }`}
-                    >
-                      {filter.label} {count > 0 ? `(${count})` : ''}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </Animated.View>
-        )}
+        ListHeaderComponent={renderHeader}
         renderItem={renderItem}
         ListFooterComponent={() => (
           <View className="mb-20">

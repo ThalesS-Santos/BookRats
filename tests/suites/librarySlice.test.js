@@ -218,13 +218,13 @@ describe('Library Slice', () => {
 
   describe('addBook', () => {
     it('should call apiAddBook', async () => {
-      await state.addBook('My Book', 300);
-      expect(apiAddBook).toHaveBeenCalledWith('user1', 'My Book', 300, null, '', {}, 'quero_ler');
+      await state.addBook('My Book', 300, null, '', {}, BOOK_STATUS.WANT_TO_READ);
+      expect(apiAddBook).toHaveBeenCalledWith('user1', 'My Book', 300, null, '', {}, BOOK_STATUS.WANT_TO_READ);
     });
 
     it('should NOT call apiAddBook if user is missing', async () => {
       state.user = null;
-      await state.addBook('My Book', 300);
+      await state.addBook('My Book', 300, null, '', {}, BOOK_STATUS.WANT_TO_READ);
       expect(apiAddBook).not.toHaveBeenCalled();
     });
 
@@ -232,7 +232,7 @@ describe('Library Slice', () => {
       state.books = [{ id: 'book1' }];
       const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
       
-      await state.addBook('My Book', 300, 'book1');
+      await state.addBook('My Book', 300, 'book1', '', {}, BOOK_STATUS.WANT_TO_READ);
       
       expect(warnSpy).toHaveBeenCalled();
       expect(apiAddBook).not.toHaveBeenCalled();
@@ -243,13 +243,23 @@ describe('Library Slice', () => {
       apiAddBook.mockRejectedValueOnce(new Error('Add failed'));
       const showPopupMock = usePopupStore.getState().showPopup;
       
-      await state.addBook('My Book', 300);
+      await state.addBook('My Book', 300, null, '', {}, BOOK_STATUS.WANT_TO_READ);
       
       expect(showPopupMock).toHaveBeenCalledWith(expect.objectContaining({
         title: 'Erro ao Adicionar',
         message: 'Add failed',
         type: 'error'
       }));
+    });
+
+    it('should fail-fast if status is missing', async () => {
+      const loggerSpy = require('@core/store/slices/librarySlice').Logger;
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+      
+      await state.addBook('My Book', 300); // Missing status
+      
+      expect(apiAddBook).not.toHaveBeenCalled();
+      errorSpy.mockRestore();
     });
   });
 

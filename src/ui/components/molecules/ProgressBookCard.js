@@ -20,7 +20,7 @@ const COLUMN_WIDTH = (width - 48 - 16) / 2; // (Total width - screen padding - g
  * @param {Function} onPress - Action when the card is pressed.
  * @param {Function} onLongPress - Action for quick update.
  */
-const ProgressBookCard = memo(({ book, onPress, onConfigPress }) => {
+const ProgressBookCard = memo(({ book, onPress, onConfigPress, onCommunityPress }) => {
   const { isDarkMode } = useThemeStore();
   const accentColor = isDarkMode ? COLORS.primary.dark : COLORS.primary.light;
 
@@ -91,7 +91,17 @@ const ProgressBookCard = memo(({ book, onPress, onConfigPress }) => {
         </View>
 
         {/* Right Edge: Quick Actions */}
-        <View className="px-3 items-center justify-center border-l border-border-light/50 dark:border-border-dark/50 gap-y-3">
+        <View className="px-3 items-center justify-center border-l border-border-light/50 dark:border-border-dark/50 gap-y-2">
+          <TouchableOpacity 
+            onPress={(e) => {
+              e.stopPropagation();
+              onCommunityPress?.();
+            }}
+            className="bg-primary/10 dark:bg-primary-dark/10 p-2 rounded-full"
+          >
+            <Ionicons name="share-social" size={18} color={accentColor} />
+          </TouchableOpacity>
+
           <TouchableOpacity 
             onPress={(e) => {
               e.stopPropagation();
