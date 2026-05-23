@@ -1,71 +1,80 @@
-import { useMainStore } from '@core/store';
 import React from 'react';
-import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
-import GalleryScreen from '@ui/screens/GalleryScreen';
+
 import { NavigationContainer } from '@react-navigation/native';
-import * as socialApi from '@core/api/social';
+import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { UserFactory } from '@tests/factories/UserFactory';
+
+import * as socialApi from '@core/api/social';
+import { useMainStore } from '@core/store';
+import GalleryScreen from '@ui/screens/GalleryScreen';
 // Mock routing params
 const mockRoute = {
   params: {
     bookId: '123',
     bookTitle: 'Cem Anos de Solidão',
-    userCurrentPage: 50
-  }
+    userCurrentPage: 50,
+  },
 };
 
 // Mock Navigation
 const mockNavigate = jest.fn();
 jest.mock('@react-navigation/native', () => {
-    const actualNav = jest.requireActual('@react-navigation/native');
-    return {
-        ...actualNav,
-        useNavigation: () => ({
-            navigate: mockNavigate,
-            goBack: jest.fn(),
-        }),
-    };
+  const actualNav = jest.requireActual('@react-navigation/native');
+  return {
+    ...actualNav,
+    useNavigation: () => ({
+      navigate: mockNavigate,
+      goBack: jest.fn(),
+    }),
+  };
 });
-describe('Gallery Screen Integration', () => {
+
+describe('Gallery Screen Integration', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    useMainStore.setState({ user: UserFactory.create({ uid: 'test-user-123' }) });
+    useMainStore.setState({
+      user: UserFactory.create({ uid: 'test-user-123' }),
+    });
   });
 
   const renderGallery = async () => {
     const renderResult = render(
       <NavigationContainer>
         <GalleryScreen route={mockRoute} />
-      </NavigationContainer>
+      </NavigationContainer>,
     );
-    
+
     // Let VirtualizedList settle its internal timers
     await act(async () => {
       await new Promise(r => setTimeout(r, 100));
     });
-    
+
     return renderResult;
   };
 
   it('Scenario 1: should mount correctly with book metadata and filter spoilers', async () => {
     const mockEchoes = [
-        {
-          id: 'echo-1',
-          text: 'Este capítulo é simplesmente genial!',
-          pageLocation: 10,
-          userMetadata: { displayName: 'Gabriel' },
-          reactions: { claps: 12 },
-        },
-        {
-          id: 'echo-spoiler', // Should be filtered out by getPublicEchoes in api/social.js
-          text: 'SPOILER: Não acredito que isso aconteceu!',
-          pageLocation: 60,
-        }
+      {
+        id: 'echo-1',
+        text: 'Este capítulo é simplesmente genial!',
+        pageLocation: 10,
+        userMetadata: { displayName: 'Gabriel' },
+        reactions: { claps: 12 },
+      },
+      {
+        id: 'echo-spoiler', // Should be filtered out by getPublicEchoes in api/social.js
+        text: 'SPOILER: Não acredito que isso aconteceu!',
+        pageLocation: 60,
+      },
     ];
 
-    const spy = jest.spyOn(socialApi, 'getPublicEchoes').mockResolvedValue(
-        mockEchoes.filter(e => e.pageLocation <= mockRoute.params.userCurrentPage)
-    );
+    const spy = jest
+      .spyOn(socialApi, 'getPublicEchoes')
+      .mockResolvedValue(
+        mockEchoes.filter(
+          e => e.pageLocation <= mockRoute.params.userCurrentPage,
+        ),
+      );
 
     const { findByText, getByText, queryByText } = await renderGallery();
 
@@ -78,19 +87,21 @@ jest.mock('@react-navigation/native', () => {
       // Label should be visible
       expect(getByText('SOBRE ESTE LIVRO')).toBeTruthy();
       // Spoiler should NOT be visible
-      expect(queryByText('"SPOILER: Não acredito que isso aconteceu!"')).toBeNull();
+      expect(
+        queryByText('"SPOILER: Não acredito que isso aconteceu!"'),
+      ).toBeNull();
     });
 
     spy.mockRestore();
   });
 
   it('Scenario 2: should handle scroll events without crashing', async () => {
-     const mockEchoes = Array.from({ length: 5 }).map((_, i) => ({
-        id: `echo-${i}`,
-        text: `Echo text ${i}`,
-        pageLocation: 10,
-        userMetadata: { displayName: `User ${i}` },
-        reactions: { claps: i },
+    const mockEchoes = Array.from({ length: 5 }).map((_, i) => ({
+      id: `echo-${i}`,
+      text: `Echo text ${i}`,
+      pageLocation: 10,
+      userMetadata: { displayName: `User ${i}` },
+      reactions: { claps: i },
     }));
     jest.spyOn(socialApi, 'getPublicEchoes').mockResolvedValue(mockEchoes);
 
@@ -98,7 +109,7 @@ jest.mock('@react-navigation/native', () => {
 
     // Wait for data to load and FlatList to appear
     const flatList = await waitFor(() => getByTestId('echo-flatlist'));
-    
+
     // Simulate Scroll
     await act(async () => {
       fireEvent.scroll(flatList, {
@@ -121,17 +132,19 @@ jest.mock('@react-navigation/native', () => {
     const { getByText } = await renderGallery();
 
     await waitFor(() => {
-      expect(getByText('Nenhum eco encontrado nesta parte do livro.')).toBeTruthy();
+      expect(
+        getByText('Nenhum eco encontrado nesta parte do livro.'),
+      ).toBeTruthy();
     });
   });
 
   it('Scenario 4: should navigate to EchoDetail when a card is pressed', async () => {
     const mockEcho = {
-        id: 'echo-123',
-        bookId: '123',
-        text: 'Teste de navegação',
-        pageLocation: 20,
-        userMetadata: { displayName: 'Tester' },
+      id: 'echo-123',
+      bookId: '123',
+      text: 'Teste de navegação',
+      pageLocation: 20,
+      userMetadata: { displayName: 'Tester' },
     };
     jest.spyOn(socialApi, 'getPublicEchoes').mockResolvedValue([mockEcho]);
 
@@ -139,14 +152,17 @@ jest.mock('@react-navigation/native', () => {
 
     // Wait for data
     const cardText = await waitFor(() => getByText('"Teste de navegação"'));
-    
+
     // Press the card
     await act(async () => {
       fireEvent.press(cardText);
     });
 
-    expect(mockNavigate).toHaveBeenCalledWith('EchoDetail', expect.objectContaining({
-        echoId: 'echo-123'
-    }));
+    expect(mockNavigate).toHaveBeenCalledWith(
+      'EchoDetail',
+      expect.objectContaining({
+        echoId: 'echo-123',
+      }),
+    );
   });
 });

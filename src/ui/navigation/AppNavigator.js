@@ -1,23 +1,25 @@
-import { useMainStore } from '@core/store';
 import React from 'react';
-import { View } from 'react-native';
-import { BookLoader } from '@ui/components';
+
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import AuthScreen from '@ui/screens/AuthScreen';
-import SearchScreen from '@ui/screens/SearchScreen';
-import TimerScreen from '@ui/screens/TimerScreen';
-import GroupChatScreen from '@ui/screens/GroupChatScreen';
-import GroupDetailsScreen from '@ui/screens/GroupDetailsScreen';
-import UserProfileScreen from '@ui/screens/UserProfileScreen';
-import EchoDetailScreen from '@ui/screens/EchoDetailScreen';
-import GalleryScreen from '@ui/screens/GalleryScreen';
-import NotificationsScreen from '@ui/screens/NotificationsScreen';
-import BookEditScreen from '@ui/screens/BookEditScreen';
-import BookDetailsScreen from '@ui/screens/BookDetailsScreen';
-import TabNavigator from './TabNavigator';
-import { LoadingScreen } from '@ui/components';
+import { View } from 'react-native';
 
 import { COLORS } from '@constants/colors';
+import { useMainStore } from '@core/store';
+import { BookLoader } from '@ui/components';
+import { LoadingScreen } from '@ui/components';
+import AuthScreen from '@ui/screens/AuthScreen';
+import BookDetailsScreen from '@ui/screens/BookDetailsScreen';
+import BookEditScreen from '@ui/screens/BookEditScreen';
+import EchoDetailScreen from '@ui/screens/EchoDetailScreen';
+import GalleryScreen from '@ui/screens/GalleryScreen';
+import GroupChatScreen from '@ui/screens/GroupChatScreen';
+import GroupDetailsScreen from '@ui/screens/GroupDetailsScreen';
+import NotificationsScreen from '@ui/screens/NotificationsScreen';
+import SearchScreen from '@ui/screens/SearchScreen';
+import TimerScreen from '@ui/screens/TimerScreen';
+import UserProfileScreen from '@ui/screens/UserProfileScreen';
+
+import TabNavigator from './TabNavigator';
 
 const Stack = createNativeStackNavigator();
 
@@ -27,34 +29,41 @@ export default function AppNavigator() {
   const user = useMainStore(state => state.user);
 
   return (
-    <Stack.Navigator 
-      screenOptions={{ 
+    <Stack.Navigator
+      screenOptions={{
         headerShown: false,
         animation: 'default',
         fullScreenGestureEnabled: true, // Improved swipe gesture consistency
         detachInactiveScreens: true, // Optimizes memory by detaching screens not in view
-        contentStyle: { backgroundColor: COLORS.dark_blue } // Fixes "white flash" during transitions
-      }}
-    >
+        contentStyle: { backgroundColor: COLORS.dark_blue }, // Fixes "white flash" during transitions
+      }}>
       {user ? (
         <>
           <Stack.Screen name="MainTabs" component={TabNavigator} />
-          <Stack.Screen name="Search" component={SearchScreen} options={{ presentation: 'modal' }} />
-          <Stack.Screen name="Timer" component={TimerScreen} options={{ presentation: 'fullScreenModal' }} />
+          <Stack.Screen
+            name="Search"
+            component={SearchScreen}
+            options={{ presentation: 'modal' }}
+          />
+          <Stack.Screen
+            name="Timer"
+            component={TimerScreen}
+            options={{ presentation: 'fullScreenModal' }}
+          />
           <Stack.Screen name="GroupChat" component={GroupChatScreen} />
           <Stack.Screen name="GroupDetails" component={GroupDetailsScreen} />
           <Stack.Screen name="UserProfile" component={UserProfileScreen} />
           <Stack.Screen name="EchoDetail" component={EchoDetailScreen} />
           <Stack.Screen name="EchoGallery" component={GalleryScreen} />
           <Stack.Screen name="Notifications" component={NotificationsScreen} />
-          <Stack.Screen 
-            name="BookEdit" 
-            component={BookEditScreen} 
-            options={{ 
+          <Stack.Screen
+            name="BookEdit"
+            component={BookEditScreen}
+            options={{
               presentation: 'transparentModal',
               animation: 'fade',
-              headerShown: false
-            }} 
+              headerShown: false,
+            }}
           />
           <Stack.Screen name="BookDetails" component={BookDetailsScreen} />
         </>

@@ -17,7 +17,7 @@ export const COLORS = {
     muted: {
       light: '#6B7280',
       dark: '#9CA3AF',
-    }
+    },
   },
   border: {
     light: '#E5E7EB',
@@ -25,6 +25,6 @@ export const COLORS = {
   },
   loading: '#0F172A',
   streak: '#D97706',
-  dark_blue: '#020617',  // Solid background for transitions
+  dark_blue: '#020617', // Solid background for transitions
   neon_green: '#5B8C5A', // Consistent with primary but optimized for indicator
 };

@@ -1,19 +1,30 @@
-import { auth, db } from '@core/firebase/firebase';
+import { mapFirebaseError } from '@utils/errorMapper';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
   signInWithCredential,
-  GoogleAuthProvider
+  GoogleAuthProvider,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { mapFirebaseError } from '@utils/errorMapper';
+import {
+  doc,
+  setDoc,
+  getDoc,
+  updateDoc,
+  serverTimestamp,
+} from 'firebase/firestore';
+
+import { auth, db } from '@core/firebase/firebase';
 
 export const signUp = async (email, password) => {
   try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const userCredential = await createUserWithEmailAndPassword(
+      auth,
+      email,
+      password,
+    );
     const username = email.split('@')[0];
-    
+
     // Initialize user document in Firestore
     await setDoc(doc(db, 'users', userCredential.user.uid), {
       email,
@@ -22,27 +33,31 @@ export const signUp = async (email, password) => {
       total_pages_read: 0,
       current_streak: 0,
       last_reading_date: null,
-      createdAt: serverTimestamp()
+      createdAt: serverTimestamp(),
     });
-    
+
     return userCredential.user;
   } catch (error) {
-    console.error("Sign up error:", error);
+    console.error('Sign up error:', error);
     throw new Error(mapFirebaseError(error));
   }
 };
 
 export const signIn = async (email, password) => {
   try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const userCredential = await signInWithEmailAndPassword(
+      auth,
+      email,
+      password,
+    );
     return userCredential.user;
   } catch (error) {
-    console.error("Sign in error:", error);
+    console.error('Sign in error:', error);
     throw new Error(mapFirebaseError(error));
   }
 };
 
-export const signInWithGoogle = async (idToken) => {
+export const signInWithGoogle = async idToken => {
   try {
     const credential = GoogleAuthProvider.credential(idToken);
     const result = await signInWithCredential(auth, credential);
@@ -60,12 +75,12 @@ export const signInWithGoogle = async (idToken) => {
         total_pages_read: 0,
         current_streak: 0,
         last_reading_date: null,
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
       });
     }
     return user;
   } catch (error) {
-    console.error("Google sign in error:", error);
+    console.error('Google sign in error:', error);
     throw new Error(mapFirebaseError(error));
   }
 };
@@ -74,7 +89,7 @@ export const signOut = async () => {
   try {
     await firebaseSignOut(auth);
   } catch (error) {
-    console.error("Sign out error:", error);
+    console.error('Sign out error:', error);
     throw new Error(error.message);
   }
 };
@@ -82,22 +97,30 @@ export const signOut = async () => {
 export const updatePresence = async (uid, isOnline) => {
   try {
     const userRef = doc(db, 'users', uid);
-    await setDoc(userRef, {
-      isOnline,
-      lastActive: serverTimestamp()
-    }, { merge: true });
+    await setDoc(
+      userRef,
+      {
+        isOnline,
+        lastActive: serverTimestamp(),
+      },
+      { merge: true },
+    );
   } catch (error) {
-    console.error("Presence update error:", error);
+    console.error('Presence update error:', error);
   }
 };
 
 export const updateReadingStatus = async (uid, bookTitle) => {
   try {
     const userRef = doc(db, 'users', uid);
-    await setDoc(userRef, {
-      currentReadingBook: bookTitle || null
-    }, { merge: true });
+    await setDoc(
+      userRef,
+      {
+        currentReadingBook: bookTitle || null,
+      },
+      { merge: true },
+    );
   } catch (error) {
-    console.error("Reading status update error:", error);
+    console.error('Reading status update error:', error);
   }
 };

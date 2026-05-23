@@ -1,21 +1,21 @@
-import { useMainStore } from '@core/store';
 import React from 'react';
+
+import { NavigationContainer } from '@react-navigation/native';
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+
+import { useMainStore } from '@core/store';
 import { CustomPopup } from '@ui/components';
 import AuthScreen from '@ui/screens/AuthScreen';
+
 import { usePopupStore } from '../../src/store/usePopupStore';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { NavigationContainer } from '@react-navigation/native';
 
 // Wrapper for components using context
 const componentWrapper = ({ children }) => (
-  <NavigationContainer>
-    {children}
-  </NavigationContainer>
+  <NavigationContainer>{children}</NavigationContainer>
 );
 
 describe('Popup Integration Flow', () => {
-    
   beforeEach(() => {
     // Isolated State Clean-up
     act(() => {
@@ -32,7 +32,7 @@ describe('Popup Integration Flow', () => {
       usePopupStore.getState().showPopup({
         title: 'Sucesso',
         message: 'Livro Adicionado!',
-        type: 'success'
+        type: 'success',
       });
     });
 
@@ -47,7 +47,7 @@ describe('Popup Integration Flow', () => {
       usePopupStore.getState().showPopup({
         title: 'Atenção',
         message: 'Deseja continuar?',
-        type: 'info'
+        type: 'info',
       });
     });
 
@@ -65,20 +65,23 @@ describe('Popup Integration Flow', () => {
 
   it('Scenario 3: Cross-Component Integration (Auth Error Flow)', async () => {
     // Override Firebase to reject with a mapped error
-    signInWithEmailAndPassword.mockRejectedValueOnce({ 
-        code: 'auth/wrong-password',
-        message: 'Firebase: Error (auth/wrong-password).' 
+    signInWithEmailAndPassword.mockRejectedValueOnce({
+      code: 'auth/wrong-password',
+      message: 'Firebase: Error (auth/wrong-password).',
     });
 
     const { getByPlaceholderText, getByText, findByText } = render(
       <NavigationContainer>
         <AuthScreen />
         <CustomPopup />
-      </NavigationContainer>
+      </NavigationContainer>,
     );
 
     // Simulate failed login
-    fireEvent.changeText(getByPlaceholderText('seu@email.com'), 'test@bookrats.com');
+    fireEvent.changeText(
+      getByPlaceholderText('seu@email.com'),
+      'test@bookrats.com',
+    );
     fireEvent.changeText(getByPlaceholderText('••••••••'), 'wrong-pass');
     fireEvent.press(getByText('Entrar'));
 

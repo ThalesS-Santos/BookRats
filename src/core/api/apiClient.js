@@ -1,6 +1,6 @@
-import { useMainStore } from '@core/store';
 import { auth } from '@core/firebase/firebase';
 import { Logger } from '@core/services/Logger';
+import { useMainStore } from '@core/store';
 
 /**
  * Custom API Client wrapper over native fetch.
@@ -12,11 +12,13 @@ class ApiClient {
   }
 
   async request(endpoint, options = {}) {
-    const url = endpoint.startsWith('http') ? endpoint : `${this.baseURL}${endpoint}`;
-    
+    const url = endpoint.startsWith('http')
+      ? endpoint
+      : `${this.baseURL}${endpoint}`;
+
     // --- Request Interceptor ---
     const headers = new Headers(options.headers || {});
-    
+
     try {
       // Fetch fresh token from Firebase Auth directly
       // Only append Authorization header for internal/protected requests
@@ -38,7 +40,7 @@ class ApiClient {
 
     const config = {
       ...options,
-      headers
+      headers,
     };
 
     const maxRetries = 2;
@@ -54,12 +56,16 @@ class ApiClient {
 
           // 1. Handle 401 / 403 (Unauthorized / Forbidden)
           if (status === 401 || status === 403) {
-            Logger.warn(`${status} Unauthorized. Triggering logout...`, { url });
+            Logger.warn(`${status} Unauthorized. Triggering logout...`, {
+              url,
+            });
             const { signOut } = useMainStore.getState();
             if (signOut) {
               await signOut();
             }
-            throw new Error('Sessão expirada ou acesso negado. Por favor, faça login novamente.');
+            throw new Error(
+              'Sessão expirada ou acesso negado. Por favor, faça login novamente.',
+            );
           }
 
           // 2. Handle 500+ (Server Errors) - Specific Retry for 503
@@ -67,39 +73,49 @@ class ApiClient {
             if (status === 503 && attempt < maxRetries) {
               attempt++;
               const delay = Math.pow(2, attempt) * 500; // Exponential backoff
-              Logger.warn(`Received 503. Retrying in ${delay}ms... (Attempt ${attempt})`, { url });
+              Logger.warn(
+                `Received 503. Retrying in ${delay}ms... (Attempt ${attempt})`,
+                { url },
+              );
               await new Promise(resolve => setTimeout(resolve, delay));
               continue;
             }
-            Logger.error(`Server Error ${status} on ${url}`, null, { url, status });
-            throw new Error('Erro interno no servidor remoto. Tente novamente mais tarde.');
+            Logger.error(`Server Error ${status} on ${url}`, null, {
+              url,
+              status,
+            });
+            throw new Error(
+              'Erro interno no servidor remoto. Tente novamente mais tarde.',
+            );
           }
 
           // 3. Handle 400s (Client Errors)
           let errorMessage = `Erro na requisição: ${status}`;
           try {
             const errorData = await response.json();
-            errorMessage = errorData.message || errorData.error?.message || errorMessage;
+            errorMessage =
+              errorData.message || errorData.error?.message || errorMessage;
           } catch (_) {
             // Response is not JSON, fallback to standard message
           }
-          
+
           throw new Error(errorMessage);
         }
 
         // Success
         return await response.json();
-
       } catch (error) {
         if (attempt >= maxRetries) {
-          Logger.error(`Request failed after ${attempt} attempts: ${url}`, error);
+          Logger.error(
+            `Request failed after ${attempt} attempts: ${url}`,
+            error,
+          );
           throw error;
         }
         attempt++;
         await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
-
   }
 
   get(endpoint, headers = {}) {
@@ -107,11 +123,19 @@ class ApiClient {
   }
 
   post(endpoint, body, headers = {}) {
-    return this.request(endpoint, { method: 'POST', body: JSON.stringify(body), headers });
+    return this.request(endpoint, {
+      method: 'POST',
+      body: JSON.stringify(body),
+      headers,
+    });
   }
 
   put(endpoint, body, headers = {}) {
-    return this.request(endpoint, { method: 'PUT', body: JSON.stringify(body), headers });
+    return this.request(endpoint, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+      headers,
+    });
   }
 
   delete(endpoint, headers = {}) {

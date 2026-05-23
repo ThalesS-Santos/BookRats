@@ -1,11 +1,13 @@
 import React from 'react';
+
 import { render } from '@testing-library/react-native';
-import FastAvatar from '../../src/ui/components/atoms/FastAvatar';
 import { Image } from 'expo-image';
+
+import FastAvatar from '../../src/ui/components/atoms/FastAvatar';
 
 // We mock Image from expo-image to check props
 jest.mock('expo-image', () => ({
-  Image: jest.fn(() => null)
+  Image: jest.fn(() => null),
 }));
 
 describe('FastAvatar Component', () => {
@@ -13,29 +15,32 @@ describe('FastAvatar Component', () => {
     render(<FastAvatar />);
     expect(Image).toHaveBeenCalledWith(
       expect.objectContaining({
-        source: expect.anything(), 
-        placeholder: expect.anything()
+        source: expect.anything(),
+        placeholder: expect.anything(),
       }),
-      undefined // RNTL sends undefined as second arg to functional component mocks usually
+      undefined, // RNTL sends undefined as second arg to functional component mocks usually
     );
   });
 
   it('renders with custom source and size', () => {
-    render(<FastAvatar source="https://test.com/img.png" size={60} border={true} />);
+    render(
+      <FastAvatar source="https://test.com/img.png" size={60} border={true} />,
+    );
     expect(Image).toHaveBeenCalledWith(
       expect.objectContaining({
-        source: { uri: 'https://test.com/img.png' }
+        source: { uri: 'https://test.com/img.png' },
       }),
-      undefined
+      undefined,
     );
   });
 
   it('renders online indicator when isOnline is true', () => {
     const { UNSAFE_getAllByProps } = render(<FastAvatar isOnline={true} />);
-    
+
     // Check if the online indicator View exists
-    const indicators = UNSAFE_getAllByProps({ 
-      className: 'absolute bottom-0.5 right-0.5 bg-green-500 border-2 border-white dark:border-surface-dark' 
+    const indicators = UNSAFE_getAllByProps({
+      className:
+        'absolute bottom-0.5 right-0.5 bg-green-500 border-2 border-white dark:border-surface-dark',
     });
     expect(indicators.length).toBeGreaterThan(0);
   });
@@ -44,9 +49,9 @@ describe('FastAvatar Component', () => {
     render(<FastAvatar source={null} />);
     expect(Image).toHaveBeenCalledWith(
       expect.objectContaining({
-        source: expect.anything()
+        source: expect.anything(),
       }),
-      undefined
+      undefined,
     );
   });
 });

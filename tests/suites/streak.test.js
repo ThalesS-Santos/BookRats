@@ -1,9 +1,13 @@
-import { calculateStreak } from '@utils/streak';
+import {
+  calculateStreak,
+  calculateStreakFromLogs,
+  getLocalDateString,
+} from '@utils/streak';
 
 describe('Streak Calculation Logic', () => {
   beforeEach(() => {
     jest.useFakeTimers();
-    jest.setSystemTime(new Date('2026-04-16'));
+    jest.setSystemTime(new Date('2026-04-16T12:00:00'));
   });
 
   afterEach(() => {
@@ -16,7 +20,7 @@ describe('Streak Calculation Logic', () => {
     const currentStreak = 5;
 
     const result = calculateStreak(lastDate, today, currentStreak);
-    
+
     expect(result).toBe(6);
   });
 
@@ -26,7 +30,7 @@ describe('Streak Calculation Logic', () => {
     const currentStreak = 5;
 
     const result = calculateStreak(lastDate, today, currentStreak);
-    
+
     expect(result).toBe(5);
   });
 
@@ -36,7 +40,7 @@ describe('Streak Calculation Logic', () => {
     const currentStreak = 5;
 
     const result = calculateStreak(lastDate, today, currentStreak);
-    
+
     expect(result).toBe(1);
   });
 
@@ -48,7 +52,7 @@ describe('Streak Calculation Logic', () => {
       const currentStreak = 10;
 
       const result = calculateStreak(lastDate, today, currentStreak);
-      
+
       expect(result).toBe(11);
     });
 
@@ -59,7 +63,7 @@ describe('Streak Calculation Logic', () => {
       const currentStreak = 20;
 
       const result = calculateStreak(lastDate, today, currentStreak);
-      
+
       expect(result).toBe(21);
     });
   });
@@ -71,5 +75,58 @@ describe('Streak Calculation Logic', () => {
     expect(calculateStreak(null, today, currentStreak)).toBe(1);
     expect(calculateStreak(undefined, today, currentStreak)).toBe(1);
     expect(calculateStreak('', today, currentStreak)).toBe(1);
+  });
+
+  describe('calculateStreakFromLogs', () => {
+    it('should return 0 when logs is null or empty', () => {
+      expect(calculateStreakFromLogs(null)).toBe(0);
+      expect(calculateStreakFromLogs([])).toBe(0);
+    });
+
+    it('should return 0 when the latest log is neither today nor yesterday', () => {
+      const logs = [{ date: '2026-04-10' }, { date: '2026-04-09' }];
+      expect(calculateStreakFromLogs(logs)).toBe(0);
+    });
+
+    it('should calculate streak starting from today', () => {
+      // System time is set to 2026-04-16
+      const logs = [
+        { date: '2026-04-16' },
+        { date: '2026-04-15' },
+        { date: '2026-04-14' },
+        { date: '2026-04-12' }, // Gap here
+      ];
+      expect(calculateStreakFromLogs(logs)).toBe(3);
+    });
+
+    it('should calculate streak starting from yesterday', () => {
+      const logs = [
+        { date: '2026-04-15' },
+        { date: '2026-04-14' },
+        { date: '2026-04-13' },
+      ];
+      expect(calculateStreakFromLogs(logs)).toBe(3);
+    });
+
+    it('should handle unsorted logs with duplicates', () => {
+      const logs = [
+        { date: '2026-04-14' },
+        { date: '2026-04-16' },
+        { date: '2026-04-15' },
+        { date: '2026-04-15' }, // Duplicate
+      ];
+      expect(calculateStreakFromLogs(logs)).toBe(3);
+    });
+  });
+
+  describe('getLocalDateString', () => {
+    it('should return correct string for a given date', () => {
+      const date = new Date('2026-05-20T12:00:00');
+      expect(getLocalDateString(date)).toBe('2026-05-20');
+    });
+
+    it('should use current date when no date is provided', () => {
+      expect(getLocalDateString()).toBe('2026-04-16');
+    });
   });
 });

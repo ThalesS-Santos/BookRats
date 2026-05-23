@@ -1,8 +1,10 @@
 import React from 'react';
+
 import { render, fireEvent } from '@testing-library/react-native';
-import CustomPopup from '../../src/ui/components/molecules/CustomPopup';
+
 import { usePopupStore } from '../../src/store/usePopupStore';
 import { useThemeStore } from '../../src/store/useThemeStore';
+import CustomPopup from '../../src/ui/components/molecules/CustomPopup';
 
 jest.mock('../../src/store/usePopupStore');
 jest.mock('../../src/store/useThemeStore');

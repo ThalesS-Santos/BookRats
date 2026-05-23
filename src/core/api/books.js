@@ -1,28 +1,51 @@
-import { db } from '@core/firebase/firebase';
-import { doc, updateDoc, collection, setDoc, arrayUnion, serverTimestamp, getDocs, addDoc, deleteDoc, increment, query, orderBy, where } from 'firebase/firestore';
-import { updateStreak, getLocalDateString } from '@utils/streak';
 import { mapFirebaseError } from '@utils/errorMapper';
+import { updateStreak, getLocalDateString } from '@utils/streak';
+import {
+  validateStatus,
+  validatePageRange,
+  validateDocumentId,
+  validateUpdateFields,
+} from '@utils/validators';
+import { sanitizeEchoText } from '@utils/sanitize';
+import {
+  doc,
+  updateDoc,
+  collection,
+  setDoc,
+  arrayUnion,
+  serverTimestamp,
+  getDocs,
+  addDoc,
+  deleteDoc,
+  increment,
+  query,
+  orderBy,
+  where,
+} from 'firebase/firestore';
+
+import { db } from '@core/firebase/firebase';
 
 import { BOOK_STATUS } from '../constants/bookStatus';
+import { Logger } from '@core/services/Logger';
 
 export const deleteBook = async (uid, bookId) => {
   try {
     const bookRef = doc(db, 'users', uid, 'books', bookId);
     await deleteDoc(bookRef);
   } catch (error) {
-    console.error("Error deleting book:", error);
+    Logger.error('Error deleting book:', error);
     throw new Error(mapFirebaseError(error));
   }
 };
 
-export const getUserReadingLogs = async (uid) => {
+export const getUserReadingLogs = async uid => {
   try {
     const logsRef = collection(db, 'users', uid, 'readingLogs');
     const q = query(logsRef, orderBy('timestamp', 'desc'));
     const snap = await getDocs(q);
     return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
-    console.error("Error getting reading logs:", error);
+    Logger.error('Error getting reading logs:', error);
     return [];
   }
 };
@@ -32,36 +55,53 @@ export const addReadingLog = async (uid, bookId, delta) => {
   try {
     const todayStr = getLocalDateString();
     const logRef = doc(db, 'users', uid, 'readingLogs', todayStr);
-    
-    await setDoc(logRef, {
-      pagesRead: increment(delta),
-      lastBookId: bookId,
-      date: todayStr,
-      timestamp: serverTimestamp()
-    }, { merge: true });
+
+    await setDoc(
+      logRef,
+      {
+        pagesRead: increment(delta),
+        lastBookId: bookId,
+        date: todayStr,
+        timestamp: serverTimestamp(),
+      },
+      { merge: true },
+    );
   } catch (error) {
-    console.error("Error adding reading log:", error);
+    Logger.error('Error adding reading log:', error);
   }
 };
 
-export const addBook = async (uid, title, totalPages, id = null, description = '', extraMetadata = {}, status) => {
+export const addBook = async (
+  uid,
+  title,
+  totalPages,
+  id = null,
+  description = '',
+  extraMetadata = {},
+  status,
+) => {
   // 🛡️ Validation Guard
   if (!uid || !title || totalPages === null || totalPages === undefined) {
-    throw new Error("Dados inválidos: Título e número de páginas são obrigatórios.");
+    throw new Error(
+      'Dados inválidos: Título e número de páginas são obrigatórios.',
+    );
   }
 
-  if (!status) {
-    throw new Error("A valid status is required to add a book.");
-  }
-  
+  // Validate status against VALID_STATUSES enum
+  validateStatus(status);
+
   const pages = parseInt(totalPages, 10);
   if (Number.isNaN(pages) || (pages <= 0 && id === null)) {
     // If it's a manual entry, pages must be > 0. If it's from API, we might allow 0 temporarily
-    throw new Error("Dados inválidos: Título e número de páginas são obrigatórios.");
+    throw new Error(
+      'Dados inválidos: Título e número de páginas são obrigatórios.',
+    );
   }
 
   try {
-    const bookRef = id ? doc(db, 'users', uid, 'books', id) : doc(collection(db, 'users', uid, 'books'));
+    const bookRef = id
+      ? doc(db, 'users', uid, 'books', id)
+      : doc(collection(db, 'users', uid, 'books'));
     await setDoc(bookRef, {
       title,
       totalPages: pages,
@@ -75,32 +115,41 @@ export const addBook = async (uid, title, totalPages, id = null, description = '
       averageRating: extraMetadata.averageRating || null,
       status: status, // Using provided status or default (Etapa 2)
       logs: [],
-      createdAt: serverTimestamp()
+      createdAt: serverTimestamp(),
     });
     return bookRef.id;
   } catch (error) {
-    console.error("Error adding book:", error);
+    Logger.error('Error adding book:', error);
     throw new Error(mapFirebaseError(error));
   }
 };
 
-export const updateBookProgress = async (uid, book, newPage, timeSeconds, streakData) => {
+export const updateBookProgress = async (
+  uid,
+  book,
+  newPage,
+  timeSeconds,
+  streakData,
+) => {
   // 🛡️ Validation Guard
   const nPage = Number(newPage);
   const tSeconds = Number(timeSeconds);
 
   if (Number.isNaN(nPage) || Number.isNaN(tSeconds)) {
-    throw new Error("Erro de validação: Verifique os números informados.");
+    throw new Error('Erro de validação: Verifique os números informados.');
   }
 
   // Regression Lock & Bounds Check
   if (nPage < book.currentPage || nPage > book.totalPages) {
-     throw new Error("Erro de validação: Verifique os números informados.");
+    throw new Error('Erro de validação: Verifique os números informados.');
   }
 
   // Streak Data Validation
-  if (typeof streakData.streak !== 'number' || typeof streakData.totalPagesRead !== 'number') {
-    throw new Error("Erro de validação: Verifique os números informados.");
+  if (
+    typeof streakData.streak !== 'number' ||
+    typeof streakData.totalPagesRead !== 'number'
+  ) {
+    throw new Error('Erro de validação: Verifique os números informados.');
   }
 
   const { streak, lastReadDate, maxReadingSession = 0 } = streakData;
@@ -110,7 +159,7 @@ export const updateBookProgress = async (uid, book, newPage, timeSeconds, streak
   const isCompleted = nPage >= book.totalPages;
   const wasCompleted = book.status === BOOK_STATUS.READ;
   const isRegressing = !isCompleted && wasCompleted;
-    
+
   // Determine new status
   let newStatus = book.status;
   if (isCompleted) newStatus = BOOK_STATUS.READ;
@@ -126,16 +175,18 @@ export const updateBookProgress = async (uid, book, newPage, timeSeconds, streak
         date: todayStr,
         pagesRead: pagesReadToday,
         timeSeconds: tSeconds,
-        pagesPerHour: tSeconds > 0 ? Math.round((pagesReadToday / tSeconds) * 3600) : 0
-      })
+        pagesPerHour:
+          tSeconds > 0 ? Math.round((pagesReadToday / tSeconds) * 3600) : 0,
+      }),
     });
 
     // 2. Update user stats
     const userRef = doc(db, 'users', uid);
     const newMaxSession = Math.max(maxReadingSession, tSeconds);
-    
+
     // Calculate completion increment: +1 if finishing, -1 if regressing
-    const completedIncrement = (isCompleted && !wasCompleted) ? 1 : (isRegressing ? -1 : 0);
+    const completedIncrement =
+      isCompleted && !wasCompleted ? 1 : isRegressing ? -1 : 0;
 
     await updateDoc(userRef, {
       total_pages_read: increment(pagesReadToday),
@@ -156,25 +207,34 @@ export const updateBookProgress = async (uid, book, newPage, timeSeconds, streak
 
     return { pagesReadToday, isCompleted };
   } catch (error) {
-    console.error("Error updating progress:", error);
+    Logger.error('Error updating progress:', error);
     throw new Error(mapFirebaseError(error));
   }
 };
 
+/** Fields that cannot be updated directly by the client to avoid ranking manipulation. */
+const PROTECTED_BOOK_FIELDS = ['createdAt', 'userId'];
+
 export const updateBook = async (uid, bookId, updates) => {
+  // 🛡️ Validation Guard
+  validateDocumentId(bookId, 'livro');
+  validateUpdateFields(updates, PROTECTED_BOOK_FIELDS);
+
   try {
     const bookRef = doc(db, 'users', uid, 'books', bookId);
-    await updateDoc(bookRef, { 
+    await updateDoc(bookRef, {
       ...updates,
-      updatedAt: serverTimestamp() 
+      updatedAt: serverTimestamp(),
     });
   } catch (error) {
-    console.error("Error updating book:", error);
+    Logger.error('Error updating book:', error);
     throw new Error(mapFirebaseError(error));
   }
 };
 
 export const updateBookStatus = async (uid, bookId, status) => {
+  // 🛡️ Validate status before delegating
+  validateStatus(status);
   return updateBook(uid, bookId, { status });
 };
 
@@ -182,54 +242,83 @@ export const markAsDNF = async (uid, bookId, status = BOOK_STATUS.DROPPED) => {
   return updateBookStatus(uid, bookId, status);
 };
 
-export const getUserBooks = async (uid) => {
+export const getUserBooks = async uid => {
   try {
     const booksRef = collection(db, 'users', uid, 'books');
     const snap = await getDocs(booksRef);
     return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
-    console.error("Error getting user books:", error);
+    Logger.error('Error getting user books:', error);
     throw new Error(mapFirebaseError(error));
   }
 };
 
-export const addAnnotation = async (uid, bookId, page, text, isPublic = true, userMetadata = { displayName: 'Anon', photoURL: null }, parentId = null) => {
+export const addAnnotation = async (
+  uid,
+  bookId,
+  page,
+  text,
+  isPublic = true,
+  userMetadata = { displayName: 'Anon', photoURL: null },
+  parentId = null,
+) => {
   // 🛡️ Validation Guard
   if (!text || typeof text !== 'string' || text.trim() === '') {
-    throw new Error("Erro de validação: O texto da anotação é obrigatório.");
+    throw new Error('Erro de validação: O texto da anotação é obrigatório.');
   }
 
   const pageNum = Number(page);
   if (!parentId && Number.isNaN(pageNum)) {
-    throw new Error("Erro de validação: Verifique a página informada.");
+    throw new Error('Erro de validação: Verifique a página informada.');
+  }
+
+  if (!parentId) {
+    validatePageRange(pageNum, Infinity); // Validates non-negative
   }
 
   try {
-    const annotRef = collection(db, 'users', uid, 'books', bookId, 'annotations');
+    const annotRef = collection(
+      db,
+      'users',
+      uid,
+      'books',
+      bookId,
+      'annotations',
+    );
+    // 🧹 Sanitize text before persisting
+    const cleanText = sanitizeEchoText(text);
+
     await addDoc(annotRef, {
       userId: uid,
       bookId: bookId,
       pageLocation: !parentId ? pageNum : null,
-      text,
+      text: cleanText,
       isPublic,
       parentId,
       replyCount: 0,
       userMetadata: {
         displayName: userMetadata.displayName || 'Leitor',
-        photoURL: userMetadata.photoURL || null
+        photoURL: userMetadata.photoURL || null,
       },
       reactions: { claps: 0 },
-      timestamp: serverTimestamp()
+      timestamp: serverTimestamp(),
     });
   } catch (error) {
-    console.error("Error adding annotation:", error);
+    Logger.error('Error adding annotation:', error);
     throw new Error(mapFirebaseError(error));
   }
 };
 
 export const getUserAnnotations = async (uid, bookId, onlyPublic = false) => {
   try {
-    const annotRef = collection(db, 'users', uid, 'books', bookId, 'annotations');
+    const annotRef = collection(
+      db,
+      'users',
+      uid,
+      'books',
+      bookId,
+      'annotations',
+    );
     let q = annotRef;
     if (onlyPublic) {
       q = query(annotRef, where('isPublic', '==', true));
@@ -237,8 +326,7 @@ export const getUserAnnotations = async (uid, bookId, onlyPublic = false) => {
     const snap = await getDocs(q);
     return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
-    console.error("Error getting annotations:", error);
+    Logger.error('Error getting annotations:', error);
     throw new Error(mapFirebaseError(error));
   }
 };
-

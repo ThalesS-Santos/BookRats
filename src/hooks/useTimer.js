@@ -14,11 +14,11 @@ export function useTimer(isActiveInitially = true) {
 
   const resetTimer = () => setSeconds(0);
 
-  return { 
-    seconds, 
-    setSeconds, 
-    isActive, 
-    setIsActive, 
-    resetTimer 
+  return {
+    seconds,
+    setSeconds,
+    isActive,
+    setIsActive,
+    resetTimer,
   };
 }

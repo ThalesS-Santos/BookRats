@@ -1,18 +1,20 @@
-import { createLibrarySlice } from '@core/store/slices/librarySlice';
-import { updateBook as apiUpdateBook } from '@core/api/books';
-import { BOOK_STATUS } from '../../src/core/constants/bookStatus';
 import { serverTimestamp } from 'firebase/firestore';
+
+import { updateBook as apiUpdateBook } from '@core/api/books';
+import { createLibrarySlice } from '@core/store/slices/librarySlice';
+
+import { BOOK_STATUS } from '../../src/core/constants/bookStatus';
 
 // Mock dependencies
 jest.mock('firebase/firestore', () => ({
   doc: jest.fn(),
   updateDoc: jest.fn(),
-  increment: jest.fn().mockImplementation((val) => val),
-  serverTimestamp: jest.fn().mockReturnValue('mock-timestamp')
+  increment: jest.fn().mockImplementation(val => val),
+  serverTimestamp: jest.fn().mockReturnValue('mock-timestamp'),
 }));
 
 jest.mock('@core/firebase/firebase', () => ({
-  db: {}
+  db: {},
 }));
 
 jest.mock('@core/api/books', () => ({
@@ -23,17 +25,17 @@ jest.mock('@core/api/books', () => ({
 jest.mock('../../src/store/usePopupStore', () => ({
   usePopupStore: {
     getState: jest.fn().mockReturnValue({
-      showPopup: jest.fn()
-    })
-  }
+      showPopup: jest.fn(),
+    }),
+  },
 }));
 
 jest.mock('@core/services/Logger', () => ({
   Logger: {
     error: jest.fn(),
     warn: jest.fn(),
-    info: jest.fn()
-  }
+    info: jest.fn(),
+  },
 }));
 
 describe('Library Status Transitions (Item 20)', () => {
@@ -43,19 +45,20 @@ describe('Library Status Transitions (Item 20)', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     state = {};
-    setMock = jest.fn((newState) => {
-      const current = typeof newState === 'function' ? newState(state) : newState;
+    setMock = jest.fn(newState => {
+      const current =
+        typeof newState === 'function' ? newState(state) : newState;
       state = { ...state, ...current };
     });
-    
+
     getMock = jest.fn(() => state);
-    
+
     const slice = createLibrarySlice(setMock, getMock);
-    state = { 
-      ...slice, 
-      books: [], 
+    state = {
+      ...slice,
+      books: [],
       user: { uid: 'user1' },
       streak: 5,
       lastReadDate: '2023-01-01',
@@ -65,16 +68,16 @@ describe('Library Status Transitions (Item 20)', () => {
 
   describe('Automatic Status Transitions', () => {
     it('should transition from READING to READ when progress reaches 100%', async () => {
-      const book = { 
-        id: 'b1', 
-        title: 'Dom Casmurro', 
-        currentPage: 50, 
-        totalPages: 100, 
+      const book = {
+        id: 'b1',
+        title: 'Dom Casmurro',
+        currentPage: 50,
+        totalPages: 100,
         status: BOOK_STATUS.READING,
-        author: 'Machado de Assis'
+        author: 'Machado de Assis',
       };
       state.books = [book];
-      
+
       apiUpdateBook.mockResolvedValueOnce();
 
       await state.updateBook('b1', { currentPage: 100 });
@@ -83,21 +86,25 @@ describe('Library Status Transitions (Item 20)', () => {
       expect(updatedBook.status).toBe(BOOK_STATUS.READ);
       expect(updatedBook.currentPage).toBe(100);
       expect(updatedBook.completedAt).toBeDefined(); // Should record completion time
-      
-      expect(apiUpdateBook).toHaveBeenCalledWith('user1', 'b1', expect.objectContaining({
-        status: BOOK_STATUS.READ,
-        currentPage: 100,
-        updatedAt: 'mock-timestamp'
-      }));
+
+      expect(apiUpdateBook).toHaveBeenCalledWith(
+        'user1',
+        'b1',
+        expect.objectContaining({
+          status: BOOK_STATUS.READ,
+          currentPage: 100,
+          updatedAt: 'mock-timestamp',
+        }),
+      );
     });
 
     it('should revert from READ to READING if progress is decreased below 100%', async () => {
-      const book = { 
-        id: 'b1', 
-        title: 'Dom Casmurro', 
-        currentPage: 100, 
-        totalPages: 100, 
-        status: BOOK_STATUS.READ 
+      const book = {
+        id: 'b1',
+        title: 'Dom Casmurro',
+        currentPage: 100,
+        totalPages: 100,
+        status: BOOK_STATUS.READ,
       };
       state.books = [book];
 
@@ -109,12 +116,12 @@ describe('Library Status Transitions (Item 20)', () => {
     });
 
     it('should jump progress to 100% when status is manually set to READ', async () => {
-      const book = { 
-        id: 'b1', 
-        title: 'Dom Casmurro', 
-        currentPage: 0, 
-        totalPages: 200, 
-        status: BOOK_STATUS.WANT_TO_READ 
+      const book = {
+        id: 'b1',
+        title: 'Dom Casmurro',
+        currentPage: 0,
+        totalPages: 200,
+        status: BOOK_STATUS.WANT_TO_READ,
       };
       state.books = [book];
 
@@ -128,16 +135,16 @@ describe('Library Status Transitions (Item 20)', () => {
 
   describe('Metadata Integrity', () => {
     it('should maintain existing metadata when changing status', async () => {
-      const book = { 
-        id: 'b1', 
-        title: 'O Alquimista', 
+      const book = {
+        id: 'b1',
+        title: 'O Alquimista',
         author: 'Paulo Coelho',
         thumbnail: 'image_url',
         categories: ['Fiction'],
-        currentPage: 10, 
-        totalPages: 150, 
+        currentPage: 10,
+        totalPages: 150,
         status: BOOK_STATUS.WANT_TO_READ,
-        extraData: 'some_value'
+        extraData: 'some_value',
       };
       state.books = [book];
 
@@ -157,14 +164,14 @@ describe('Library Status Transitions (Item 20)', () => {
     it('should abort and log error if an invalid status is provided', async () => {
       const book = { id: 'b1', status: BOOK_STATUS.READING };
       state.books = [book];
-      
+
       const { Logger } = require('@core/services/Logger');
 
       await state.updateBookStatus('b1', 'INVALID_STATUS');
 
       expect(apiUpdateBook).not.toHaveBeenCalled();
       expect(Logger.error).toHaveBeenCalled();
-      
+
       const updatedBook = state.books.find(b => b.id === 'b1');
       expect(updatedBook.status).toBe(BOOK_STATUS.READING); // No change
     });

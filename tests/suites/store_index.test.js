@@ -20,7 +20,7 @@ describe('Root Store', () => {
   it('persist partialize should filter out non-persistent data', () => {
     // Zustand persist middleware attaches the options to the store's persist object
     const persistOptions = useMainStore.persist.getOptions();
-    
+
     const mockState = {
       books: ['book1'],
       streak: 5,
@@ -30,7 +30,7 @@ describe('Root Store', () => {
       totalBooksCompleted: 2,
       totalClaps: 10,
       unlockedBadges: {},
-      
+
       user: { id: 1 }, // Should NOT persist
       loading: true, // Should NOT persist
     };
@@ -46,9 +46,9 @@ describe('Root Store', () => {
 
   it('persist migrate should handle version 0 and version 1', () => {
     const persistOptions = useMainStore.persist.getOptions();
-    
+
     const oldState = { oldProp: true };
-    
+
     // version 0
     const migratedV0 = persistOptions.migrate(oldState, 0);
     expect(migratedV0).toEqual(oldState);

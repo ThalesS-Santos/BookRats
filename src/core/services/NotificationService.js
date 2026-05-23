@@ -1,14 +1,15 @@
-import { db } from '../firebase/firebase';
-import { 
-  collection, 
-  addDoc, 
-  serverTimestamp, 
-  query, 
-  where, 
-  getDocs, 
+import {
+  collection,
+  addDoc,
+  serverTimestamp,
+  query,
+  where,
+  getDocs,
   writeBatch,
-  doc
+  doc,
 } from 'firebase/firestore';
+
+import { db } from '../firebase/firebase';
 
 /**
  * NotificationService
@@ -17,7 +18,7 @@ import {
 export const NotificationService = {
   /**
    * Sends a notification to a target user.
-   * 
+   *
    * @param {string} targetUserId - The ID of the user receiving the notification.
    * @param {Object} data - Notification payload.
    * @param {string} data.type - CLAP_ECHO | COMMENT_ECHO | FRIEND_ACCEPT.
@@ -27,11 +28,19 @@ export const NotificationService = {
    * @param {string} data.relatedId - Echo ID or Friend Request ID.
    * @param {string} data.message - Descriptive message.
    */
-  async sendNotification(targetUserId, { type, senderId, senderName, senderAvatar, relatedId, message }) {
+  async sendNotification(
+    targetUserId,
+    { type, senderId, senderName, senderAvatar, relatedId, message },
+  ) {
     if (!targetUserId || targetUserId === senderId) return;
 
     try {
-      const notificationsRef = collection(db, 'users', targetUserId, 'notifications');
+      const notificationsRef = collection(
+        db,
+        'users',
+        targetUserId,
+        'notifications',
+      );
       await addDoc(notificationsRef, {
         type,
         senderId,
@@ -41,16 +50,16 @@ export const NotificationService = {
         message,
         read: false,
         createdAt: new Date().toISOString(), // Used for local 10s check
-        timestamp: serverTimestamp() // Used for database sorting
+        timestamp: serverTimestamp(), // Used for database sorting
       });
     } catch (error) {
-      console.error("Error sending notification:", error);
+      console.error('Error sending notification:', error);
     }
   },
 
   /**
    * Marks all notifications as read for a specific user.
-   * 
+   *
    * @param {string} userId - The current user ID.
    */
   async markAllAsRead(userId) {
@@ -64,13 +73,13 @@ export const NotificationService = {
       if (snapshot.empty) return;
 
       const batch = writeBatch(db);
-      snapshot.docs.forEach((d) => {
+      snapshot.docs.forEach(d => {
         batch.update(d.ref, { read: true });
       });
 
       await batch.commit();
     } catch (error) {
-      console.error("Error marking all notifications as read:", error);
+      console.error('Error marking all notifications as read:', error);
     }
-  }
+  },
 };

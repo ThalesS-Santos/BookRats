@@ -1,10 +1,10 @@
 /**
  * Mapeia códigos de erro do Firebase e Firestore para mensagens amigáveis em Português.
- * 
+ *
  * @param {Object} error - O objeto de erro capturado no bloco catch.
  * @returns {string} - Mensagem amigável pronta para exibição.
  */
-export const mapFirebaseError = (error) => {
+export const mapFirebaseError = error => {
   const code = error?.code;
   const message = error?.message;
 
@@ -25,16 +25,20 @@ export const mapFirebaseError = (error) => {
 
     // Firestore Errors
     'permission-denied': 'Você não tem permissão para realizar esta ação.',
-    'unauthenticated': 'Usuário não autenticado. Por favor, faça login novamente.',
-    'unavailable': 'O serviço está temporariamente indisponível. Verifique sua conexão.',
+    unauthenticated:
+      'Usuário não autenticado. Por favor, faça login novamente.',
+    unavailable:
+      'O serviço está temporariamente indisponível. Verifique sua conexão.',
     'not-found': 'O recurso solicitado não foi encontrado.',
     'already-exists': 'Este item já existe.',
     'resource-exhausted': 'Limite de uso atingido. Tente novamente mais tarde.',
     'deadline-exceeded': 'Tempo limite da operação excedido. Tente novamente.',
-    
+
     // Quota Errors
-    'firestore/resource-exhausted': 'Limite diário atingido. Tente novamente amanhã.',
-    'functions/quota-exceeded': 'Limite diário atingido. Tente novamente amanhã.',
+    'firestore/resource-exhausted':
+      'Limite diário atingido. Tente novamente amanhã.',
+    'functions/quota-exceeded':
+      'Limite diário atingido. Tente novamente amanhã.',
   };
 
   return errorMap[code] || 'Ocorreu um erro inesperado. Tente novamente.';

@@ -1,0 +1,21 @@
+appId: com.bookrats
+---
+- launchApp
+- tapOn:
+    id: 'add-book-trigger'
+- tapOn:
+    id: 'search-input'
+- inputText: 'Cem Anos de Solidão'
+- tapOn:
+    text: 'CEM ANOS DE SOLIDÃO'
+- tapOn:
+    id: 'start-reading-btn'
+- takeScreenshot: book_added
+- tapOn:
+    id: 'settings-btn'
+- tapOn:
+    id: 'pages-read-input'
+- inputText: '50'
+- tapOn:
+    id: 'save-book-progress-btn'
+- takeScreenshot: book_progress_updated

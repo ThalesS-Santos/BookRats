@@ -1,25 +1,28 @@
 import React, { useMemo, useState, useRef } from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  TouchableOpacity, 
-  Animated, 
-  Dimensions, 
-  StyleSheet, 
-  Platform,
-  Image as RNImage
-} from 'react-native';
-import { Image } from 'expo-image';
-import { useNavigation, useRoute } from '@react-navigation/native';
+
 import { Ionicons } from '@expo/vector-icons';
-import { useThemeStore } from '../../store/useThemeStore';
-import { usePopupStore } from '../../store/usePopupStore';
-import { useMainStore } from '@core/store';
-import { BOOK_STATUS } from '@core/constants/bookStatus';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { Image } from 'expo-image';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Animated,
+  Dimensions,
+  StyleSheet,
+  Platform,
+  Image as RNImage,
+} from 'react-native';
+
 import { COLORS } from '@constants/colors';
-import { StatusSelector } from '../components';
+import { BOOK_STATUS } from '@core/constants/bookStatus';
+import { useMainStore } from '@core/store';
+
+import { usePopupStore } from '../../store/usePopupStore';
+import { useThemeStore } from '../../store/useThemeStore';
 import * as Haptics from '../../utils/haptics';
+import { StatusSelector } from '../components';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const HEADER_MAX_HEIGHT = 450;
@@ -29,7 +32,7 @@ const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 /**
  * Helper to strip HTML tags from strings.
  */
-const stripHtml = (html) => {
+const stripHtml = html => {
   if (!html) return '';
   return html.replace(/<[^>]*>?/gm, '').trim();
 };
@@ -40,8 +43,14 @@ const stripHtml = (html) => {
 const InfoCard = React.memo(({ icon, label, value, color }) => (
   <View className="bg-card-light dark:bg-card-dark p-4 rounded-3xl border border-border-light dark:border-border-dark shadow-sm items-center justify-center min-w-[85px] mr-3">
     <Ionicons name={icon} size={20} color={color} />
-    <Text className="text-text-muted-light dark:text-text-muted-dark text-[10px] uppercase font-bold mt-2">{label}</Text>
-    <Text className="text-text-light dark:text-text-dark text-xs font-bold mt-1" numberOfLines={1}>{value}</Text>
+    <Text className="text-text-muted-light dark:text-text-muted-dark text-[10px] uppercase font-bold mt-2">
+      {label}
+    </Text>
+    <Text
+      className="text-text-light dark:text-text-dark text-xs font-bold mt-1"
+      numberOfLines={1}>
+      {value}
+    </Text>
   </View>
 ));
 
@@ -51,29 +60,43 @@ export default function BookDetailsScreen() {
   const { isDarkMode } = useThemeStore();
   const books = useMainStore(state => state.books);
   const addBook = useMainStore(state => state.addBook);
-  
+
   const initialBook = route.params?.book;
-  
+
   // 🛰️ Sync with Library State
   const bookInLibrary = useMemo(() => {
-    return books.find(b => b.id === initialBook?.id || (b.title === initialBook?.title && b.author === initialBook?.author));
+    return books.find(
+      b =>
+        b.id === initialBook?.id ||
+        (b.title === initialBook?.title && b.author === initialBook?.author),
+    );
   }, [books, initialBook]);
 
   const book = bookInLibrary || initialBook;
   const isInLibrary = !!bookInLibrary;
 
   const [isExpanded, setIsExpanded] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState(BOOK_STATUS.WANT_TO_READ);
+  const [selectedStatus, setSelectedStatus] = useState(
+    BOOK_STATUS.WANT_TO_READ,
+  );
   const scrollY = useRef(new Animated.Value(0)).current;
 
   if (!book) return null;
 
   const accentColor = isDarkMode ? COLORS.primary.dark : COLORS.primary.light;
-  const cleanDescription = stripHtml(book.description || "Este livro ainda não possui uma sinopse disponível.");
-  
+  const cleanDescription = stripHtml(
+    book.description || 'Este livro ainda não possui uma sinopse disponível.',
+  );
+
   // 📈 Progress Calculations
-  const progress = Math.min((book.currentPage / (book.totalPages || 1)) * 100, 100);
-  const pagesLeft = Math.max(0, (book.totalPages || 0) - (book.currentPage || 0));
+  const progress = Math.min(
+    (book.currentPage / (book.totalPages || 1)) * 100,
+    100,
+  );
+  const pagesLeft = Math.max(
+    0,
+    (book.totalPages || 0) - (book.currentPage || 0),
+  );
 
   const handleCTA = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -83,29 +106,36 @@ export default function BookDetailsScreen() {
     } else {
       // Add to Library logic
       try {
-        await addBook(book.title, book.totalPages, book.id, book.description, {
-          author: book.author,
-          thumbnail: book.thumbnail,
-          categories: book.categories,
-          language: book.language,
-          publishedDate: book.publishedDate,
-          averageRating: book.averageRating
-        }, selectedStatus);
+        await addBook(
+          book.title,
+          book.totalPages,
+          book.id,
+          book.description,
+          {
+            author: book.author,
+            thumbnail: book.thumbnail,
+            categories: book.categories,
+            language: book.language,
+            publishedDate: book.publishedDate,
+            averageRating: book.averageRating,
+          },
+          selectedStatus,
+        );
 
         usePopupStore.getState().showPopup({
           title: 'Adicionado!',
           message: `"${book.title}" já está na sua estante.`,
-          type: 'success'
+          type: 'success',
         });
 
         // Navigate to Library (Início tab) and set filter
-        navigation.navigate('MainTabs', { 
-          screen: 'Início', 
-          params: { filter: selectedStatus } 
+        navigation.navigate('MainTabs', {
+          screen: 'Início',
+          params: { filter: selectedStatus },
         });
       } catch (error) {
         // Error is handled in the store slice, but we could catch here if needed
-        console.error("Error adding book from details:", error);
+        console.error('Error adding book from details:', error);
       }
     }
   };
@@ -138,47 +168,77 @@ export default function BookDetailsScreen() {
   return (
     <View className="flex-1 bg-background-light dark:bg-background-dark">
       {/* 🏙️ Parallax Header */}
-      <Animated.View 
+      <Animated.View
         style={[
-          styles.header, 
-          { transform: [{ translateY: headerTranslateY }], backgroundColor: isDarkMode ? COLORS.background.dark : COLORS.background.light }
-        ]}
-      >
-        <Animated.View style={[styles.headerBackground, { opacity: imageOpacity }]}>
-          <RNImage 
-            source={typeof book.thumbnail === 'string' ? { uri: book.thumbnail } : book.thumbnail} 
-            style={StyleSheet.absoluteFill} 
+          styles.header,
+          {
+            transform: [{ translateY: headerTranslateY }],
+            backgroundColor: isDarkMode
+              ? COLORS.background.dark
+              : COLORS.background.light,
+          },
+        ]}>
+        <Animated.View
+          style={[styles.headerBackground, { opacity: imageOpacity }]}>
+          <RNImage
+            source={
+              typeof book.thumbnail === 'string'
+                ? { uri: book.thumbnail }
+                : book.thumbnail
+            }
+            style={StyleSheet.absoluteFill}
             blurRadius={30}
             resizeMode="cover"
           />
-          <View style={[styles.overlay, { backgroundColor: isDarkMode ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.4)' }]} />
+          <View
+            style={[
+              styles.overlay,
+              {
+                backgroundColor: isDarkMode
+                  ? 'rgba(0,0,0,0.6)'
+                  : 'rgba(255,255,255,0.4)',
+              },
+            ]}
+          />
         </Animated.View>
 
-        <Animated.View style={[styles.headerContent, { opacity: imageOpacity, transform: [{ scale: imageScale }] }]}>
+        <Animated.View
+          style={[
+            styles.headerContent,
+            { opacity: imageOpacity, transform: [{ scale: imageScale }] },
+          ]}>
           <View className="shadow-2xl">
-            <Image 
-              source={book.thumbnail} 
+            <Image
+              source={book.thumbnail}
               style={styles.mainCover}
               contentFit="contain"
             />
           </View>
         </Animated.View>
-
       </Animated.View>
-      
+
       {/* Floating Header Bar (Fixed) */}
       <View style={styles.topBar}>
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => navigation.goBack()}
           className="p-3 rounded-full bg-black/40"
-          style={{ shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } }}
-        >
+          style={{
+            shadowColor: '#000',
+            shadowOpacity: 0.2,
+            shadowRadius: 5,
+            shadowOffset: { width: 0, height: 2 },
+          }}>
           <Ionicons name="chevron-back" size={24} color="white" />
         </TouchableOpacity>
-        <Animated.Text 
-          style={[styles.headerTitle, { opacity: headerTitleOpacity, color: isDarkMode ? 'white' : 'black' }]}
-          numberOfLines={1}
-        >
+        <Animated.Text
+          style={[
+            styles.headerTitle,
+            {
+              opacity: headerTitleOpacity,
+              color: isDarkMode ? 'white' : 'black',
+            },
+          ]}
+          numberOfLines={1}>
           {book.title}
         </Animated.Text>
         <View className="w-12" />
@@ -188,10 +248,9 @@ export default function BookDetailsScreen() {
         scrollEventThrottle={16}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
+          { useNativeDriver: true },
         )}
-        contentContainerStyle={{ paddingTop: HEADER_MAX_HEIGHT }}
-      >
+        contentContainerStyle={{ paddingTop: HEADER_MAX_HEIGHT }}>
         <View className="p-6">
           {/* Title & Author */}
           <Text className="text-text-light dark:text-text-dark text-3xl font-serif font-bold text-center mb-1">
@@ -202,12 +261,42 @@ export default function BookDetailsScreen() {
           </Text>
 
           {/* Metadata Row */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-8" contentContainerStyle={{ paddingHorizontal: 4 }}>
-            <InfoCard icon="book-outline" label="Páginas" value={book.totalPages || '??'} color={accentColor} />
-            <InfoCard icon="calendar-outline" label="Publicação" value={book.publishedDate ? book.publishedDate.split('-')[0] : 'N/A'} color={accentColor} />
-            <InfoCard icon="globe-outline" label="Idioma" value={book.language?.toUpperCase() === 'PT' ? 'Português' : (book.language?.toUpperCase() || 'N/A')} color={accentColor} />
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            className="mb-8"
+            contentContainerStyle={{ paddingHorizontal: 4 }}>
+            <InfoCard
+              icon="book-outline"
+              label="Páginas"
+              value={book.totalPages || '??'}
+              color={accentColor}
+            />
+            <InfoCard
+              icon="calendar-outline"
+              label="Publicação"
+              value={
+                book.publishedDate ? book.publishedDate.split('-')[0] : 'N/A'
+              }
+              color={accentColor}
+            />
+            <InfoCard
+              icon="globe-outline"
+              label="Idioma"
+              value={
+                book.language?.toUpperCase() === 'PT'
+                  ? 'Português'
+                  : book.language?.toUpperCase() || 'N/A'
+              }
+              color={accentColor}
+            />
             {book.averageRating && (
-              <InfoCard icon="star" label="Rating" value={book.averageRating.toString()} color="#FBBF24" />
+              <InfoCard
+                icon="star"
+                label="Rating"
+                value={book.averageRating.toString()}
+                color="#FBBF24"
+              />
             )}
           </ScrollView>
 
@@ -215,8 +304,12 @@ export default function BookDetailsScreen() {
           {book.categories && book.categories.length > 0 && (
             <View className="flex-row flex-wrap mb-8">
               {book.categories.map((cat, i) => (
-                <View key={i} className="bg-primary/10 dark:bg-primary-dark/10 px-4 py-2 rounded-full mr-2 mb-2 border border-primary/20 dark:border-primary-dark/20">
-                  <Text className="text-primary dark:text-primary-light text-xs font-bold uppercase">{cat}</Text>
+                <View
+                  key={i}
+                  className="bg-primary/10 dark:bg-primary-dark/10 px-4 py-2 rounded-full mr-2 mb-2 border border-primary/20 dark:border-primary-dark/20">
+                  <Text className="text-primary dark:text-primary-light text-xs font-bold uppercase">
+                    {cat}
+                  </Text>
                 </View>
               ))}
             </View>
@@ -226,17 +319,22 @@ export default function BookDetailsScreen() {
           {isInLibrary && book.status === BOOK_STATUS.READING && (
             <View className="bg-card-light dark:bg-card-dark p-6 rounded-3xl border border-primary/20 dark:border-primary-dark/20 mb-8 shadow-sm">
               <View className="flex-row justify-between items-center mb-4">
-                <Text className="text-text-light dark:text-text-dark font-serif font-bold text-lg">Seu Progresso</Text>
-                <Text className="text-primary dark:text-primary-dark font-mono font-bold">{Math.round(progress)}%</Text>
+                <Text className="text-text-light dark:text-text-dark font-serif font-bold text-lg">
+                  Seu Progresso
+                </Text>
+                <Text className="text-primary dark:text-primary-dark font-mono font-bold">
+                  {Math.round(progress)}%
+                </Text>
               </View>
               <View className="h-3 bg-border-light dark:bg-border-dark rounded-full overflow-hidden mb-3">
-                <View 
+                <View
                   className="h-full bg-primary dark:bg-primary-dark"
                   style={{ width: `${progress}%` }}
                 />
               </View>
               <Text className="text-text-muted-light dark:text-text-muted-dark text-xs italic text-center">
-                Você leu {book.currentPage} de {book.totalPages} páginas. Faltam {pagesLeft} para concluir!
+                Você leu {book.currentPage} de {book.totalPages} páginas. Faltam{' '}
+                {pagesLeft} para concluir!
               </Text>
             </View>
           )}
@@ -244,9 +342,11 @@ export default function BookDetailsScreen() {
           {/* Status Selection (Only if NOT in library) */}
           {!isInLibrary && (
             <View className="mb-8">
-              <Text className="text-text-light dark:text-text-dark font-serif font-bold text-xl mb-4">Onde colocar este livro?</Text>
+              <Text className="text-text-light dark:text-text-dark font-serif font-bold text-xl mb-4">
+                Onde colocar este livro?
+              </Text>
               <View className="bg-card-light dark:bg-card-dark p-4 rounded-3xl border border-border-light dark:border-border-dark">
-                <StatusSelector 
+                <StatusSelector
                   currentStatus={selectedStatus}
                   onStatusChange={setSelectedStatus}
                 />
@@ -256,22 +356,26 @@ export default function BookDetailsScreen() {
 
           {/* Synopsis Engine */}
           <View className="mb-24">
-            <Text className="text-text-light dark:text-text-dark font-serif font-bold text-xl mb-4">Sinopse</Text>
-            <Text 
+            <Text className="text-text-light dark:text-text-dark font-serif font-bold text-xl mb-4">
+              Sinopse
+            </Text>
+            <Text
               className="text-text-muted-light dark:text-text-muted-dark text-base leading-7 text-justify"
-              numberOfLines={isExpanded ? undefined : 6}
-            >
+              numberOfLines={isExpanded ? undefined : 6}>
               {cleanDescription}
             </Text>
             {cleanDescription.length > 200 && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => setIsExpanded(!isExpanded)}
-                className="mt-4 flex-row items-center justify-center border-t border-border-light/30 dark:border-border-dark/30 pt-4"
-              >
+                className="mt-4 flex-row items-center justify-center border-t border-border-light/30 dark:border-border-dark/30 pt-4">
                 <Text className="text-primary dark:text-primary-light font-bold mr-1">
                   {isExpanded ? 'VER MENOS' : 'LER TUDO'}
                 </Text>
-                <Ionicons name={isExpanded ? "chevron-up" : "chevron-down"} size={16} color={accentColor} />
+                <Ionicons
+                  name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                  size={16}
+                  color={accentColor}
+                />
               </TouchableOpacity>
             )}
           </View>
@@ -279,13 +383,19 @@ export default function BookDetailsScreen() {
       </Animated.ScrollView>
 
       {/* 🚀 Sticky Action Bar */}
-      <View style={styles.footer} className="bg-background-light/95 dark:bg-background-dark/95 border-t border-border-light dark:border-border-dark">
+      <View
+        style={styles.footer}
+        className="bg-background-light/95 dark:bg-background-dark/95 border-t border-border-light dark:border-border-dark">
         <TouchableOpacity
+          testID="start-reading-btn"
           onPress={handleCTA}
           className="bg-primary dark:bg-primary-dark p-5 rounded-2xl flex-row items-center justify-center shadow-xl"
-          style={{ backgroundColor: accentColor }}
-        >
-          <Ionicons name={isInLibrary ? "play-circle" : "add-circle"} size={24} color="white" />
+          style={{ backgroundColor: accentColor }}>
+          <Ionicons
+            name={isInLibrary ? 'play-circle' : 'add-circle'}
+            size={24}
+            color="white"
+          />
           <Text className="text-white font-bold text-lg ml-2 uppercase tracking-widest">
             {isInLibrary ? 'Registrar Progresso' : 'Adicionar à Estante'}
           </Text>
@@ -347,5 +457,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 16,
     paddingBottom: Platform.OS === 'ios' ? 40 : 20,
-  }
+  },
 });

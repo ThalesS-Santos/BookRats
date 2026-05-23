@@ -1,74 +1,103 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // 👤 Perfil do Usuário
-    match /users/{userId} {
-      allow read: if request.auth != null;
-      allow create, update: if request.auth != null && request.auth.uid == userId;
-      
-      // 🔔 Notificações
-      match /notifications/{notificationId} {
-        allow read, update: if request.auth != null && request.auth.uid == userId;
-        allow create: if request.auth != null; // Qualquer usuário logado pode te notificar!
-      }
-      
-      // 📊 Logs de Leitura
-      match /readingLogs/{logId} {
-        allow read, create, delete: if request.auth != null && request.auth.uid == userId;
-      }
-      
-      // 📚 Subcoleção de Livros
-      match /books/{bookId} {
-        allow read: if request.auth != null;
-        allow write: if request.auth != null && request.auth.uid == userId;
+    function signedIn() {
+      return request.auth != null;
+    }
 
-        // 🏠 Acesso Local (Dono)
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function safeIntDelta(next, prev, maxStep) {
+      return next is int && prev is int && next >= prev && (next - prev) <= maxStep;
+    }
+
+    function safeStreakDelta(next, prev) {
+      return next is int && prev is int && ((next == prev) || (next == prev + 1) || (next == 0));
+    }
+
+    function safeCompletedDelta(next, prev) {
+      return next is int && prev is int && ((next == prev) || (next == prev + 1) || (next == prev - 1));
+    }
+
+    function isSafeRankingUpdate() {
+      return safeIntDelta(request.resource.data.total_pages_read, resource.data.total_pages_read, 2000) &&
+        safeStreakDelta(request.resource.data.current_streak, resource.data.current_streak) &&
+        safeCompletedDelta(request.resource.data.total_books_completed, resource.data.total_books_completed) &&
+        request.resource.data.total_claps_received == resource.data.total_claps_received &&
+        safeIntDelta(request.resource.data.socialSummary.totalPagesRead, resource.data.socialSummary.totalPagesRead, 2000) &&
+        safeStreakDelta(request.resource.data.socialSummary.currentStreak, resource.data.socialSummary.currentStreak);
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) && isSafeRankingUpdate();
+      allow delete: if false;
+
+      match /notifications/{notificationId} {
+        allow read, update: if isOwner(userId);
+        allow create: if signedIn() && request.resource.data.senderId == request.auth.uid;
+        allow delete: if false;
+      }
+
+      match /readingLogs/{logId} {
+        allow read, create, delete: if isOwner(userId);
+        allow update: if false;
+      }
+
+      match /books/{bookId} {
+        allow read: if signedIn();
+        allow write: if isOwner(userId);
+
         match /annotations/{annotId} {
-          allow read: if request.auth != null && (resource.data.isPublic == true || request.auth.uid == userId);
-          allow write: if request.auth != null && request.auth.uid == userId;
+          allow read: if signedIn() && (resource.data.isPublic == true || isOwner(userId));
+          allow write: if isOwner(userId);
         }
       }
     }
 
-    // 🌟 Social Echoes (Notes) - Top-Level Collection Group Match
     match /{path=**}/annotations/{annotId} {
-      // Allow reading if the note is public OR the current user is the owner (userId field)
-      allow read: if request.auth != null && (resource.data.isPublic == true || request.auth.uid == resource.data.userId);
-      
-      // Creation is owner-only
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-      
-      // Update is owner-only UNLESS just incrementing reactions (Rat Claps) or replies
-      allow update: if request.auth != null && (
-        request.auth.uid == resource.data.userId || 
-        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions', 'replyCount']))
+      allow read: if signedIn() && (resource.data.isPublic == true || request.auth.uid == resource.data.userId);
+      allow create: if signedIn() && request.auth.uid == request.resource.data.userId;
+      allow update: if signedIn() && (
+        request.auth.uid == resource.data.userId ||
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions']) &&
+          request.resource.data.reactions.claps == resource.data.reactions.claps + 1
+        ) ||
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['replyCount']) &&
+          request.resource.data.replyCount == resource.data.replyCount + 1
+        )
       );
+      allow delete: if signedIn() && request.auth.uid == resource.data.userId;
+    }
 
-      // Deletion is owner-only
-      allow delete: if request.auth != null && request.auth.uid == resource.data.userId;
-    }
-    
-    // 🤝 Amizades (Friendships)
-    // FIX: Use request.auth.uid directly — resource.data is null on collection queries (where clauses)
     match /friendships/{friendshipId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.senderId;
-      allow update: if request.auth != null && (request.auth.uid == resource.data.senderId || request.auth.uid == resource.data.receiverId);
-      allow delete: if request.auth != null && (request.auth.uid == resource.data.senderId || request.auth.uid == resource.data.receiverId);
+      allow read: if signedIn();
+      allow create: if signedIn() &&
+        request.auth.uid == request.resource.data.senderId &&
+        request.resource.data.senderId != request.resource.data.receiverId &&
+        request.resource.data.status == 'pending';
+      allow update: if signedIn() && (
+        (request.auth.uid == resource.data.receiverId && request.resource.data.status in ['accepted', 'rejected']) ||
+        (request.auth.uid == resource.data.senderId && request.resource.data.status == resource.data.status)
+      );
+      allow delete: if signedIn() && (request.auth.uid == resource.data.senderId || request.auth.uid == resource.data.receiverId);
     }
-    
-    // 👥 Grupos (Groups)
-    // FIX: Allow any authenticated user to read groups collection — the query itself (array-contains) limits results
+
     match /groups/{groupId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null && (request.auth.uid == resource.data.adminId || request.auth.uid in resource.data.members);
-      
-      // 💬 Mensagens do Grupo
+      allow read: if signedIn();
+      allow create: if signedIn() && request.auth.uid == request.resource.data.adminId;
+      allow update: if signedIn() && (request.auth.uid == resource.data.adminId || request.auth.uid in resource.data.members);
+      allow delete: if signedIn() && request.auth.uid == resource.data.adminId;
+
       match /messages/{messageId} {
-        allow read, create: if request.auth != null && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
+        allow read, create: if signedIn() && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
+        allow update, delete: if false;
       }
     }
   }
-}
+}

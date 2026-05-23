@@ -1,46 +1,46 @@
-# Especificações e Funcionalidades (BookRats)
+# Especificacoes do Projeto
 
-Este documento centraliza as definições de escopo, pilares de design e requisitos técnicos do projeto BookRats.
+## Objetivo
 
----
+Transformar leitura em experiencia social: progresso de leitura, anotacoes contextuais e interacao entre leitores.
 
-## 1. Visão Geral
-BookRats não é apenas um tracker de leitura; é um ecossistema social focado na imersão literária. O objetivo é gamificar o hábito de leitura e permitir que pensamentos sejam compartilhados de forma contextual (atrelados à página do livro).
+## Funcionalidades Nucleares
 
----
+1. Biblioteca
 
-## 2. Pilares de Experiência (UX)
+- adicionar/remover livros
+- atualizar progresso
+- status de leitura com `BOOK_STATUS`
 
-### 2.1 Contextualidade (Echoes)
-Diferente de resenhas post-mortem, os **Echoes** permitem que o usuário interaja com o livro durante o processo. A experiência é protegida pelo filtro anti-spoiler.
+2. Echoes
 
-### 2.2 Foco Imersivo (Timer)
-A ferramenta de cronômetro é desenhada para minimizar distrações, mantendo a tela ativa e fornecendo feedbacks táteis que marcam o ritmo da leitura.
+- anotacoes por pagina
+- resposta em thread
+- reacao com clap
 
-### 2.3 Reconhecimento (Gamificação)
-O progresso é recompensado através de **Streaks**, **Badges** e o status de **Influenciador**, que é conquistado através da qualidade das interações sociais.
+3. Social
 
----
+- amizades
+- grupos
+- notificacoes
+- ranking
 
-## 3. Requisitos Técnicos e Stack
+4. Gamificacao
 
-### 3.1 Mobile First
-- **Core:** React Native + Expo.
-- **Estilo:** Design atômico com TailwindCSS (NativeWind).
+- streak
+- badges
+- indicadores de progresso
 
-### 3.2 Real-time & Serverless
-- **Data:** Cloud Firestore para sincronização em tempo real.
-- **Auth:** Firebase Authentication com suporte a múltiplos providers.
+## Requisitos Tecnicos
 
-### 3.3 Qualidade e Estabilidade
-- **Testes:** Cobertura de 100% em lógica de domínio.
-- **Segurança:** Regras de acesso baseadas em tokens JWT via Firestore Security Rules.
+- mobile-first com Expo/React Native
+- armazenamento e sync em Firestore
+- validacao defensiva de entrada
+- regras de seguranca por menor privilegio
+- testes automatizados e quality gates
 
----
+## Nao-Funcionais
 
-## 4. Requisitos de Contribuição
-Para desenvolvedores interessados em contribuir:
-- **Node.js 18+**
-- **Git**
-- **Cultura de Testes:** Todo PR deve incluir testes que mantenham a cobertura atual.
-- **Design:** Seguir os tokens definidos no [UI/UX Guide](./UI_UX_GUIDE.md).
+- confiabilidade: error boundary + logger
+- rastreabilidade: logs estruturados
+- manutencao: arquitetura modular e docs atualizados

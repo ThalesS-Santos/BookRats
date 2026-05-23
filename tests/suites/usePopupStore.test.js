@@ -4,7 +4,7 @@ describe('usePopupStore', () => {
   it('shows a popup with default type info', () => {
     usePopupStore.getState().showPopup({
       title: 'Test Title',
-      message: 'Test Message'
+      message: 'Test Message',
     });
 
     const state = usePopupStore.getState();
@@ -23,7 +23,7 @@ describe('usePopupStore', () => {
       message: 'Are you sure?',
       type: 'confirm',
       onConfirm: mockConfirm,
-      onCancel: mockCancel
+      onCancel: mockCancel,
     });
 
     const state = usePopupStore.getState();

@@ -38,11 +38,11 @@ describe('Firebase Initialization', () => {
   it('should get existing apps if already initialized', () => {
     const { getApps } = require('firebase/app');
     getApps.mockReturnValue([{ name: 'existing-app' }]);
-    
+
     jest.isolateModules(() => {
       require('../../src/core/firebase/firebase');
     });
-    
+
     expect(FirebaseApp.getApp).toHaveBeenCalled();
     expect(FirebaseAuth.getAuth).toHaveBeenCalled();
     expect(FirebaseFirestore.getFirestore).toHaveBeenCalled();

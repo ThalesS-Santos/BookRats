@@ -1,0 +1,15 @@
+appId: com.bookrats
+---
+- clearState
+- launchApp
+- tapOn:
+    id: 'email-input'
+- inputText: 'teste@bookrats.com'
+- tapOn:
+    id: 'password-input'
+- inputText: 'senha123'
+- tapOn:
+    id: 'auth-submit-button'
+- assertVisible:
+    text: 'Resumo Diário'
+- takeScreenshot: home_screen_success

@@ -22,12 +22,14 @@ describe('Google Books API - MSW Integration Test', () => {
     expect(result.items).toBeDefined();
     expect(result.items.length).toBeGreaterThan(0);
     expect(result.totalItems).toBeDefined();
-    
+
     // This value comes directly from tests/mocks/handlers.js and is now NORMALIZED
     expect(result.items[0].title).toBe('Cem Anos de Solidão');
     expect(result.items[0].author).toBe('Gabriel García Márquez');
     expect(result.items[0].totalPages).toBe(418);
     expect(result.items[0].isbn).toBe('9788501012074');
-    expect(result.items[0].thumbnail).toEqual({ uri: 'https://example.com/cover.jpg' });
+    expect(result.items[0].thumbnail).toEqual({
+      uri: 'https://example.com/cover.jpg',
+    });
   });
 });

@@ -1,4 +1,5 @@
 import { PixelBook } from '@ui/assets';
+
 import { BOOK_STATUS } from '../constants/bookStatus';
 
 /**
@@ -23,14 +24,14 @@ import { BOOK_STATUS } from '../constants/bookStatus';
  */
 
 /**
- * Service responsible for normalizing raw data from external APIs 
+ * Service responsible for normalizing raw data from external APIs
  * into the internal Book schema used by BookRats.
  */
 export const BookNormalizationService = {
   /**
    * Resolves the best possible cover for a book.
    * Handles missing URLs with a local pixel-art fallback and forces HTTPS.
-   * 
+   *
    * @param {string|null} thumbnailUrl - The raw URL from the API.
    * @returns {Object|number} The source object for React Native Image component.
    */
@@ -41,13 +42,13 @@ export const BookNormalizationService = {
 
     // Force HTTPS to comply with mobile security policies (ATS/Network Security Config)
     const secureUrl = thumbnailUrl.replace(/^http:/, 'https:');
-    
+
     return { uri: secureUrl };
   },
 
   /**
    * Removes HTML tags and sanitizes text descriptions.
-   * 
+   *
    * @param {string|null} html - Raw description from the API.
    * @returns {string} Clean plain text.
    */
@@ -63,13 +64,13 @@ export const BookNormalizationService = {
       .replace(/&quot;/g, '"')
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
-      .replace(/\s+/g, ' ')    // Normalize whitespace
+      .replace(/\s+/g, ' ') // Normalize whitespace
       .trim();
   },
 
   /**
    * Converts a single Google Books API item into a normalized Book object.
-   * 
+   *
    * @param {Object} googleItem - Raw item from Google Books API response.
    * @returns {Book|null} Normalized book object.
    */
@@ -77,7 +78,7 @@ export const BookNormalizationService = {
     if (!googleItem) return null;
 
     const { id, volumeInfo } = googleItem;
-    
+
     // Extract ISBN_13 prioritizing it over ISBN_10
     const identifiers = volumeInfo?.industryIdentifiers || [];
     const isbn13 = identifiers.find(id => id.type === 'ISBN_13')?.identifier;
@@ -101,7 +102,7 @@ export const BookNormalizationService = {
       publisher: volumeInfo?.publisher || null,
       // Internal fields
       source: 'google_books',
-      normalizedAt: new Date().toISOString()
+      normalizedAt: new Date().toISOString(),
     };
   },
 
@@ -110,8 +111,8 @@ export const BookNormalizationService = {
    */
   normalizeGoogleBooks(items) {
     if (!Array.isArray(items)) return [];
-    // Important: use .map(item => this.normalizeGoogleBook(item)) 
+    // Important: use .map(item => this.normalizeGoogleBook(item))
     // to preserve 'this' context if needed, or bind it.
     return items.map(item => this.normalizeGoogleBook(item)).filter(Boolean);
-  }
+  },
 };

@@ -1,57 +1,35 @@
-# 🎨 Guia de UI/UX e Design System
+# UI/UX Guide
 
-O BookRats utiliza uma estética "Dark Premium" com toques de "Neon Tech", focada em imersão e legibilidade.
+## Direcao de Produto
 
----
+- app utilitario para leitura social
+- interfaces objetivas, com foco em legibilidade e acao recorrente
 
-## 🌈 Paleta de Cores
+## Principios
 
-Nossas cores estão definidas em `src/ui/constants/colors.js` e integradas ao `tailwind.config.js`:
+1. Clareza
 
-- **Primary (Rat Green):** `#CCFF00` (Um verde neon vibrante para ações principais e gamificação).
-- **Secondary (Dark Blue):** `#0A0E14` (Fundo profundo para o modo escuro).
-- **Accent (Electric Blue):** `#00D1FF` (Para links, notificações e badges de sistema).
-- **Surface:** `#1A1F26` (Cards, modais e superfícies elevadas).
-- **Text:**
-  - `High Emphasis`: `#FFFFFF`
-  - `Medium Emphasis`: `#A0AEC0`
-  - `Disabled`: `#4A5568`
+- hierarquia visual previsivel
+- sem ruido decorativo desnecessario
 
----
+2. Consistencia
 
-## 📐 Tipografia
+- componentes reaproveitados via Atomic Design
+- cores e tokens centralizados
 
-Utilizamos fontes nativas do sistema para garantir performance e familiaridade:
-- **Títulos:** Bold/Black com espaçamento entre letras reduzido para um ar moderno.
-- **Corpo:** Regular com altura de linha generosa (1.5x) para facilitar a leitura prolongada de Echoes.
+3. Feedback
 
----
+- popup para erros/confirmacoes
+- haptics quando relevante
+- fallback amigavel em falhas de render
 
-## 🧱 Componentes Atômicos
+## Acessibilidade Basica
 
-### Avatares (`FastAvatar.js`)
-- Suporte a cache de imagem agressivo.
-- Fallback para "Pixel Art" se a imagem do usuário falhar.
-- Borda neon indicando se o usuário é um "Influenciador".
+- contraste minimo em modo claro/escuro
+- textos criticos sem truncamento agressivo
+- alvos de toque adequados
 
-### Skeletons (`Skeleton.js`)
-- Animações de pulso suaves via Reanimated.
-- Utilizados em carregamentos de listas de livros e galerias para reduzir o "Layout Shift".
+## Observacao de Qualidade
 
----
-
-## 🕹️ Feedback Sensorial (Haptics)
-
-O design visual é complementado por uma camada tátil:
-- **Sucesso:** Vibração suave em cascata (Success Haptic).
-- **Seleção:** Clique curto e seco ao navegar por itens (Selection Haptic).
-- **Erro:** Vibração tripla de advertência (Warning Haptic).
-
-*Nota: O usuário pode desativar todos os feedbacks táteis nas configurações de acessibilidade.*
-
----
-
-## 📱 Responsividade e Safe Areas
-
-- Utilizamos `react-native-safe-area-context` em todas as telas para evitar cortes em dispositivos com "Notch" ou "Dynamic Island".
-- O layout adapta-se de iPhones pequenos até tablets, usando grids flexíveis do Tailwind.
+- bugs visuais devem virar teste de regressao quando possivel
+- componentes centrais devem manter snapshot/testes de comportamento

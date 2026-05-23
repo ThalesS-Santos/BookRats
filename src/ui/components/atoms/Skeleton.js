@@ -1,11 +1,19 @@
 import React, { useEffect, useRef } from 'react';
+
 import { Animated, Easing } from 'react-native';
 
 /**
  * Reusable Skeleton Component
  * @param {Object} props
  */
-export default function Skeleton({ width, height, borderRadius = 8, style, children, testID }) {
+export default function Skeleton({
+  width,
+  height,
+  borderRadius = 8,
+  style,
+  children,
+  testID,
+}) {
   const opacityAnim = useRef(new Animated.Value(0.3)).current;
 
   useEffect(() => {
@@ -22,8 +30,8 @@ export default function Skeleton({ width, height, borderRadius = 8, style, child
           duration: 400,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
-        })
-      ])
+        }),
+      ]),
     ).start();
   }, [opacityAnim]);
 
@@ -38,9 +46,8 @@ export default function Skeleton({ width, height, borderRadius = 8, style, child
           borderRadius,
           opacity: opacityAnim,
         },
-        style
-      ]}
-    >
+        style,
+      ]}>
       {children}
     </Animated.View>
   );

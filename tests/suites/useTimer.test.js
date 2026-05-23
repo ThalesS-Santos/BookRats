@@ -1,4 +1,5 @@
 import { renderHook, act } from '@testing-library/react-native';
+
 import { useTimer } from '../../src/hooks/useTimer';
 
 describe('useTimer Hook', () => {

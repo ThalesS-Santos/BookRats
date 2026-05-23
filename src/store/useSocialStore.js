@@ -1,10 +1,10 @@
 import { create } from 'zustand';
-import { useMainStore } from '@core/store';
-import { 
-  searchUsers as apiSearchUsers, 
-  sendFriendRequest as apiSendFriendRequest, 
-  acceptFriendRequest as apiAcceptFriendRequest, 
-  rejectFriendRequest as apiRejectFriendRequest, 
+
+import {
+  searchUsers as apiSearchUsers,
+  sendFriendRequest as apiSendFriendRequest,
+  acceptFriendRequest as apiAcceptFriendRequest,
+  rejectFriendRequest as apiRejectFriendRequest,
   createGroup as apiCreateGroup,
   subscribeToSentRequests,
   subscribeToReceivedRequests,
@@ -16,8 +16,11 @@ import {
   getPaginatedRanking as apiGetPaginatedRanking,
   subscribeToRanking as apiSubscribeToRanking,
   getPublicEchoes as apiGetPublicEchoes,
-  addRatClap as apiAddRatClap
+  addRatClap as apiAddRatClap,
 } from '@core/api/social';
+import { Logger } from '@core/services/Logger';
+import { useMainStore } from '@core/store';
+
 import { usePopupStore } from './usePopupStore';
 
 export const useSocialStore = create((set, get) => ({
@@ -42,11 +45,11 @@ export const useSocialStore = create((set, get) => ({
     if (rankingUnsubscribe) return;
 
     set({ loadingRanking: true });
-    const unsub = apiSubscribeToRanking((users) => {
-      set({ 
-        rankingList: users, 
+    const unsub = apiSubscribeToRanking(users => {
+      set({
+        rankingList: users,
         loadingRanking: false,
-        hasMore: false // Disable pagination in real-time mode
+        hasMore: false, // Disable pagination in real-time mode
       });
     });
     set({ rankingUnsubscribe: unsub });
@@ -61,16 +64,24 @@ export const useSocialStore = create((set, get) => ({
   },
 
   fetchInitialRanking: async () => {
-    set({ loadingRanking: true, rankingList: [], lastDoc: null, hasMore: true });
+    set({
+      loadingRanking: true,
+      rankingList: [],
+      lastDoc: null,
+      hasMore: true,
+    });
     try {
-      const { users, lastDoc, hasMore } = await apiGetPaginatedRanking(null, 15);
+      const { users, lastDoc, hasMore } = await apiGetPaginatedRanking(
+        null,
+        15,
+      );
       set({ rankingList: users, lastDoc, hasMore, loadingRanking: false });
     } catch (error) {
       set({ loadingRanking: false });
       usePopupStore.getState().showPopup({
         title: 'Erro no Ranking',
         message: error.message,
-        type: 'error'
+        type: 'error',
       });
     }
   },
@@ -82,23 +93,29 @@ export const useSocialStore = create((set, get) => ({
 
     set({ loadingRanking: true });
     try {
-      const { users, lastDoc: nextLastDoc, hasMore: nextHasMore } = await apiGetPaginatedRanking(lastDoc, 5);
-      
+      const {
+        users,
+        lastDoc: nextLastDoc,
+        hasMore: nextHasMore,
+      } = await apiGetPaginatedRanking(lastDoc, 5);
+
       // Evitar duplicatas por precaução
-      const newUsers = users.filter(u => !rankingList.some(existing => existing.id === u.id));
-      
-      set({ 
-        rankingList: [...rankingList, ...newUsers], 
-        lastDoc: nextLastDoc, 
-        hasMore: nextHasMore, 
-        loadingRanking: false 
+      const newUsers = users.filter(
+        u => !rankingList.some(existing => existing.id === u.id),
+      );
+
+      set({
+        rankingList: [...rankingList, ...newUsers],
+        lastDoc: nextLastDoc,
+        hasMore: nextHasMore,
+        loadingRanking: false,
       });
     } catch (error) {
       set({ loadingRanking: false });
       usePopupStore.getState().showPopup({
         title: 'Erro ao Carregar Mais',
         message: error.message,
-        type: 'error'
+        type: 'error',
       });
     }
   },
@@ -109,7 +126,7 @@ export const useSocialStore = create((set, get) => ({
       return;
     }
     set({ loadingSearch: true, errorSearch: null });
-    
+
     try {
       // 🚀 Busca direta na API (Filtro no Firestore) para melhor performance e economia de dados
       const searchResults = await apiSearchUsers(queryText);
@@ -121,7 +138,7 @@ export const useSocialStore = create((set, get) => ({
       usePopupStore.getState().showPopup({
         title: 'Erro na Busca',
         message: error.message,
-        type: 'error'
+        type: 'error',
       });
     }
   },
@@ -131,37 +148,37 @@ export const useSocialStore = create((set, get) => ({
     try {
       await apiSendFriendRequest(senderUid, receiverUid);
     } catch (error) {
-      console.error("Error sending friend request:", error);
+      Logger.error('Error sending friend request', error);
       usePopupStore.getState().showPopup({
         title: 'Erro na Solicitação',
         message: error.message,
-        type: 'error'
+        type: 'error',
       });
     }
   },
 
-  acceptFriendRequest: async (requestId) => {
+  acceptFriendRequest: async requestId => {
     try {
       await apiAcceptFriendRequest(requestId);
     } catch (error) {
-      console.error("Error accepting friend request:", error);
+      Logger.error('Error accepting friend request', error);
       usePopupStore.getState().showPopup({
         title: 'Erro ao Aceitar',
         message: error.message,
-        type: 'error'
+        type: 'error',
       });
     }
   },
 
-  rejectFriendRequest: async (requestId) => {
+  rejectFriendRequest: async requestId => {
     try {
       await apiRejectFriendRequest(requestId);
     } catch (error) {
-      console.error("Error rejecting friend request:", error);
+      Logger.error('Error rejecting friend request', error);
       usePopupStore.getState().showPopup({
         title: 'Erro ao Recusar',
         message: error.message,
-        type: 'error'
+        type: 'error',
       });
     }
   },
@@ -172,17 +189,17 @@ export const useSocialStore = create((set, get) => ({
     try {
       return await apiCreateGroup(name, adminId, memberIds);
     } catch (error) {
-      console.error("Error creating group:", error);
+      Logger.error('Error creating group', error);
       usePopupStore.getState().showPopup({
         title: 'Erro ao Criar Grupo',
         message: error.message,
-        type: 'error'
+        type: 'error',
       });
       return null;
     }
   },
 
-  subscribeToSocialData: (uid) => {
+  subscribeToSocialData: uid => {
     if (!uid) {
       set({ loadingSocial: false });
       return () => {};
@@ -200,42 +217,56 @@ export const useSocialStore = create((set, get) => ({
     };
 
     // 1. Sent Requests
-    const unsubSent = subscribeToSentRequests(uid, async (reqs) => {
-      set({ sentRequests: reqs });
-      await get().resolveFriendships(uid);
-      isSentLoaded = true;
-      checkComplete();
-    }, (error) => {
-      console.error("Error fetching sent requests:", error);
-      isSentLoaded = true; // Mark as "attempted" to not block checkComplete
-      checkComplete();
-    });
+    const unsubSent = subscribeToSentRequests(
+      uid,
+      async reqs => {
+        set({ sentRequests: reqs });
+        await get().resolveFriendships(uid);
+        isSentLoaded = true;
+        checkComplete();
+      },
+      error => {
+        Logger.warn('Error fetching sent requests', { error: error?.message });
+        isSentLoaded = true; // Mark as "attempted" to not block checkComplete
+        checkComplete();
+      },
+    );
 
     // 2. Received Requests
-    const unsubReceived = subscribeToReceivedRequests(uid, async (reqs) => {
-      set({ 
-        pendingRequests: reqs.filter(r => r.status === 'pending'),
-        allReceived: reqs 
-      });
-      await get().resolveFriendships(uid);
-      isReceivedLoaded = true;
-      checkComplete();
-    }, (error) => {
-      console.error("Error fetching received requests:", error);
-      isReceivedLoaded = true;
-      checkComplete();
-    });
+    const unsubReceived = subscribeToReceivedRequests(
+      uid,
+      async reqs => {
+        set({
+          pendingRequests: reqs.filter(r => r.status === 'pending'),
+          allReceived: reqs,
+        });
+        await get().resolveFriendships(uid);
+        isReceivedLoaded = true;
+        checkComplete();
+      },
+      error => {
+        Logger.warn('Error fetching received requests', {
+          error: error?.message,
+        });
+        isReceivedLoaded = true;
+        checkComplete();
+      },
+    );
 
     // 3. Groups
-    const unsubGroups = subscribeToGroups(uid, (groupsList) => {
-      set({ groups: groupsList });
-      isGroupsLoaded = true;
-      checkComplete();
-    }, (error) => {
-      console.error("Error fetching groups:", error);
-      isGroupsLoaded = true;
-      checkComplete();
-    });
+    const unsubGroups = subscribeToGroups(
+      uid,
+      groupsList => {
+        set({ groups: groupsList });
+        isGroupsLoaded = true;
+        checkComplete();
+      },
+      error => {
+        Logger.warn('Error fetching groups', { error: error?.message });
+        isGroupsLoaded = true;
+        checkComplete();
+      },
+    );
 
     return () => {
       unsubSent();
@@ -244,13 +275,19 @@ export const useSocialStore = create((set, get) => ({
     };
   },
 
-  resolveFriendships: async (uid) => {
+  resolveFriendships: async uid => {
     const { sentRequests, allReceived = [] } = get();
     const allRequests = [...sentRequests, ...allReceived];
     const acceptedRequests = allRequests.filter(r => r.status === 'accepted');
 
     // 1. Get unique friend IDs
-    const friendIds = [...new Set(acceptedRequests.map(r => r.senderId === uid ? r.receiverId : r.senderId))];
+    const friendIds = [
+      ...new Set(
+        acceptedRequests.map(r =>
+          r.senderId === uid ? r.receiverId : r.senderId,
+        ),
+      ),
+    ];
 
     // 2. Fetch friend details in batch ⚡
     const friendsData = await getUsersByIds(friendIds);
@@ -260,42 +297,75 @@ export const useSocialStore = create((set, get) => ({
     const { pendingRequests } = get();
     const pendingSenderIds = pendingRequests.map(req => req.senderId);
     const pendingSendersDetails = await getUsersByIds(pendingSenderIds);
-    
-    const pendingWithDetails = pendingRequests.map(req => {
-      const details = pendingSendersDetails.find(d => d.id === req.senderId);
-      return details ? { ...req, senderName: details.username || details.email.split('@')[0] } : null;
-    }).filter(Boolean);
-    
+
+    const pendingWithDetails = pendingRequests
+      .map(req => {
+        const details = pendingSendersDetails.find(d => d.id === req.senderId);
+        return details
+          ? {
+              ...req,
+              senderName: details.username || details.email.split('@')[0],
+            }
+          : null;
+      })
+      .filter(Boolean);
+
     set({ pendingRequests: pendingWithDetails });
   },
 
-  removeFriend: async (friendId) => {
+  removeFriend: async friendId => {
     const { user } = useMainStore.getState();
     if (!user) return;
     try {
       await apiRemoveFriendship(user.uid, friendId);
     } catch (error) {
-      console.error("Error removing friend:", error);
+      Logger.error('Error removing friend', error);
       usePopupStore.getState().showPopup({
         title: 'Erro ao Remover',
         message: error.message,
-        type: 'error'
+        type: 'error',
       });
     }
   },
 
-  leaveGroup: async (groupId) => {
+  leaveGroup: async groupId => {
     const { user } = useMainStore.getState();
     if (!user) return;
     try {
       await apiLeaveGroup(groupId, user.uid);
     } catch (error) {
-      console.error("Error leaving group:", error);
+      Logger.error('Error leaving group', error);
       usePopupStore.getState().showPopup({
         title: 'Erro ao Sair',
         message: error.message,
-        type: 'error'
+        type: 'error',
       });
     }
-  }
+  },
+
+  clapEcho: async (targetUserId, bookId, echoId) => {
+    const { user } = useMainStore.getState();
+    if (!user) return;
+    const currentUserName =
+      user.displayName ||
+      user.username ||
+      user.email?.split('@')[0] ||
+      'Leitor';
+    try {
+      await apiAddRatClap(
+        targetUserId,
+        bookId,
+        echoId,
+        user.uid,
+        currentUserName,
+      );
+    } catch (error) {
+      Logger.error('Error clapping echo', error);
+      usePopupStore.getState().showPopup({
+        title: 'Erro ao Curtir',
+        message: error.message,
+        type: 'error',
+      });
+    }
+  },
 }));

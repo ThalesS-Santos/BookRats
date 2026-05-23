@@ -1,5 +1,25 @@
-import { addBook, updateBookProgress, markAsDNF, getUserBooks, addAnnotation, getUserAnnotations } from '@core/api/books';
-import { doc, updateDoc, collection, setDoc, arrayUnion, serverTimestamp, getDocs, addDoc, increment } from 'firebase/firestore';
+import {
+  doc,
+  updateDoc,
+  collection,
+  setDoc,
+  arrayUnion,
+  serverTimestamp,
+  getDocs,
+  addDoc,
+  increment,
+} from 'firebase/firestore';
+
+import {
+  addBook,
+  updateBookProgress,
+  markAsDNF,
+  getUserBooks,
+  addAnnotation,
+  getUserAnnotations,
+} from '@core/api/books';
+
+import { BOOK_STATUS } from '../../src/core/constants/bookStatus';
 
 jest.mock('firebase/firestore', () => ({
   doc: jest.fn(),
@@ -8,13 +28,13 @@ jest.mock('firebase/firestore', () => ({
   updateDoc: jest.fn(),
   addDoc: jest.fn(),
   getDocs: jest.fn(),
-  increment: jest.fn().mockImplementation((val) => val),
-  arrayUnion: jest.fn().mockImplementation((val) => val),
-  serverTimestamp: jest.fn().mockReturnValue('mock-timestamp')
+  increment: jest.fn().mockImplementation(val => val),
+  arrayUnion: jest.fn().mockImplementation(val => val),
+  serverTimestamp: jest.fn().mockReturnValue('mock-timestamp'),
 }));
 
 jest.mock('@core/firebase/firebase', () => ({
-  db: {}
+  db: {},
 }));
 
 describe('Books API Methods', () => {
@@ -24,24 +44,47 @@ describe('Books API Methods', () => {
 
   describe('addBook', () => {
     it('should throw if validation fails', async () => {
-      await expect(addBook(null, 'Title', 10)).rejects.toThrow('Dados inválidos');
-      await expect(addBook('u1', null, 10)).rejects.toThrow('Dados inválidos');
-      await expect(addBook('u1', 'Title', -5)).rejects.toThrow('Dados inválidos');
+      await expect(
+        addBook(null, 'Title', 10, null, '', {}, 'lendo'),
+      ).rejects.toThrow('Dados inválidos');
+      await expect(
+        addBook('u1', null, 10, null, '', {}, 'lendo'),
+      ).rejects.toThrow('Dados inválidos');
+      await expect(
+        addBook('u1', 'Title', -5, null, '', {}, 'lendo'),
+      ).rejects.toThrow('Dados inválidos');
     });
 
     it('should add book with custom id', async () => {
       doc.mockReturnValue('doc-ref');
       setDoc.mockResolvedValueOnce();
 
-      const result = await addBook('u1', 'New Book', 300, 'book-id');
+      const result = await addBook(
+        'u1',
+        'New Book',
+        300,
+        'book-id',
+        '',
+        {},
+        BOOK_STATUS.WANT_TO_READ,
+      );
 
-      expect(doc).toHaveBeenCalledWith(expect.anything(), 'users', 'u1', 'books', 'book-id');
-      expect(setDoc).toHaveBeenCalledWith('doc-ref', expect.objectContaining({
-        title: 'New Book',
-        totalPages: 300,
-        status: 'quero_ler',
-        createdAt: 'mock-timestamp'
-      }));
+      expect(doc).toHaveBeenCalledWith(
+        expect.anything(),
+        'users',
+        'u1',
+        'books',
+        'book-id',
+      );
+      expect(setDoc).toHaveBeenCalledWith(
+        'doc-ref',
+        expect.objectContaining({
+          title: 'New Book',
+          totalPages: 300,
+          status: BOOK_STATUS.WANT_TO_READ,
+          createdAt: 'mock-timestamp',
+        }),
+      );
     });
 
     it('should add book without id', async () => {
@@ -49,7 +92,15 @@ describe('Books API Methods', () => {
       doc.mockReturnValue({ id: 'auto-id' });
       setDoc.mockResolvedValueOnce();
 
-      const result = await addBook('u1', 'New Book', 300);
+      const result = await addBook(
+        'u1',
+        'New Book',
+        300,
+        null,
+        '',
+        {},
+        BOOK_STATUS.WANT_TO_READ,
+      );
 
       expect(doc).toHaveBeenCalledWith('coll-ref');
       expect(result).toBe('auto-id');
@@ -60,33 +111,61 @@ describe('Books API Methods', () => {
       setDoc.mockRejectedValueOnce(new Error('Firebase error'));
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
-      await expect(addBook('u1', 'New Book', 300, 'b1')).rejects.toThrow('Ocorreu um erro inesperado. Tente novamente.');
+      await expect(
+        addBook('u1', 'New Book', 300, 'b1', '', {}, BOOK_STATUS.WANT_TO_READ),
+      ).rejects.toThrow('Ocorreu um erro inesperado. Tente novamente.');
       consoleSpy.mockRestore();
     });
   });
 
   describe('updateBookProgress', () => {
-    const defaultBook = { id: 'b1', currentPage: 50, totalPages: 300, status: 'reading', title: 'A Book' };
-    const defaultStreak = { streak: 5, totalPagesRead: 100, maxReadingSession: 1000, totalBooksCompleted: 2, lastReadDate: '2023-01-01' };
+    const defaultBook = {
+      id: 'b1',
+      currentPage: 50,
+      totalPages: 300,
+      status: BOOK_STATUS.READING,
+      title: 'A Book',
+    };
+    const defaultStreak = {
+      streak: 5,
+      totalPagesRead: 100,
+      maxReadingSession: 1000,
+      totalBooksCompleted: 2,
+      lastReadDate: '2023-01-01',
+    };
 
     it('should throw validation error for invalid numbers', async () => {
-      await expect(updateBookProgress('u1', defaultBook, 'abc', 10, defaultStreak)).rejects.toThrow('Erro de validação');
+      await expect(
+        updateBookProgress('u1', defaultBook, 'abc', 10, defaultStreak),
+      ).rejects.toThrow('Erro de validação');
     });
 
     it('should throw validation error if pages regress or exceed', async () => {
-      await expect(updateBookProgress('u1', defaultBook, 40, 10, defaultStreak)).rejects.toThrow('Erro de validação');
-      await expect(updateBookProgress('u1', defaultBook, 400, 10, defaultStreak)).rejects.toThrow('Erro de validação');
+      await expect(
+        updateBookProgress('u1', defaultBook, 40, 10, defaultStreak),
+      ).rejects.toThrow('Erro de validação');
+      await expect(
+        updateBookProgress('u1', defaultBook, 400, 10, defaultStreak),
+      ).rejects.toThrow('Erro de validação');
     });
 
     it('should throw validation error if streak data is invalid', async () => {
-      await expect(updateBookProgress('u1', defaultBook, 60, 10, {})).rejects.toThrow('Erro de validação');
+      await expect(
+        updateBookProgress('u1', defaultBook, 60, 10, {}),
+      ).rejects.toThrow('Erro de validação');
     });
 
     it('should update progress and return stats', async () => {
       doc.mockReturnValue('doc-ref');
       updateDoc.mockResolvedValue();
 
-      const result = await updateBookProgress('u1', defaultBook, 70, 120, defaultStreak);
+      const result = await updateBookProgress(
+        'u1',
+        defaultBook,
+        70,
+        120,
+        defaultStreak,
+      );
 
       expect(updateDoc).toHaveBeenCalledTimes(2); // one for book, one for user stats
       expect(result).toEqual({ pagesReadToday: 20, isCompleted: false });
@@ -96,7 +175,13 @@ describe('Books API Methods', () => {
       doc.mockReturnValue('doc-ref');
       updateDoc.mockResolvedValue();
 
-      const result = await updateBookProgress('u1', defaultBook, 300, 120, defaultStreak);
+      const result = await updateBookProgress(
+        'u1',
+        defaultBook,
+        300,
+        120,
+        defaultStreak,
+      );
 
       expect(result.isCompleted).toBe(true);
     });
@@ -104,12 +189,18 @@ describe('Books API Methods', () => {
     it('should handle zero reading time without division by zero error', async () => {
       doc.mockReturnValue('doc-ref');
       await updateBookProgress('u1', defaultBook, 70, 0, defaultStreak);
-      expect(arrayUnion).toHaveBeenCalledWith(expect.objectContaining({ pagesPerHour: 0 }));
+      expect(arrayUnion).toHaveBeenCalledWith(
+        expect.objectContaining({ pagesPerHour: 0 }),
+      );
     });
 
     it('should use default values if streakData is missing some fields', async () => {
       doc.mockReturnValue('doc-ref');
-      const minimalStreak = { streak: 1, totalPagesRead: 10, lastReadDate: '2023-01-01' };
+      const minimalStreak = {
+        streak: 1,
+        totalPagesRead: 10,
+        lastReadDate: '2023-01-01',
+      };
       await updateBookProgress('u1', defaultBook, 60, 100, minimalStreak);
       // Verify no crash and updateDoc called
       expect(updateDoc).toHaveBeenCalled();
@@ -120,7 +211,9 @@ describe('Books API Methods', () => {
       updateDoc.mockRejectedValueOnce(new Error('Firebase error'));
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
-      await expect(updateBookProgress('u1', defaultBook, 70, 120, defaultStreak)).rejects.toThrow('Ocorreu um erro inesperado. Tente novamente.');
+      await expect(
+        updateBookProgress('u1', defaultBook, 70, 120, defaultStreak),
+      ).rejects.toThrow('Ocorreu um erro inesperado. Tente novamente.');
       consoleSpy.mockRestore();
     });
   });
@@ -129,10 +222,13 @@ describe('Books API Methods', () => {
     it('should update status to abandonado', async () => {
       doc.mockReturnValue('doc-ref');
       await markAsDNF('u1', 'b1');
-      expect(updateDoc).toHaveBeenCalledWith('doc-ref', expect.objectContaining({ 
-        status: 'abandonado',
-        updatedAt: expect.anything()
-      }));
+      expect(updateDoc).toHaveBeenCalledWith(
+        'doc-ref',
+        expect.objectContaining({
+          status: BOOK_STATUS.DROPPED,
+          updatedAt: expect.anything(),
+        }),
+      );
     });
 
     it('should map error and throw', async () => {
@@ -146,7 +242,7 @@ describe('Books API Methods', () => {
   describe('getUserBooks', () => {
     it('should get and map books', async () => {
       getDocs.mockResolvedValueOnce({
-        docs: [{ id: 'b1', data: () => ({ title: 'Book 1' }) }]
+        docs: [{ id: 'b1', data: () => ({ title: 'Book 1' }) }],
       });
 
       const result = await getUserBooks('u1');
@@ -163,41 +259,54 @@ describe('Books API Methods', () => {
 
   describe('addAnnotation', () => {
     it('should throw if text is invalid', async () => {
-      await expect(addAnnotation('u1', 'b1', 10, '')).rejects.toThrow('Erro de validação');
+      await expect(addAnnotation('u1', 'b1', 10, '')).rejects.toThrow(
+        'Erro de validação',
+      );
     });
 
     it('should throw if page is invalid and not a reply', async () => {
-      await expect(addAnnotation('u1', 'b1', 'abc', 'Note')).rejects.toThrow('Erro de validação');
+      await expect(addAnnotation('u1', 'b1', 'abc', 'Note')).rejects.toThrow(
+        'Erro de validação',
+      );
     });
 
     it('should add doc', async () => {
       collection.mockReturnValue('coll-ref');
       await addAnnotation('u1', 'b1', 10, 'Great note');
-      
-      expect(addDoc).toHaveBeenCalledWith('coll-ref', expect.objectContaining({
-        text: 'Great note',
-        pageLocation: 10
-      }));
+
+      expect(addDoc).toHaveBeenCalledWith(
+        'coll-ref',
+        expect.objectContaining({
+          text: 'Great note',
+          pageLocation: 10,
+        }),
+      );
     });
 
     it('should handle reply (parentId provided)', async () => {
       collection.mockReturnValue('coll-ref');
       await addAnnotation('u1', 'b1', null, 'Reply', true, {}, 'parent-123');
-      
-      expect(addDoc).toHaveBeenCalledWith('coll-ref', expect.objectContaining({
-        text: 'Reply',
-        parentId: 'parent-123',
-        pageLocation: null
-      }));
+
+      expect(addDoc).toHaveBeenCalledWith(
+        'coll-ref',
+        expect.objectContaining({
+          text: 'Reply',
+          parentId: 'parent-123',
+          pageLocation: null,
+        }),
+      );
     });
 
     it('should use default display name if missing in metadata', async () => {
       collection.mockReturnValue('coll-ref');
       await addAnnotation('u1', 'b1', 10, 'Note', true, { displayName: null });
-      
-      expect(addDoc).toHaveBeenCalledWith('coll-ref', expect.objectContaining({
-        userMetadata: expect.objectContaining({ displayName: 'Leitor' })
-      }));
+
+      expect(addDoc).toHaveBeenCalledWith(
+        'coll-ref',
+        expect.objectContaining({
+          userMetadata: expect.objectContaining({ displayName: 'Leitor' }),
+        }),
+      );
     });
 
     it('should map error and throw', async () => {
@@ -211,7 +320,7 @@ describe('Books API Methods', () => {
   describe('getUserAnnotations', () => {
     it('should get and map annotations', async () => {
       getDocs.mockResolvedValueOnce({
-        docs: [{ id: 'a1', data: () => ({ text: 'Note 1' }) }]
+        docs: [{ id: 'a1', data: () => ({ text: 'Note 1' }) }],
       });
 
       const result = await getUserAnnotations('u1', 'b1');

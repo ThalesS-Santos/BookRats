@@ -7,10 +7,16 @@ export const handlers = [
 
     // 🚨 Error Triggers for QA Testing
     if (q.includes('trigger_error_500')) {
-      return res(ctx.status(500), ctx.json({ error: { message: 'Internal Server Error' } }));
+      return res(
+        ctx.status(500),
+        ctx.json({ error: { message: 'Internal Server Error' } }),
+      );
     }
     if (q.includes('trigger_rate_limit')) {
-      return res(ctx.status(429), ctx.json({ error: { message: 'Too Many Requests' } }));
+      return res(
+        ctx.status(429),
+        ctx.json({ error: { message: 'Too Many Requests' } }),
+      );
     }
 
     // 📖 Dynamic Response for "Dom Casmurro"
@@ -27,16 +33,20 @@ export const handlers = [
                 authors: ['Machado de Assis'],
                 pageCount: 371,
                 description: 'A clássica história de Bentinho e Capitu.',
-                industryIdentifiers: [{ type: 'ISBN_13', identifier: '9788508115594' }],
-                imageLinks: { thumbnail: 'http://example.com/dom_casmurro.jpg' },
+                industryIdentifiers: [
+                  { type: 'ISBN_13', identifier: '9788508115594' },
+                ],
+                imageLinks: {
+                  thumbnail: 'http://example.com/dom_casmurro.jpg',
+                },
                 categories: ['Fiction'],
                 language: 'pt',
-                publishedDate: '1899'
-              }
-            }
+                publishedDate: '1899',
+              },
+            },
           ],
-          totalItems: 1
-        })
+          totalItems: 1,
+        }),
       );
     }
 
@@ -52,16 +62,18 @@ export const handlers = [
               authors: ['Gabriel García Márquez'],
               pageCount: 418,
               description: 'Uma jornada épica pela família Buendía.',
-              industryIdentifiers: [{ type: 'ISBN_13', identifier: '9788501012074' }],
+              industryIdentifiers: [
+                { type: 'ISBN_13', identifier: '9788501012074' },
+              ],
               imageLinks: { thumbnail: 'https://example.com/cover.jpg' },
               categories: ['Classic'],
               language: 'pt',
-              publishedDate: '1967'
-            }
-          }
+              publishedDate: '1967',
+            },
+          },
         ],
-        totalItems: 1
-      })
+        totalItems: 1,
+      }),
     );
   }),
 
@@ -76,7 +88,11 @@ export const handlers = [
           bookId: '123',
           text: 'Este capítulo é simplesmente genial!',
           pageLocation: 10,
-          userMetadata: { displayName: 'Gabriel', isInfluencer: true, photoURL: null },
+          userMetadata: {
+            displayName: 'Gabriel',
+            isInfluencer: true,
+            photoURL: null,
+          },
           reactions: { claps: 12 },
           timestamp: { seconds: 1629000000 },
         },
@@ -86,7 +102,11 @@ export const handlers = [
           bookId: '123',
           text: 'A solidão aqui é quase um personagem.',
           pageLocation: 25,
-          userMetadata: { displayName: 'Úrsula', isInfluencer: false, photoURL: null },
+          userMetadata: {
+            displayName: 'Úrsula',
+            isInfluencer: false,
+            photoURL: null,
+          },
           reactions: { claps: 8 },
           timestamp: { seconds: 1629100000 },
         },
@@ -96,7 +116,11 @@ export const handlers = [
           bookId: '123',
           text: 'Melhor parte até agora!',
           pageLocation: 50,
-          userMetadata: { displayName: 'Aureliano', isInfluencer: false, photoURL: null },
+          userMetadata: {
+            displayName: 'Aureliano',
+            isInfluencer: false,
+            photoURL: null,
+          },
           reactions: { claps: 5 },
           timestamp: { seconds: 1629200000 },
         },
@@ -106,7 +130,11 @@ export const handlers = [
           bookId: '123',
           text: 'SPOILER: Não acredito que isso aconteceu no final!',
           pageLocation: 60,
-          userMetadata: { displayName: 'SpoilerBot', isInfluencer: false, photoURL: null },
+          userMetadata: {
+            displayName: 'SpoilerBot',
+            isInfluencer: false,
+            photoURL: null,
+          },
           reactions: { claps: 0 },
           timestamp: { seconds: 1629300000 },
         },
@@ -116,11 +144,15 @@ export const handlers = [
           bookId: '123',
           text: 'A escrita do Gabo é hipnotizante.',
           pageLocation: 40,
-          userMetadata: { displayName: 'Amaranta', isInfluencer: true, photoURL: null },
+          userMetadata: {
+            displayName: 'Amaranta',
+            isInfluencer: true,
+            photoURL: null,
+          },
           reactions: { claps: 20 },
           timestamp: { seconds: 1629400000 },
         },
-      ])
+      ]),
     );
   }),
 

@@ -17,8 +17,8 @@ export const UserFactory = {
     stats: {
       totalBooks: Math.floor(Math.random() * 50),
       totalClaps: Math.floor(Math.random() * 200),
-      currentStreak: Math.floor(Math.random() * 10)
+      currentStreak: Math.floor(Math.random() * 10),
     },
-    ...overrides
-  })
+    ...overrides,
+  }),
 };

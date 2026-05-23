@@ -1,56 +1,43 @@
-# Banco de Dados (Firestore) - Schema e Regras
+# Banco de Dados e Regras
 
-O **BookRats** utiliza o [Cloud Firestore](https://firebase.google.com/docs/firestore) como banco de dados NoSQL. A segurança e modelagem de dados são garantidas pelo arquivo `firestore.rules`.
+## Colecoes
 
----
+1. `users/{userId}`
 
-## 1. Schema das Coleções
+- perfil, estatisticas e `socialSummary`
 
-### `users` (Coleção Global)
-Perfil público/privado do leitor.
-- **Campos Principais:** `displayName`, `photoURL`, `isInfluencer`, `current_streak`, `total_pages_read`.
-- **`socialSummary`:** Objeto denormalizado para acesso rápido às estatísticas sociais.
+2. `users/{userId}/books/{bookId}`
 
-### `users/{userId}/books` (Subcoleção)
-Biblioteca pessoal.
-- **Campos Principais:** `title`, `authors`, `thumbnail`, `currentPage`, `totalPages`, `status` (reading, finished, want_to_read).
-- **`readingSessions`:** Subcoleção de logs diários de tempo e páginas lidas.
+- dados de livro, progresso e status
 
-### `users/{userId}/books/{bookId}/annotations` (Subcoleção)
-Os famosos **Echoes**.
-- **Campos Principais:** `text`, `pageLocation`, `isPublic`, `reactions` (claps), `replyCount`.
-- **Relacionamentos:** `parentEchoId` permite aninhamento infinito de respostas.
+3. `users/{userId}/books/{bookId}/annotations/{annotId}`
 
-### `notifications` (Coleção Global / Collection Group)
-Notificações in-app.
-- **Tipos:** `reply`, `clap`, `friend_request`, `group_invite`.
-- **Status:** `read` (boolean) para controle de visualização.
+- Echoes, claps e replies
 
-### `groups` (Coleção Global)
-Clubes do livro.
-- **Campos Principais:** `name`, `description`, `category`, `members` (Array de UIDs).
-- **Subcoleção `messages`:** Chat em tempo real com persistência de histórico.
+4. `users/{userId}/notifications/{notificationId}`
 
----
+- notificacoes in-app
 
-## 2. Lógica Anti-Spoiler e Filtragem
+5. `friendships/{friendshipId}`
 
-A principal regra de negócio do app é o filtro de visibilidade:
-- `QUERY: collectionGroup('annotations').where('isPublic', '==', true).where('pageLocation', '<=', currentUserPage)`
-- Isso garante que a jornada literária seja respeitada, permitindo que a comunidade interaja sem estragar surpresas do enredo.
+- fluxo de amizade (`pending`, `accepted`, `rejected`)
 
----
+6. `groups/{groupId}` e `groups/{groupId}/messages/{messageId}`
 
-## 3. Integridade e Sincronização
+- grupos e chat
 
-Implementamos uma camada de **Reparo de Dados** no frontend (`librarySlice`):
-- Se houver derivação entre os dados do documento do usuário e o somatório dos seus livros (drift), o app detecta e sugere/executa um "Data Sync" para manter o Firestore consistente.
+## Seguranca Aplicada nas Rules
 
----
+- Dono do documento so grava no proprio namespace.
+- Atualizacao de ranking com limites de delta para reduzir fraude.
+- Mensagens de grupo sem update/delete direto.
+- `annotations` por terceiros apenas com incrementos controlados (`claps` e `replyCount`).
 
-## 4. Regras de Segurança (Firestore Rules)
+## Checklist Operacional
 
-As regras são divididas por responsabilidade:
-- **`match /users/{userId}`**: Apenas o dono pode escrever; todos podem ler o perfil público.
-- **`match /groups/{groupId}`**: Apenas usuários presentes no array `members` podem ler mensagens do grupo.
-- **`match /friendships/{id}`**: Apenas `sender` ou `receiver` têm acesso ao status da amizade.
+- Usuario so escreve seus livros: implementado.
+- Echo publico sem edicao arbitraria por terceiro: implementado.
+- Aceite de friend request por destinatario: implementado nas regras e validacao client.
+- Ranking sem escrita livre em campos sensiveis: implementado.
+
+Referencia oficial: `firestore.rules`.

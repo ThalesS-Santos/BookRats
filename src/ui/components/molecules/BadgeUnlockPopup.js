@@ -1,18 +1,29 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Dimensions, StyleSheet } from 'react-native';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withSpring, 
+
+import { Ionicons } from '@expo/vector-icons';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Dimensions,
+  StyleSheet,
+} from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
   withDelay,
   withSequence,
-  runOnJS
+  runOnJS,
 } from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
-import { useMainStore } from '@core/store';
+
 import { COLORS } from '@constants/colors';
+import { useMainStore } from '@core/store';
 
 const { width } = Dimensions.get('window');
+
+const TXT_NEW_ACHIEVEMENT = 'Nova Conquista!';
+const TXT_CONGRATS_BADGE = 'Parabéns! Você desbloqueou uma nova medalha.';
 
 /**
  * BadgeUnlockPopup
@@ -21,8 +32,9 @@ const { width } = Dimensions.get('window');
 export default function BadgeUnlockPopup() {
   const lastUnlockedBadges = useMainStore(state => state.lastUnlockedBadges);
   const clearUnlockedBadges = useMainStore(state => state.clearUnlockedBadges);
-  
-  const currentBadge = lastUnlockedBadges.length > 0 ? lastUnlockedBadges[0] : null;
+
+  const currentBadge =
+    lastUnlockedBadges.length > 0 ? lastUnlockedBadges[0] : null;
 
   const translateY = useSharedValue(-200);
   const opacity = useSharedValue(0);
@@ -57,28 +69,36 @@ export default function BadgeUnlockPopup() {
   if (!currentBadge) return null;
 
   return (
-    <Animated.View 
+    <Animated.View
       style={[styles.container, animatedStyle]}
-      className="bg-white dark:bg-card-dark shadow-2xl rounded-3xl border border-border-light dark:border-border-dark"
-    >
+      className="bg-white dark:bg-card-dark shadow-2xl rounded-3xl border border-border-light dark:border-border-dark">
       <View style={styles.content}>
-        <View style={styles.iconContainer} className="bg-primary-light/10 dark:bg-primary-dark/20">
-          <Ionicons name={currentBadge.icon} size={32} color={COLORS.primary.light} />
+        <View
+          style={styles.iconContainer}
+          className="bg-primary-light/10 dark:bg-primary-dark/20">
+          <Ionicons
+            name={currentBadge.icon}
+            size={32}
+            color={COLORS.primary.light}
+          />
         </View>
-        
+
         <View style={styles.textContainer}>
           <Text className="text-primary-light dark:text-primary-dark font-bold text-xs tracking-widest uppercase mb-1">
-            Nova Conquista!
+            {TXT_NEW_ACHIEVEMENT}
           </Text>
           <Text className="text-gray-900 dark:text-white font-bold text-lg">
             {currentBadge.title}
           </Text>
           <Text className="text-gray-500 dark:text-gray-400 text-sm">
-            Parabéns! Você desbloqueou uma nova medalha.
+            {TXT_CONGRATS_BADGE}
           </Text>
         </View>
 
-        <TouchableOpacity onPress={hidePopup} style={styles.closeButton}>
+        <TouchableOpacity
+          testID="close-btn"
+          onPress={hidePopup}
+          style={styles.closeButton}>
           <Ionicons name="close" size={20} color="#999" />
         </TouchableOpacity>
       </View>
@@ -112,5 +132,5 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     padding: 4,
-  }
+  },
 });

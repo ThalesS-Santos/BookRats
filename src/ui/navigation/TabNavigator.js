@@ -1,18 +1,20 @@
-import { useMainStore } from '@core/store';
 import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+
 // ✅ FIX PRINCIPAL: BottomTabNavigator não usa PagerView nativo,
 // eliminando o conflito entre React 19 concurrent mode + css-interop + PagerView
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { useThemeStore } from '../../store/useThemeStore';
-import { COLORS } from '@constants/colors';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import HomeScreen from '@ui/screens/HomeScreen';
-import RankingScreen from '@ui/screens/RankingScreen';
+import { COLORS } from '@constants/colors';
+import { useMainStore } from '@core/store';
 import GroupsScreen from '@ui/screens/GroupsScreen';
+import HomeScreen from '@ui/screens/HomeScreen';
 import ProfileScreen from '@ui/screens/ProfileScreen';
+import RankingScreen from '@ui/screens/RankingScreen';
+
+import { useThemeStore } from '../../store/useThemeStore';
 
 const Tab = createBottomTabNavigator();
 
@@ -30,14 +32,21 @@ function CustomTabBar({ state, descriptors, navigation, isDarkMode }) {
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[
-      styles.tabBarContainer,
-      {
-        backgroundColor: isDarkMode ? COLORS.background.dark : COLORS.background.light,
-        borderTopColor: isDarkMode ? COLORS.border.dark : '#F1F1E6',
-      }
-    ]}>
-      <View style={[styles.tabBar, { height: 65 + insets.bottom, paddingBottom: insets.bottom }]}>
+    <View
+      style={[
+        styles.tabBarContainer,
+        {
+          backgroundColor: isDarkMode
+            ? COLORS.background.dark
+            : COLORS.background.light,
+          borderTopColor: isDarkMode ? COLORS.border.dark : '#F1F1E6',
+        },
+      ]}>
+      <View
+        style={[
+          styles.tabBar,
+          { height: 65 + insets.bottom, paddingBottom: insets.bottom },
+        ]}>
         {state.routes.map((route, index) => {
           const isFocused = state.index === index;
           const tabConfig = TABS[index];
@@ -61,19 +70,29 @@ function CustomTabBar({ state, descriptors, navigation, isDarkMode }) {
               key={route.key}
               onPress={onPress}
               style={styles.tabItem}
-              activeOpacity={0.7}
-            >
+              activeOpacity={0.7}>
               <View>
                 <Ionicons name={tabConfig.icon} size={24} color={color} />
                 {tabConfig.name === 'Perfil' && unreadCount > 0 && (
-                  <View style={[styles.badge, { backgroundColor: COLORS.neon_green, shadowColor: COLORS.neon_green }]} />
+                  <View
+                    style={[
+                      styles.badge,
+                      {
+                        backgroundColor: COLORS.neon_green,
+                        shadowColor: COLORS.neon_green,
+                      },
+                    ]}
+                  />
                 )}
               </View>
-              <Text style={[styles.tabLabel, { color }]}>
-                {tabConfig.name}
-              </Text>
+              <Text style={[styles.tabLabel, { color }]}>{tabConfig.name}</Text>
               {isFocused && (
-                <View style={[styles.indicator, { backgroundColor: COLORS.neon_green }]} />
+                <View
+                  style={[
+                    styles.indicator,
+                    { backgroundColor: COLORS.neon_green },
+                  ]}
+                />
               )}
             </TouchableOpacity>
           );
@@ -89,7 +108,11 @@ export default function TabNavigator({ navigation, route }) {
   // 🛰️ Tab Switch Listener
   useEffect(() => {
     const targetIdx = route.params?.tabIndex;
-    if (typeof targetIdx === 'number' && targetIdx >= 0 && targetIdx < TABS.length) {
+    if (
+      typeof targetIdx === 'number' &&
+      targetIdx >= 0 &&
+      targetIdx < TABS.length
+    ) {
       const routeName = TABS[targetIdx].name;
       navigation.navigate(routeName);
       navigation.setParams({ tabIndex: undefined });
@@ -98,7 +121,7 @@ export default function TabNavigator({ navigation, route }) {
 
   return (
     <Tab.Navigator
-      tabBar={(props) => <CustomTabBar {...props} isDarkMode={isDarkMode} />}
+      tabBar={props => <CustomTabBar {...props} isDarkMode={isDarkMode} />}
       initialRouteName="Início"
       screenOptions={{
         headerShown: false,
@@ -106,16 +129,11 @@ export default function TabNavigator({ navigation, route }) {
         lazy: true,
         // ✅ sceneContainerStyle sem className para não acionar o css-interop
         sceneContainerStyle: {
-          backgroundColor: COLORS.dark_blue
+          backgroundColor: COLORS.dark_blue,
         },
-      }}
-    >
-      {TABS.map((tab) => (
-        <Tab.Screen
-          key={tab.name}
-          name={tab.name}
-          component={tab.component}
-        />
+      }}>
+      {TABS.map(tab => (
+        <Tab.Screen key={tab.name} name={tab.name} component={tab.component} />
       ))}
     </Tab.Navigator>
   );
@@ -159,5 +177,5 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.8,
     shadowRadius: 4,
-  }
+  },
 });

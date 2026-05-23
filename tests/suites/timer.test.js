@@ -1,6 +1,7 @@
 import { renderHook, act } from '@testing-library/react-native';
-import { useTimer } from '../../src/hooks/useTimer';
 import { formatTime } from '@utils/time';
+
+import { useTimer } from '../../src/hooks/useTimer';
 
 describe('Timer Logic & Hook', () => {
   describe('formatTime utility', () => {
@@ -40,7 +41,7 @@ describe('Timer Logic & Hook', () => {
 
     it('Scenario 2 (Start): should start incrementing after start', () => {
       const { result } = renderHook(() => useTimer(false)); // Start inactive
-      
+
       expect(result.current.isActive).toBe(false);
       expect(result.current.seconds).toBe(0);
 
@@ -100,7 +101,7 @@ describe('Timer Logic & Hook', () => {
       act(() => {
         result.current.setIsActive(false);
       });
-      
+
       act(() => {
         jest.advanceTimersByTime(5000); // 5 seconds pass while paused
       });
@@ -113,7 +114,7 @@ describe('Timer Logic & Hook', () => {
       act(() => {
         jest.advanceTimersByTime(2000);
       });
-      
+
       expect(result.current.seconds).toBe(12); // 10 + 2
     });
 

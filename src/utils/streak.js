@@ -1,6 +1,6 @@
 /**
  * Get current date string in local timezone (YYYY-MM-DD)
- * @param {Date} date 
+ * @param {Date} date
  * @returns {string}
  */
 export const getLocalDateString = (date = new Date()) => {
@@ -13,19 +13,25 @@ export const getLocalDateString = (date = new Date()) => {
 /**
  * Update current streak based on last reading date.
  * Handles timezone issues by using local date strings.
- * 
+ *
  * @param {string} lastDateStr - Last reading date in YYYY-MM-DD format
  * @param {number} currentStreak - Current streak count
  * @returns {number} New streak count
  */
-export const updateStreak = (lastDateStr, currentStreak, todayOverride = null) => {
+export const updateStreak = (
+  lastDateStr,
+  currentStreak,
+  todayOverride = null,
+) => {
   const todayStr = todayOverride || getLocalDateString();
-  
+
   if (!lastDateStr) return 1;
   if (lastDateStr === todayStr) return currentStreak || 1;
 
   // Calculate yesterday in local time
-  const todayDate = todayOverride ? new Date(todayOverride + 'T12:00:00') : new Date();
+  const todayDate = todayOverride
+    ? new Date(todayOverride + 'T12:00:00')
+    : new Date();
   const yesterday = new Date(todayDate);
   yesterday.setDate(yesterday.getDate() - 1);
   const yesterdayStr = getLocalDateString(yesterday);
@@ -40,12 +46,14 @@ export const updateStreak = (lastDateStr, currentStreak, todayOverride = null) =
 
 /**
  * Legacy: Calculate streak from a list of logs.
- * @param {Array<{date: string}>} logs 
+ * @param {Array<{date: string}>} logs
  */
-export const calculateStreakFromLogs = (logs) => {
+export const calculateStreakFromLogs = logs => {
   if (!logs || logs.length === 0) return 0;
-  const uniqueDates = [...new Set(logs.map(log => log.date))].sort((a, b) => b.localeCompare(a));
-  
+  const uniqueDates = [...new Set(logs.map(log => log.date))].sort((a, b) =>
+    b.localeCompare(a),
+  );
+
   const todayStr = getLocalDateString();
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
@@ -56,9 +64,9 @@ export const calculateStreakFromLogs = (logs) => {
   let streak = 1;
   for (let i = 0; i < uniqueDates.length - 1; i++) {
     const current = new Date(uniqueDates[i]);
-    const next = new Date(uniqueDates[i+1]);
+    const next = new Date(uniqueDates[i + 1]);
     const diff = (current - next) / (1000 * 60 * 60 * 24);
-    
+
     if (Math.round(diff) === 1) streak++;
     else break;
   }

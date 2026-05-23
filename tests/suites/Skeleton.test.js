@@ -1,15 +1,22 @@
 import React from 'react';
+
 import { render } from '@testing-library/react-native';
-import Skeleton from '../../src/ui/components/atoms/Skeleton';
 import { Animated } from 'react-native';
+
+import Skeleton from '../../src/ui/components/atoms/Skeleton';
 
 describe('Skeleton Component', () => {
   it('renders correctly with given props', () => {
     const { getByTestId } = render(
-      <Skeleton width={100} height={50} borderRadius={10} testID="skeleton-id" />
+      <Skeleton
+        width={100}
+        height={50}
+        borderRadius={10}
+        testID="skeleton-id"
+      />,
     );
     const skeleton = getByTestId('skeleton-id');
-    
+
     // Check if the style props are passed correctly
     // Note: opacity is an Animated.Value, so we check others
     expect(skeleton.props.style).toEqual(
@@ -17,7 +24,7 @@ describe('Skeleton Component', () => {
         width: 100,
         height: 50,
         borderRadius: 10,
-      })
+      }),
     );
   });
 
@@ -25,7 +32,7 @@ describe('Skeleton Component', () => {
     const { getByTestId } = render(
       <Skeleton width={100} height={50}>
         <Skeleton width={10} height={10} testID="child-skeleton" />
-      </Skeleton>
+      </Skeleton>,
     );
     expect(getByTestId('child-skeleton')).toBeTruthy();
     // In this case, we just check if it renders without crashing with children
@@ -41,14 +48,20 @@ describe('Skeleton Component', () => {
 
     expect(loopSpy).toHaveBeenCalled();
     expect(sequenceSpy).toHaveBeenCalled();
-    expect(timingSpy).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
-      toValue: 0.7,
-      duration: 400,
-    }));
-    expect(timingSpy).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
-      toValue: 0.3,
-      duration: 400,
-    }));
+    expect(timingSpy).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        toValue: 0.7,
+        duration: 400,
+      }),
+    );
+    expect(timingSpy).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        toValue: 0.3,
+        duration: 400,
+      }),
+    );
 
     loopSpy.mockRestore();
     sequenceSpy.mockRestore();

@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { searchBooks } from '@core/api/googleBooks';
+
 import { debounce } from '@utils/debounce';
+
+import { searchBooks } from '@core/api/googleBooks';
 
 /**
  * Custom hook for debounced book searching with advanced filters.
@@ -11,7 +13,7 @@ export const useBookSearch = () => {
     author: '',
     subjects: [],
     printType: 'all',
-    orderBy: 'relevance'
+    orderBy: 'relevance',
   });
   const [results, setResults] = useState([]);
   const [totalItems, setTotalItems] = useState(0);
@@ -21,8 +23,9 @@ export const useBookSearch = () => {
   const performSearch = useCallback(async (searchQuery, currentFilters) => {
     const trimmedQuery = searchQuery.trim();
     const hasAuthor = currentFilters.author.trim().length > 0;
-    const hasSubjects = currentFilters.subjects && currentFilters.subjects.length > 0;
-    
+    const hasSubjects =
+      currentFilters.subjects && currentFilters.subjects.length > 0;
+
     if (!trimmedQuery && !hasAuthor && !hasSubjects) {
       setResults([]);
       setTotalItems(0);
@@ -37,18 +40,18 @@ export const useBookSearch = () => {
 
       if (currentFilters.subjects && currentFilters.subjects.length > 1) {
         // Simulating OR by making concurrent calls for each subject
-        const promises = currentFilters.subjects.map(s => 
-          searchBooks({ 
+        const promises = currentFilters.subjects.map(s =>
+          searchBooks({
             generalQuery: trimmedQuery,
             author: currentFilters.author,
             subjects: [s],
             printType: currentFilters.printType,
-            orderBy: currentFilters.orderBy
-          })
+            orderBy: currentFilters.orderBy,
+          }),
         );
-        
+
         const responses = await Promise.all(promises);
-        
+
         // Merge and Deduplicate by ID
         const mergedItems = responses.flatMap(r => r.items || []);
         const seenIds = new Set();
@@ -57,15 +60,15 @@ export const useBookSearch = () => {
           seenIds.add(item.id);
           return true;
         });
-        
+
         totalItemsCount = items.length;
       } else {
-        const data = await searchBooks({ 
+        const data = await searchBooks({
           generalQuery: trimmedQuery,
           author: currentFilters.author,
           subjects: currentFilters.subjects,
           printType: currentFilters.printType,
-          orderBy: currentFilters.orderBy
+          orderBy: currentFilters.orderBy,
         });
         items = data.items;
         totalItemsCount = data.totalItems;
@@ -83,11 +86,15 @@ export const useBookSearch = () => {
   }, []);
 
   const debouncedSearch = useRef(
-    debounce((q, f) => performSearch(q, f), 800)
+    debounce((q, f) => performSearch(q, f), 800),
   ).current;
 
   useEffect(() => {
-    if (query.trim().length > 2 || filters.author.trim().length > 2 || filters.subjects.length > 0) {
+    if (
+      query.trim().length > 2 ||
+      filters.author.trim().length > 2 ||
+      filters.subjects.length > 0
+    ) {
       debouncedSearch(query, filters);
     } else {
       setResults([]);
@@ -99,7 +106,7 @@ export const useBookSearch = () => {
     return () => debouncedSearch.cancel();
   }, [query, filters, debouncedSearch]);
 
-  const updateFilters = (newFilters) => {
+  const updateFilters = newFilters => {
     setFilters(prev => ({ ...prev, ...newFilters }));
   };
 
@@ -109,7 +116,7 @@ export const useBookSearch = () => {
       author: '',
       subjects: [],
       printType: 'all',
-      orderBy: 'relevance'
+      orderBy: 'relevance',
     });
     setResults([]);
     setTotalItems(0);
@@ -124,6 +131,6 @@ export const useBookSearch = () => {
     totalItems,
     loading,
     error,
-    clearSearch
+    clearSearch,
   };
 };

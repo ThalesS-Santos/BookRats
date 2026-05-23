@@ -1,9 +1,17 @@
+import {
+  signUp as apiSignUp,
+  signIn as apiSignIn,
+  signInWithGoogle as apiSignInWithGoogle,
+  signOut as apiSignOut,
+  updatePresence as apiUpdatePresence,
+  updateReadingStatus as apiUpdateReadingStatus,
+} from '@core/api/auth';
+
 import { usePopupStore } from '../../../store/usePopupStore';
-import { signUp as apiSignUp, signIn as apiSignIn, signInWithGoogle as apiSignInWithGoogle, signOut as apiSignOut, updatePresence as apiUpdatePresence, updateReadingStatus as apiUpdateReadingStatus } from '@core/api/auth';
 
 /**
  * Auth Slice handles all authentication logic (login, logout, session).
- * 
+ *
  * @param {Function} set
  * @param {Function} get
  */
@@ -12,13 +20,19 @@ export const createAuthSlice = (set, get) => ({
   authError: null,
   loading: true,
 
-  setAuthUser: (user) => {
+  setAuthUser: user => {
     set({ user, loading: false });
     if (user) {
       set({ loadingBooks: true });
-      if(get().fetchUserData) get().fetchUserData(user.uid);
+      if (get().fetchUserData) get().fetchUserData(user.uid);
     } else {
-      set({ books: [], streak: 0, totalPagesRead: 0, lastReadDate: null, loadingBooks: false });
+      set({
+        books: [],
+        streak: 0,
+        totalPagesRead: 0,
+        lastReadDate: null,
+        loadingBooks: false,
+      });
     }
   },
 
@@ -31,7 +45,7 @@ export const createAuthSlice = (set, get) => ({
       usePopupStore.getState().showPopup({
         title: 'Erro no Cadastro',
         message: error.message,
-        type: 'error'
+        type: 'error',
       });
     }
   },
@@ -45,12 +59,12 @@ export const createAuthSlice = (set, get) => ({
       usePopupStore.getState().showPopup({
         title: 'Erro no Login',
         message: error.message,
-        type: 'error'
+        type: 'error',
       });
     }
   },
 
-  signInWithGoogle: async (idToken) => {
+  signInWithGoogle: async idToken => {
     try {
       set({ loading: true, authError: null });
       await apiSignInWithGoogle(idToken);
@@ -59,7 +73,7 @@ export const createAuthSlice = (set, get) => ({
       usePopupStore.getState().showPopup({
         title: 'Erro no Google',
         message: error.message,
-        type: 'error'
+        type: 'error',
       });
     }
   },
@@ -72,7 +86,7 @@ export const createAuthSlice = (set, get) => ({
       }
       await apiSignOut();
     } catch (error) {
-      console.error("Sign out error:", error);
+      console.error('Sign out error:', error);
     }
   },
 
@@ -82,17 +96,17 @@ export const createAuthSlice = (set, get) => ({
     try {
       await apiUpdatePresence(targetUid, isOnline);
     } catch (error) {
-      console.error("Error updating presence:", error);
+      console.error('Error updating presence:', error);
     }
   },
 
-  updateReadingStatus: async (bookTitle) => {
+  updateReadingStatus: async bookTitle => {
     const { user } = get();
     if (!user) return;
     try {
       await apiUpdateReadingStatus(user.uid, bookTitle);
     } catch (error) {
-      console.error("Error updating reading status:", error);
+      console.error('Error updating reading status:', error);
     }
   },
 });

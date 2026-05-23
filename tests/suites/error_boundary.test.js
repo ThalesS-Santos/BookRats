@@ -1,7 +1,9 @@
 import React, { useEffect } from 'react';
+
 import { render, fireEvent } from '@testing-library/react-native';
-import { ErrorBoundary } from '@ui/components';
+
 import { Logger } from '@core/services/Logger';
+import { ErrorBoundary } from '@ui/components';
 
 // 1. Mock the Logger to spy on its calls
 jest.mock('@core/services/Logger', () => ({
@@ -9,7 +11,7 @@ jest.mock('@core/services/Logger', () => ({
     error: jest.fn(),
     warn: jest.fn(),
     info: jest.fn(),
-  }
+  },
 }));
 
 // 2. Suppress console.error inside jest to avoid polluting test output when the boundary catches it intentionally
@@ -39,7 +41,7 @@ describe('ErrorBoundary Resiliency', () => {
     const { queryByText } = render(
       <ErrorBoundary>
         <ProblematicComponent shouldCrash={false} />
-      </ErrorBoundary>
+      </ErrorBoundary>,
     );
 
     // It should not display the fallback UI
@@ -50,18 +52,22 @@ describe('ErrorBoundary Resiliency', () => {
     const { getByText } = render(
       <ErrorBoundary>
         <ProblematicComponent shouldCrash={true} />
-      </ErrorBoundary>
+      </ErrorBoundary>,
     );
 
     // Fallback UI should be rendered
     expect(getByText('Ops! Algo deu errado.')).toBeTruthy();
-    expect(getByText('Encontramos um problema inesperado e já fomos notificados. Tente recarregar a tela.')).toBeTruthy();
+    expect(
+      getByText(
+        'Encontramos um problema inesperado e já fomos notificados. Tente recarregar a tela.',
+      ),
+    ).toBeTruthy();
 
     // Logger should have been called
     expect(Logger.error).toHaveBeenCalledWith(
       'React ErrorBoundary Caught Exception',
       expect.any(Error),
-      expect.objectContaining({ errorInfo: expect.anything() })
+      expect.objectContaining({ errorInfo: expect.anything() }),
     );
   });
 
@@ -71,7 +77,7 @@ describe('ErrorBoundary Resiliency', () => {
     const { getByText, queryByText } = render(
       <ErrorBoundary onReset={mockOnReset}>
         <ProblematicComponent shouldCrash={true} />
-      </ErrorBoundary>
+      </ErrorBoundary>,
     );
 
     expect(getByText('Ops! Algo deu errado.')).toBeTruthy();
@@ -80,7 +86,7 @@ describe('ErrorBoundary Resiliency', () => {
     const resetButton = getByText('Tentar Novamente');
     fireEvent.press(resetButton);
 
-    // The boundary itself clears its internal state. 
+    // The boundary itself clears its internal state.
     // In our test, ProblematicComponent will immediately re-throw because shouldCrash is still true,
     // but we can verify that the custom onReset function was called.
     expect(mockOnReset).toHaveBeenCalled();

@@ -1,6 +1,15 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Image, FlatList, Dimensions } from 'react-native';
+
 import { Ionicons } from '@expo/vector-icons';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Image,
+  FlatList,
+  Dimensions,
+} from 'react-native';
+
 import Skeleton from '../atoms/Skeleton';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -13,21 +22,20 @@ const CARD_HEIGHT = 190;
  */
 const BookCard = ({ book, onSelect }) => {
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       testID={`search-result-${book.id}`}
       activeOpacity={0.7}
       className="bg-card-light dark:bg-card-dark rounded-xl shadow-lg overflow-hidden mr-4 border border-border-light/50 dark:border-border-dark/50"
       style={{ width: CARD_WIDTH, height: CARD_HEIGHT }}
-      onPress={() => onSelect(book)}
-    >
+      onPress={() => onSelect(book)}>
       {/* 80% Cover Art */}
       <View style={{ height: '75%' }}>
-        <Image 
-          source={book.thumbnail} 
+        <Image
+          source={book.thumbnail}
           className="w-full h-full"
           resizeMode="cover"
         />
-        
+
         {/* Category Badge (Step 1.8) */}
         {book.categories?.[0] && (
           <View className="absolute top-2 left-2 bg-primary/90 dark:bg-primary-dark/90 px-2 py-0.5 rounded-md shadow-sm">
@@ -40,16 +48,14 @@ const BookCard = ({ book, onSelect }) => {
 
       {/* Stylized Footer Overlay */}
       <View className="absolute bottom-0 left-0 right-0 bg-white/90 dark:bg-black/80 p-2 border-t border-border-light/20 dark:border-border-dark/20">
-        <Text 
-          className="text-text-light dark:text-text-dark font-bold text-[10px]" 
-          numberOfLines={1}
-        >
+        <Text
+          className="text-text-light dark:text-text-dark font-bold text-[10px]"
+          numberOfLines={1}>
           {book.title.toUpperCase()}
         </Text>
-        <Text 
-          className="text-text-muted-light dark:text-text-muted-dark text-[9px] mt-0.5" 
-          numberOfLines={1}
-        >
+        <Text
+          className="text-text-muted-light dark:text-text-muted-dark text-[9px] mt-0.5"
+          numberOfLines={1}>
           {book.author}
         </Text>
       </View>
@@ -67,14 +73,17 @@ const BookCard = ({ book, onSelect }) => {
  * Displays book results as a stylized horizontal gallery.
  */
 const SearchPreview = ({ results, onSelect, loading, query }) => {
-  
   // Show Skeleton shelf while loading
   if (loading) {
     return (
       <View className="flex-row py-4" testID="search-loading-skeletons">
-        {[1, 2, 3].map((i) => (
+        {[1, 2, 3].map(i => (
           <View key={i} className="mr-4">
-            <Skeleton width={CARD_WIDTH} height={CARD_HEIGHT} borderRadius={12} />
+            <Skeleton
+              width={CARD_WIDTH}
+              height={CARD_HEIGHT}
+              borderRadius={12}
+            />
           </View>
         ))}
       </View>
@@ -111,7 +120,7 @@ const SearchPreview = ({ results, onSelect, loading, query }) => {
       <FlatList
         data={results}
         horizontal
-        keyExtractor={(item) => item.id}
+        keyExtractor={item => item.id}
         renderItem={({ item }) => <BookCard book={item} onSelect={onSelect} />}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingVertical: 8, paddingHorizontal: 4 }}

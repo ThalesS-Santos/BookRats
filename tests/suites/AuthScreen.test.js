@@ -1,10 +1,12 @@
 import React from 'react';
+
 import { render, fireEvent, act, waitFor } from '@testing-library/react-native';
-import AuthScreen from '../../src/ui/screens/AuthScreen';
-import { useMainStore } from '../../src/core/store';
-import { useThemeStore } from '../../src/store/useThemeStore';
-import { usePopupStore } from '../../src/store/usePopupStore';
 import * as Google from 'expo-auth-session/providers/google';
+
+import { useMainStore } from '../../src/core/store';
+import { usePopupStore } from '../../src/store/usePopupStore';
+import { useThemeStore } from '../../src/store/useThemeStore';
+import AuthScreen from '../../src/ui/screens/AuthScreen';
 
 jest.mock('../../src/core/store');
 jest.mock('../../src/store/useThemeStore');
@@ -34,7 +36,7 @@ describe('AuthScreen', () => {
     Google.useIdTokenAuthRequest.mockReturnValue([
       { request: {} },
       null,
-      mockPromptAsync
+      mockPromptAsync,
     ]);
   });
 
@@ -57,7 +59,7 @@ describe('AuthScreen', () => {
     const { getByTestId, getByPlaceholderText } = render(<AuthScreen />);
     const passwordInput = getByPlaceholderText('••••••••');
     fireEvent.changeText(passwordInput, 'secret123');
-    
+
     expect(passwordInput.props.secureTextEntry).toBe(true);
 
     const toggleButton = getByTestId('password-toggle');
@@ -67,31 +69,44 @@ describe('AuthScreen', () => {
 
   it('validates email on auth', async () => {
     const { getByText, getByPlaceholderText } = render(<AuthScreen />);
-    fireEvent.changeText(getByPlaceholderText('seu@email.com'), 'invalid-email');
+    fireEvent.changeText(
+      getByPlaceholderText('seu@email.com'),
+      'invalid-email',
+    );
     fireEvent.changeText(getByPlaceholderText('••••••••'), '123456');
-    
+
     fireEvent.press(getByText('Entrar'));
-    expect(mockShowPopup).toHaveBeenCalledWith(expect.objectContaining({
-      message: 'Por favor, insira um e-mail válido.'
-    }));
+    expect(mockShowPopup).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: 'Por favor, insira um e-mail válido.',
+      }),
+    );
   });
 
   it('validates password length on auth', async () => {
     const { getByText, getByPlaceholderText } = render(<AuthScreen />);
-    fireEvent.changeText(getByPlaceholderText('seu@email.com'), 'test@test.com');
+    fireEvent.changeText(
+      getByPlaceholderText('seu@email.com'),
+      'test@test.com',
+    );
     fireEvent.changeText(getByPlaceholderText('••••••••'), '12345');
-    
+
     fireEvent.press(getByText('Entrar'));
-    expect(mockShowPopup).toHaveBeenCalledWith(expect.objectContaining({
-      message: 'A senha deve ter pelo menos 6 caracteres.'
-    }));
+    expect(mockShowPopup).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: 'A senha deve ter pelo menos 6 caracteres.',
+      }),
+    );
   });
 
   it('calls signIn in login mode', async () => {
     const { getByText, getByPlaceholderText } = render(<AuthScreen />);
-    fireEvent.changeText(getByPlaceholderText('seu@email.com'), 'test@test.com');
+    fireEvent.changeText(
+      getByPlaceholderText('seu@email.com'),
+      'test@test.com',
+    );
     fireEvent.changeText(getByPlaceholderText('••••••••'), '123456');
-    
+
     fireEvent.press(getByText('Entrar'));
     expect(mockSignIn).toHaveBeenCalledWith('test@test.com', '123456');
   });
@@ -99,10 +114,10 @@ describe('AuthScreen', () => {
   it('calls signUp in register mode', async () => {
     const { getByText, getByPlaceholderText } = render(<AuthScreen />);
     fireEvent.press(getByText('Cadastre-se'));
-    
+
     fireEvent.changeText(getByPlaceholderText('seu@email.com'), 'new@test.com');
     fireEvent.changeText(getByPlaceholderText('••••••••'), 'password123');
-    
+
     fireEvent.press(getByText('Criar Conta'));
     expect(mockSignUp).toHaveBeenCalledWith('new@test.com', 'password123');
   });
@@ -117,11 +132,11 @@ describe('AuthScreen', () => {
     Google.useIdTokenAuthRequest.mockReturnValue([
       { request: {} },
       { type: 'success', params: { id_token: 'fake-token' } },
-      mockPromptAsync
+      mockPromptAsync,
     ]);
 
     render(<AuthScreen />);
-    
+
     await waitFor(() => {
       expect(mockSignInWithGoogle).toHaveBeenCalledWith('fake-token');
     });

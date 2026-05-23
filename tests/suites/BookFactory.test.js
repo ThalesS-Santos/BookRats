@@ -1,3 +1,4 @@
+import { BOOK_STATUS } from '../../src/core/constants/bookStatus';
 import { BookFactory } from '../factories/BookFactory';
 
 describe('BookFactory', () => {
@@ -9,21 +10,24 @@ describe('BookFactory', () => {
   });
 
   it('creates a book with overrides', () => {
-    const book = BookFactory.create({ title: 'Overridden Title', pageCount: 500 });
+    const book = BookFactory.create({
+      title: 'Overridden Title',
+      pageCount: 500,
+    });
     expect(book.title).toBe('Overridden Title');
     expect(book.pageCount).toBe(500);
   });
 
   it('creates a reading book', () => {
     const book = BookFactory.createReading({ author: 'Overridden Author' });
-    expect(book.status).toBe('reading');
+    expect(book.status).toBe(BOOK_STATUS.READING);
     expect(book.currentPage).toBe(50);
     expect(book.author).toBe('Overridden Author');
   });
 
   it('creates a reading book without overrides', () => {
     const book = BookFactory.createReading();
-    expect(book.status).toBe('reading');
+    expect(book.status).toBe(BOOK_STATUS.READING);
     expect(book.currentPage).toBe(50);
   });
 
@@ -36,8 +40,8 @@ describe('BookFactory', () => {
   it('covers random status generation', () => {
     const books = BookFactory.createMany(20);
     const statuses = books.map(b => b.status);
-    expect(statuses).toContain('reading');
-    expect(statuses).toContain('read');
-    expect(statuses).toContain('wantToRead');
+    expect(statuses).toContain(BOOK_STATUS.READING);
+    expect(statuses).toContain(BOOK_STATUS.READ);
+    expect(statuses).toContain(BOOK_STATUS.WANT_TO_READ);
   });
 });

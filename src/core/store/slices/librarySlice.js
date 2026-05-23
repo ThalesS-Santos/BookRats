@@ -1,14 +1,28 @@
-import { usePopupStore } from '../../../store/usePopupStore';
-import { addBook as apiAddBook, updateBookProgress, markAsDNF as apiMarkAsDNF, updateBookStatus as apiUpdateBookStatus } from '@core/api/books';
-import { db } from '@core/firebase/firebase';
-import { doc, collection, onSnapshot, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
-import { BOOK_STATUS, VALID_STATUSES } from '../../constants/bookStatus';
 import { getLocalDateString } from '@utils/streak';
+import {
+  doc,
+  collection,
+  onSnapshot,
+  updateDoc,
+  increment,
+  serverTimestamp,
+} from 'firebase/firestore';
+
+import {
+  addBook as apiAddBook,
+  updateBookProgress,
+  markAsDNF as apiMarkAsDNF,
+  updateBookStatus as apiUpdateBookStatus,
+} from '@core/api/books';
+import { db } from '@core/firebase/firebase';
+
+import { usePopupStore } from '../../../store/usePopupStore';
+import { BOOK_STATUS, VALID_STATUSES } from '../../constants/bookStatus';
 import { Logger } from '../../services/Logger';
 
 /**
  * Library Slice handles all book-related logic.
- * 
+ *
  * @param {Function} set
  * @param {Function} get
  */
@@ -23,10 +37,10 @@ export const createLibrarySlice = (set, get) => ({
   totalBooksCompleted: 0,
   repairLocked: false,
 
-  fetchUserData: (uid) => {
+  fetchUserData: uid => {
     // Listen for user stats
     const userDocRef = doc(db, 'users', uid);
-    const unsubUser = onSnapshot(userDocRef, (docSnap) => {
+    const unsubUser = onSnapshot(userDocRef, docSnap => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         set({
@@ -35,7 +49,7 @@ export const createLibrarySlice = (set, get) => ({
           lastReadDate: data.last_reading_date || null,
           maxReadingSession: data.max_reading_session || 0,
           lastReadingSession: data.last_reading_session || 0,
-          totalBooksCompleted: data.total_books_completed || 0
+          totalBooksCompleted: data.total_books_completed || 0,
         });
 
         if (get().repairLocked) return;
@@ -47,41 +61,48 @@ export const createLibrarySlice = (set, get) => ({
         const sumStreak = Number(summary.currentStreak || 0);
 
         const isMissingSummary = !data.socialSummary;
-        const needsRepair = isMissingSummary || 
-                            sumTotal !== dbTotal || 
-                            sumStreak !== dbStreak;
+        const needsRepair =
+          isMissingSummary || sumTotal !== dbTotal || sumStreak !== dbStreak;
 
         if (needsRepair) {
-          set({ repairLocked: true }); 
-          
+          set({ repairLocked: true });
+
           updateDoc(userDocRef, {
             total_pages_read: data.total_pages_read ?? 0,
             current_streak: data.current_streak ?? 0,
             socialSummary: {
               totalPagesRead: dbTotal,
               currentStreak: dbStreak,
-              lastBookTitle: summary.lastBookTitle || "Recém chegado",
+              lastBookTitle: summary.lastBookTitle || 'Recém chegado',
               lastActive: data.last_reading_date || getLocalDateString(),
-              profilePic: data.profilePic || null
-            }
-          }).then(() => {}).catch(err => {
-            console.error("🩺 Repair error:", err);
-            set({ repairLocked: false });
-          });
+              profilePic: data.profilePic || null,
+            },
+          })
+            .then(() => {})
+            .catch(err => {
+              console.error('🩺 Repair error:', err);
+              set({ repairLocked: false });
+            });
         }
       }
     });
 
     // Listen for books sub-collection
     const booksColRef = collection(db, 'users', uid, 'books');
-    const unsubBooks = onSnapshot(booksColRef, (querySnap) => {
-      const booksList = querySnap.docs.map(d => ({ id: d.id, ...d.data() }));
-      const sortedBooks = booksList.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-      set({ books: sortedBooks, loadingBooks: false });
-    }, (error) => {
-      console.error("Error fetching books:", error);
-      set({ loadingBooks: false });
-    });
+    const unsubBooks = onSnapshot(
+      booksColRef,
+      querySnap => {
+        const booksList = querySnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const sortedBooks = booksList.sort(
+          (a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0),
+        );
+        set({ books: sortedBooks, loadingBooks: false });
+      },
+      error => {
+        console.error('Error fetching books:', error);
+        set({ loadingBooks: false });
+      },
+    );
 
     return () => {
       unsubUser();
@@ -89,28 +110,47 @@ export const createLibrarySlice = (set, get) => ({
     };
   },
 
-  addBook: async (title, totalPages, id = null, description = '', extraMetadata = {}, status) => {
+  addBook: async (
+    title,
+    totalPages,
+    id = null,
+    description = '',
+    extraMetadata = {},
+    status,
+  ) => {
     const { user, books } = get();
     if (!user) return;
 
     // 🛡️ Strict Status Validation (Etapa 2)
     if (!status || !VALID_STATUSES.includes(status)) {
-      Logger.error(`[Library] Aborted addition: Invalid or missing status "${status}".`);
+      Logger.error(
+        `[Library] Aborted addition: Invalid or missing status "${status}".`,
+      );
       return;
     }
 
     if (id && books.some(b => b.id === id)) {
-      Logger.warn(`[Library Integrity] Duplicate ID detected: ${id}. Skipping.`);
+      Logger.warn(
+        `[Library Integrity] Duplicate ID detected: ${id}. Skipping.`,
+      );
       return;
     }
 
     try {
-      await apiAddBook(user.uid, title, totalPages, id, description, extraMetadata, status);
+      await apiAddBook(
+        user.uid,
+        title,
+        totalPages,
+        id,
+        description,
+        extraMetadata,
+        status,
+      );
     } catch (error) {
       usePopupStore.getState().showPopup({
         title: 'Erro ao Adicionar',
         message: error.message,
-        type: 'error'
+        type: 'error',
       });
     }
   },
@@ -123,14 +163,20 @@ export const createLibrarySlice = (set, get) => ({
     if (!book) return;
 
     try {
-      const res = await updateBookProgress(user.uid, book, newPage, timeSeconds, { 
-        streak, 
-        lastReadDate, 
-        totalPagesRead,
-        maxReadingSession: get().maxReadingSession,
-        totalBooksCompleted: get().totalBooksCompleted
-      });
-      
+      const res = await updateBookProgress(
+        user.uid,
+        book,
+        newPage,
+        timeSeconds,
+        {
+          streak,
+          lastReadDate,
+          totalPagesRead,
+          maxReadingSession: get().maxReadingSession,
+          totalBooksCompleted: get().totalBooksCompleted,
+        },
+      );
+
       // Automated Group Notification
       try {
         const { useSocialStore } = require('../../../store/useSocialStore');
@@ -143,23 +189,23 @@ export const createLibrarySlice = (set, get) => ({
               text: `🔥 @${userName} acaba de ler ${res.pagesReadToday} páginas de "${book.title}"!`,
               type: 'system_notification',
               pagesRead: res.pagesReadToday,
-              bookTitle: book.title
+              bookTitle: book.title,
             });
           }
         }
       } catch (e) {
-        console.warn("Could not send group notification:", e.message);
+        console.warn('Could not send group notification:', e.message);
       }
     } catch (error) {
       usePopupStore.getState().showPopup({
         title: 'Erro ao Salvar',
         message: error.message,
-        type: 'error'
+        type: 'error',
       });
     }
   },
 
-  markAsDNF: async (bookId) => {
+  markAsDNF: async bookId => {
     const { user } = get();
     if (!user) return;
     try {
@@ -182,7 +228,7 @@ export const createLibrarySlice = (set, get) => ({
 
     if (finalUpdates.currentPage !== undefined) {
       pageDelta = finalUpdates.currentPage - book.currentPage;
-      
+
       // 1. If currentPage >= totalPages -> Set Status to READ
       if (finalUpdates.currentPage >= book.totalPages) {
         finalUpdates.status = BOOK_STATUS.READ;
@@ -196,11 +242,16 @@ export const createLibrarySlice = (set, get) => ({
     // 3. If status is manually set to READ -> Jump progress to 100%
     if (finalUpdates.status !== undefined) {
       if (!VALID_STATUSES.includes(finalUpdates.status)) {
-        Logger.error(`[Library] Aborted update: Invalid status "${finalUpdates.status}" for book ${bookId}`);
+        Logger.error(
+          `[Library] Aborted update: Invalid status "${finalUpdates.status}" for book ${bookId}`,
+        );
         return;
       }
 
-      if (finalUpdates.status === BOOK_STATUS.READ && book.status !== BOOK_STATUS.READ) {
+      if (
+        finalUpdates.status === BOOK_STATUS.READ &&
+        book.status !== BOOK_STATUS.READ
+      ) {
         // Auto-fill progress if totalPages is known
         if (book.totalPages > 0) {
           finalUpdates.currentPage = book.totalPages;
@@ -211,8 +262,10 @@ export const createLibrarySlice = (set, get) => ({
     }
 
     const previousBooks = [...books];
-    const updatedBooks = books.map(b => b.id === bookId ? { ...b, ...finalUpdates } : b);
-    
+    const updatedBooks = books.map(b =>
+      b.id === bookId ? { ...b, ...finalUpdates } : b,
+    );
+
     // 1. Optimistic Update (UI reacts instantly)
     set({ books: updatedBooks });
 
@@ -221,7 +274,7 @@ export const createLibrarySlice = (set, get) => ({
       const { updateBook: apiUpdateBook } = require('@core/api/books');
       await apiUpdateBook(user.uid, bookId, {
         ...finalUpdates,
-        updatedAt: serverTimestamp()
+        updatedAt: serverTimestamp(),
       });
 
       // 📈 Update User Stats if pages changed (handled in background)
@@ -229,16 +282,17 @@ export const createLibrarySlice = (set, get) => ({
         const { db } = require('@core/firebase/firebase');
         const { doc, updateDoc, increment } = require('firebase/firestore');
         const userRef = doc(db, 'users', user.uid);
-        
+
         const wasRead = book.status === BOOK_STATUS.READ;
         const isRead = finalUpdates.status === BOOK_STATUS.READ;
-        const completedIncrement = (isRead && !wasRead) ? 1 : (!isRead && wasRead) ? -1 : 0;
+        const completedIncrement =
+          isRead && !wasRead ? 1 : !isRead && wasRead ? -1 : 0;
 
         await updateDoc(userRef, {
           total_pages_read: increment(pageDelta),
           total_books_completed: increment(completedIncrement),
           'socialSummary.totalPagesRead': increment(pageDelta),
-          'socialSummary.lastActive': getLocalDateString()
+          'socialSummary.lastActive': getLocalDateString(),
         });
 
         // 🌟 Add Global Reading Log if progress increased
@@ -249,13 +303,17 @@ export const createLibrarySlice = (set, get) => ({
       }
     } catch (error) {
       // 3. Rollback Mechanism on failure
-      Logger.error(`[Library Sync] Failed to update book ${bookId}. Rolling back.`, error);
+      Logger.error(
+        `[Library Sync] Failed to update book ${bookId}. Rolling back.`,
+        error,
+      );
       set({ books: previousBooks });
-      
+
       usePopupStore.getState().showPopup({
         title: 'Erro de Sincronização',
-        message: 'Não foi possível salvar as alterações na nuvem. O estado local foi revertido.',
-        type: 'error'
+        message:
+          'Não foi possível salvar as alterações na nuvem. O estado local foi revertido.',
+        type: 'error',
       });
     }
   },
@@ -264,7 +322,7 @@ export const createLibrarySlice = (set, get) => ({
     return get().updateBook(bookId, { status });
   },
 
-  removeBook: async (bookId) => {
+  removeBook: async bookId => {
     const { user, books } = get();
     if (!user) return;
 
@@ -279,7 +337,7 @@ export const createLibrarySlice = (set, get) => ({
       usePopupStore.getState().showPopup({
         title: 'Erro ao Excluir',
         message: 'Não foi possível excluir o livro da sua biblioteca.',
-        type: 'error'
+        type: 'error',
       });
     }
   },
@@ -290,14 +348,18 @@ export const createLibrarySlice = (set, get) => ({
  * Centralizes filtering logic for performance and clean UI code.
  * 🛡️ Defensive fallbacks added to prevent undefined crashes during hydration.
  */
-export const selectReadingBooks = (state) => 
+export const selectReadingBooks = state =>
   (state.books || []).filter(b => b.status === BOOK_STATUS.READING);
 
-export const selectReadBooks = (state) => 
+export const selectReadBooks = state =>
   (state.books || []).filter(b => b.status === BOOK_STATUS.READ);
 
-export const selectWishlistBooks = (state) => 
-  (state.books || []).filter(b => b.status === BOOK_STATUS.WANT_TO_READ || b.status === BOOK_STATUS.WISH_LIST);
+export const selectWishlistBooks = state =>
+  (state.books || []).filter(
+    b =>
+      b.status === BOOK_STATUS.WANT_TO_READ ||
+      b.status === BOOK_STATUS.WISH_LIST,
+  );
 
-export const selectBooksByStatus = (status) => (state) => 
+export const selectBooksByStatus = status => state =>
   (state.books || []).filter(b => b.status === status);

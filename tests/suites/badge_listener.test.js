@@ -1,13 +1,13 @@
+import { BOOK_STATUS } from '../../src/core/constants/bookStatus';
 import BadgeListenerService from '../../src/core/services/BadgeListenerService';
 import { useMainStore } from '../../src/core/store';
-import { BOOK_STATUS } from '../../src/core/constants/bookStatus';
 
 // Mock the store
 jest.mock('../../src/core/store', () => ({
   useMainStore: {
     getState: jest.fn(),
-    subscribe: jest.fn()
-  }
+    subscribe: jest.fn(),
+  },
 }));
 
 describe('Badge Listener Service (Event Cycle)', () => {
@@ -22,7 +22,7 @@ describe('Badge Listener Service (Event Cycle)', () => {
     useMainStore.getState.mockReturnValue({
       books: [],
       streak: 0,
-      checkAndUnlockBadges: mockCheckBadges
+      checkAndUnlockBadges: mockCheckBadges,
     });
 
     // Capture listeners
@@ -39,7 +39,9 @@ describe('Badge Listener Service (Event Cycle)', () => {
   });
 
   test('Trap 1: should trigger checkAndUnlockBadges when a book status transitions to READ', () => {
-    const prevBooks = [{ id: 'b1', title: 'Book 1', status: BOOK_STATUS.READING }];
+    const prevBooks = [
+      { id: 'b1', title: 'Book 1', status: BOOK_STATUS.READING },
+    ];
     const currBooks = [{ id: 'b1', title: 'Book 1', status: BOOK_STATUS.READ }];
 
     booksListener(currBooks, prevBooks);
@@ -53,8 +55,12 @@ describe('Badge Listener Service (Event Cycle)', () => {
   });
 
   test('Isolation: should NOT trigger when book title changes but status remains the same', () => {
-    const prevBooks = [{ id: 'b1', title: 'Old Title', status: BOOK_STATUS.READING }];
-    const currBooks = [{ id: 'b1', title: 'New Title', status: BOOK_STATUS.READING }];
+    const prevBooks = [
+      { id: 'b1', title: 'Old Title', status: BOOK_STATUS.READING },
+    ];
+    const currBooks = [
+      { id: 'b1', title: 'New Title', status: BOOK_STATUS.READING },
+    ];
 
     booksListener(currBooks, prevBooks);
 

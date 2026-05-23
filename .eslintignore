@@ -1,0 +1,8 @@
+node_modules/
+.expo/
+coverage/
+dist/
+public/
+web-build/
+*.json
+*.config.js

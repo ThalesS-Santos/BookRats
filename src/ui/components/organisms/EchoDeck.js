@@ -1,8 +1,18 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { View, Animated, PanResponder, Dimensions, StyleSheet, TouchableOpacity, Image } from 'react-native';
+
 import { useNavigation } from '@react-navigation/native';
-import CommunityNote from '../molecules/CommunityNote';
 import * as Haptics from '@utils/haptics';
+import {
+  View,
+  Animated,
+  PanResponder,
+  Dimensions,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+} from 'react-native';
+
+import CommunityNote from '../molecules/CommunityNote';
 
 const EchoDeck = ({ echoes, onClap, COLORS, isDarkMode, bookCover = null }) => {
   const { width } = Dimensions.get('window');
@@ -24,21 +34,28 @@ const EchoDeck = ({ echoes, onClap, COLORS, isDarkMode, bookCover = null }) => {
   const handleTap = () => {
     const currentEcho = echoes[currentIndexRef.current];
     if (currentEcho) {
-      navigation.navigate('EchoDetail', { echoId: currentEcho.id, bookId: currentEcho.bookId, echo: currentEcho });
+      navigation.navigate('EchoDetail', {
+        echoId: currentEcho.id,
+        bookId: currentEcho.bookId,
+        echo: currentEcho,
+      });
     }
   };
 
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (evt, gestureState) => {
-        return Math.abs(gestureState.dx) > 10 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
+        return (
+          Math.abs(gestureState.dx) > 10 &&
+          Math.abs(gestureState.dx) > Math.abs(gestureState.dy)
+        );
       },
       onPanResponderMove: (event, gesture) => {
         position.setValue({ x: gesture.dx, y: 0 });
       },
       onPanResponderRelease: (event, gesture) => {
         if (Math.abs(gesture.dx) < 10 && Math.abs(gesture.dy) < 10) {
-          position.setValue({ x: 0, y: 0 }); 
+          position.setValue({ x: 0, y: 0 });
           handleTap();
           return;
         }
@@ -49,16 +66,16 @@ const EchoDeck = ({ echoes, onClap, COLORS, isDarkMode, bookCover = null }) => {
         } else {
           resetPosition();
         }
-      }
-    })
+      },
+    }),
   ).current;
 
-  const forceSwipe = (direction) => {
+  const forceSwipe = direction => {
     const x = direction === 'right' ? width * 1.5 : -width * 1.5;
     Animated.timing(position, {
       toValue: { x, y: 0 },
       duration: SWIPE_OUT_DURATION,
-      useNativeDriver: false
+      useNativeDriver: false,
     }).start(() => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       onSwipeComplete();
@@ -78,7 +95,7 @@ const EchoDeck = ({ echoes, onClap, COLORS, isDarkMode, bookCover = null }) => {
     Animated.spring(position, {
       toValue: { x: 0, y: 0 },
       friction: 5,
-      useNativeDriver: false
+      useNativeDriver: false,
     }).start();
   };
 
@@ -87,13 +104,13 @@ const EchoDeck = ({ echoes, onClap, COLORS, isDarkMode, bookCover = null }) => {
       return (
         <View style={styles.emptyContainer}>
           {bookCover && (
-            <Image 
-              source={bookCover} 
-              style={styles.emptyCover} 
-              resizeMode="contain" 
+            <Image
+              source={bookCover}
+              style={styles.emptyCover}
+              resizeMode="contain"
             />
           )}
-          <CommunityNote 
+          <CommunityNote
             note={{
               userMetadata: { displayName: 'Fim do Baralho', photoURL: null },
               pageLocation: '-',
@@ -101,11 +118,11 @@ const EchoDeck = ({ echoes, onClap, COLORS, isDarkMode, bookCover = null }) => {
               reactions: { claps: 0 },
               userId: '0',
               bookId: '0',
-              id: 'empty'
-            }} 
-            onClap={() => {}} 
-            COLORS={COLORS} 
-            isDarkMode={isDarkMode} 
+              id: 'empty',
+            }}
+            onClap={() => {}}
+            COLORS={COLORS}
+            isDarkMode={isDarkMode}
           />
         </View>
       );
@@ -113,7 +130,7 @@ const EchoDeck = ({ echoes, onClap, COLORS, isDarkMode, bookCover = null }) => {
 
     const visibleCards = [];
     const maxVisible = Math.min(3, echoes.length - currentIndex);
-    
+
     // We iterate backwards to manage correct layering if zIndex is tricky
     // offset 0 = Front card
     // offset 1 = Middle card
@@ -126,13 +143,13 @@ const EchoDeck = ({ echoes, onClap, COLORS, isDarkMode, bookCover = null }) => {
         // Front Card Logic
         const rotate = position.x.interpolate({
           inputRange: [-width * 1.5, 0, width * 1.5],
-          outputRange: ['-10deg', '0deg', '10deg']
+          outputRange: ['-10deg', '0deg', '10deg'],
         });
 
         const cardStyle = {
           ...position.getLayout(),
           transform: [{ rotate }],
-          zIndex: 10
+          zIndex: 10,
         };
 
         visibleCards.push(
@@ -140,18 +157,17 @@ const EchoDeck = ({ echoes, onClap, COLORS, isDarkMode, bookCover = null }) => {
             key={item.id}
             testID="front-card"
             style={[styles.cardWrapper, cardStyle]}
-            {...panResponder.panHandlers}
-          >
+            {...panResponder.panHandlers}>
             <TouchableOpacity activeOpacity={0.9} onPress={handleTap}>
-              <CommunityNote 
-                note={item} 
-                onClap={onClap} 
-                COLORS={COLORS} 
-                isDarkMode={isDarkMode} 
-                isFrontCard={true} 
+              <CommunityNote
+                note={item}
+                onClap={onClap}
+                COLORS={COLORS}
+                isDarkMode={isDarkMode}
+                isFrontCard={true}
               />
             </TouchableOpacity>
-          </Animated.View>
+          </Animated.View>,
         );
       } else {
         // Background Cards (Fan Logic)
@@ -165,47 +181,42 @@ const EchoDeck = ({ echoes, onClap, COLORS, isDarkMode, bookCover = null }) => {
         const scale = position.x.interpolate({
           inputRange: [-SWIPE_THRESHOLD, 0, SWIPE_THRESHOLD],
           outputRange: [targetScale, initialScale, targetScale],
-          extrapolate: 'clamp'
+          extrapolate: 'clamp',
         });
 
         const translateX = position.x.interpolate({
           inputRange: [-SWIPE_THRESHOLD, 0, SWIPE_THRESHOLD],
           outputRange: [targetTranslateX, initialTranslateX, targetTranslateX],
-          extrapolate: 'clamp'
+          extrapolate: 'clamp',
         });
 
         const backgroundCardStyle = {
           transform: [{ scale }, { translateX }],
           zIndex: 10 - offset,
-          opacity: 1 // Solid backgrounds as requested
+          opacity: 1, // Solid backgrounds as requested
         };
 
         visibleCards.push(
           <Animated.View
             key={item.id}
-            style={[styles.cardWrapper, backgroundCardStyle]}
-          >
-             <CommunityNote 
-               note={item} 
-               onClap={onClap} 
-               COLORS={COLORS} 
-               isDarkMode={isDarkMode} 
-               isFrontCard={false} 
-               isBackgroundCard={true}
-             />
-          </Animated.View>
+            style={[styles.cardWrapper, backgroundCardStyle]}>
+            <CommunityNote
+              note={item}
+              onClap={onClap}
+              COLORS={COLORS}
+              isDarkMode={isDarkMode}
+              isFrontCard={false}
+              isBackgroundCard={true}
+            />
+          </Animated.View>,
         );
       }
     }
-    
+
     return visibleCards;
   };
 
-  return (
-    <View style={styles.container}>
-      {renderCards()}
-    </View>
-  );
+  return <View style={styles.container}>{renderCards()}</View>;
 };
 
 const styles = StyleSheet.create({
@@ -214,7 +225,7 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 10
+    marginBottom: 10,
   },
   cardWrapper: {
     position: 'absolute',
@@ -233,7 +244,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderRadius: 4,
     opacity: 0.6,
-  }
+  },
 });
 
 export default React.memo(EchoDeck);

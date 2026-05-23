@@ -1,5 +1,6 @@
-import { useThemeStore } from '../../src/store/useThemeStore';
 import { persist } from 'zustand/middleware';
+
+import { useThemeStore } from '../../src/store/useThemeStore';
 
 jest.mock('zustand/middleware', () => ({
   persist: jest.fn((config, options) => {
@@ -7,7 +8,7 @@ jest.mock('zustand/middleware', () => ({
     global.themeStoreOptions = options;
     return (set, get, api) => config(set, get, api);
   }),
-  createJSONStorage: jest.fn((fn) => fn && fn()),
+  createJSONStorage: jest.fn(fn => fn && fn()),
 }));
 
 describe('useThemeStore', () => {
@@ -39,13 +40,16 @@ describe('useThemeStore', () => {
     // This is a bit of a hack to reach line 18-23 in useThemeStore.js
     // We need to re-import or use the captured options
     // Actually, the mock above will run when useThemeStore is imported
-    
-    if (global.themeStoreOptions && global.themeStoreOptions.onRehydrateStorage) {
+
+    if (
+      global.themeStoreOptions &&
+      global.themeStoreOptions.onRehydrateStorage
+    ) {
       const onRehydrate = global.themeStoreOptions.onRehydrateStorage();
       useThemeStore.setState({ isDarkMode: true, hapticsEnabled: false });
-      
+
       onRehydrate(null, new Error('Hydration Error'));
-      
+
       expect(useThemeStore.getState().isDarkMode).toBe(false);
       expect(useThemeStore.getState().hapticsEnabled).toBe(true);
     }

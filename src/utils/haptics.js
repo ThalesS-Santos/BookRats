@@ -1,11 +1,14 @@
 import * as ExpoHaptics from 'expo-haptics';
+
 import { useThemeStore } from '../store/useThemeStore';
 
 /**
  * 📳 Centralized Haptics Utility
  * Wraps expo-haptics to natively respect the user's global haptics theme preference.
  */
-export const impactAsync = async (style = ExpoHaptics.ImpactFeedbackStyle.Light) => {
+export const impactAsync = async (
+  style = ExpoHaptics.ImpactFeedbackStyle.Light,
+) => {
   try {
     if (useThemeStore.getState().hapticsEnabled) {
       await ExpoHaptics.impactAsync(style);
@@ -15,7 +18,9 @@ export const impactAsync = async (style = ExpoHaptics.ImpactFeedbackStyle.Light)
   }
 };
 
-export const notificationAsync = async (type = ExpoHaptics.NotificationFeedbackType.Success) => {
+export const notificationAsync = async (
+  type = ExpoHaptics.NotificationFeedbackType.Success,
+) => {
   try {
     if (useThemeStore.getState().hapticsEnabled) {
       await ExpoHaptics.notificationAsync(type);

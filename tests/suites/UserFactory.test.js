@@ -9,7 +9,10 @@ describe('UserFactory', () => {
   });
 
   it('creates a user with overrides', () => {
-    const user = UserFactory.create({ name: 'Overridden Name', stats: { totalBooks: 99 } });
+    const user = UserFactory.create({
+      name: 'Overridden Name',
+      stats: { totalBooks: 99 },
+    });
     expect(user.name).toBe('Overridden Name');
     expect(user.stats.totalBooks).toBe(99);
   });

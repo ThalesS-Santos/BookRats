@@ -1,0 +1,40 @@
+name: Quality Gates
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test -- --runInBand
+
+      - name: Coverage
+        run: npm run test:coverage -- --runInBand
+
+      - name: Audit (high+)
+        run: npm audit --audit-level=high
+
+      - name: Expo Build Check
+        run: npx expo export --platform web

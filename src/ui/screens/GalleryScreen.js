@@ -1,26 +1,30 @@
-import { useMainStore } from '@core/store';
 import React, { useEffect, useState, useRef } from 'react';
-import { 
-  View, 
-  Text, 
-  Animated, 
-  Dimensions, 
-  StyleSheet, 
-  TouchableOpacity, 
-  ActivityIndicator 
-} from 'react-native';
+
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { getPublicEchoes, addRatClap } from '@core/api/social';
-import { useThemeStore } from '../../store/useThemeStore';
+import {
+  View,
+  Text,
+  Animated,
+  Dimensions,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+} from 'react-native';
+
 import { COLORS } from '@constants/colors';
-import * as Haptics from '../../utils/haptics';
-import { CommunityNote } from '@ui/components';
+import { getPublicEchoes, addRatClap } from '@core/api/social';
+import { UserNormalizationService } from '@core/services/UserNormalizationService';
+import { useMainStore } from '@core/store';
 import { BookLoader } from '@ui/components';
+import { CommunityNote } from '@ui/components';
+
+import { useThemeStore } from '../../store/useThemeStore';
+import * as Haptics from '../../utils/haptics';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 const ITEM_HEIGHT = 150; // Tighter vertical height
-const SPACING = 6;  // Minimal gap for the 'consecutive' feel
+const SPACING = 6; // Minimal gap for the 'consecutive' feel
 const FULL_ITEM_HEIGHT = ITEM_HEIGHT + SPACING;
 
 const GalleryScreen = ({ route }) => {
@@ -38,10 +42,14 @@ const GalleryScreen = ({ route }) => {
   useEffect(() => {
     const fetchEchoes = async () => {
       try {
-        const fetched = await getPublicEchoes(bookId, userCurrentPage, user?.uid);
+        const fetched = await getPublicEchoes(
+          bookId,
+          userCurrentPage,
+          user?.uid,
+        );
         setEchoes(fetched);
       } catch (err) {
-        console.error("Failed to load gallery echoes", err);
+        console.error('Failed to load gallery echoes', err);
       } finally {
         setLoading(false);
       }
@@ -50,24 +58,36 @@ const GalleryScreen = ({ route }) => {
   }, [bookId, userCurrentPage]);
 
   const handleClap = async (targetUserId, bId, echoId) => {
-    setEchoes(prev => prev.map(e => e.id === echoId ? { ...e, reactions: { ...e.reactions, claps: (e.reactions?.claps || 0) + 1 } } : e));
-    const currentUserName = user?.displayName || user?.username || user?.email?.split('@')[0] || 'Leitor';
+    setEchoes(prev =>
+      prev.map(e =>
+        e.id === echoId
+          ? {
+              ...e,
+              reactions: {
+                ...e.reactions,
+                claps: (e.reactions?.claps || 0) + 1,
+              },
+            }
+          : e,
+      ),
+    );
+    const currentUserName = UserNormalizationService.normalizeDisplayName(user);
     await addRatClap(targetUserId, bId, echoId, user?.uid, currentUserName);
   };
 
   const onScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-    { 
-      useNativeDriver: true, 
-      listener: (event) => {
+    {
+      useNativeDriver: true,
+      listener: event => {
         const offset = event.nativeEvent.contentOffset.y;
         const index = Math.round(offset / FULL_ITEM_HEIGHT);
         if (index !== currentIndex && index >= 0 && index < echoes.length) {
           setCurrentIndex(index);
           Haptics.selectionAsync();
         }
-      }
-    }
+      },
+    },
   );
 
   const renderItem = ({ item, index }) => {
@@ -97,25 +117,29 @@ const GalleryScreen = ({ route }) => {
     });
 
     return (
-      <Animated.View 
+      <Animated.View
         style={[
-          styles.itemWrapper, 
-          { 
-            opacity, 
+          styles.itemWrapper,
+          {
+            opacity,
             transform: [{ scale }, { translateY }],
-            zIndex: index === currentIndex ? 10 : 1
-          }
-        ]}
-      >
-        <TouchableOpacity 
+            zIndex: index === currentIndex ? 10 : 1,
+          },
+        ]}>
+        <TouchableOpacity
           activeOpacity={0.9}
-          onPress={() => navigation.navigate('EchoDetail', { echoId: item.id, bookId: item.bookId, echo: item })}
-        >
-          <CommunityNote 
-            note={item} 
-            onClap={handleClap} 
-            COLORS={COLORS} 
-            isDarkMode={isDarkMode} 
+          onPress={() =>
+            navigation.navigate('EchoDetail', {
+              echoId: item.id,
+              bookId: item.bookId,
+              echo: item,
+            })
+          }>
+          <CommunityNote
+            note={item}
+            onClap={handleClap}
+            COLORS={COLORS}
+            isDarkMode={isDarkMode}
             isFrontCard={index === currentIndex}
           />
         </TouchableOpacity>
@@ -127,31 +151,74 @@ const GalleryScreen = ({ route }) => {
 
   // Precise centering offset: Center of screen minus half item height minus header height
   const HEADER_TOTAL_HEIGHT = 120;
-  const CENTER_OFFSET = (SCREEN_HEIGHT / 2) - (ITEM_HEIGHT / 2) - HEADER_TOTAL_HEIGHT;
+  const CENTER_OFFSET =
+    SCREEN_HEIGHT / 2 - ITEM_HEIGHT / 2 - HEADER_TOTAL_HEIGHT;
 
   return (
-    <View style={[styles.container, { backgroundColor: isDarkMode ? COLORS.background.dark : COLORS.background.light }]}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: isDarkMode
+            ? COLORS.background.dark
+            : COLORS.background.light,
+        },
+      ]}>
       {/* Header */}
       <View style={[styles.header, { height: HEADER_TOTAL_HEIGHT }]}>
-        <TouchableOpacity testID="back-button" onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="chevron-back" size={28} color={isDarkMode ? 'white' : 'black'} />
+        <TouchableOpacity
+          testID="back-button"
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}>
+          <Ionicons
+            name="chevron-back"
+            size={28}
+            color={isDarkMode ? 'white' : 'black'}
+          />
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
-          <Text style={[styles.headerSubTitle, { color: isDarkMode ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)' }]}>ECOS DA COMUNIDADE</Text>
-          <Text style={[styles.headerTitle, { color: isDarkMode ? 'white' : 'black' }]} numberOfLines={1}>{bookTitle}</Text>
+          <Text
+            style={[
+              styles.headerSubTitle,
+              {
+                color: isDarkMode ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)',
+              },
+            ]}>
+            {'ECOS DA COMUNIDADE'}
+          </Text>
+          <Text
+            style={[
+              styles.headerTitle,
+              { color: isDarkMode ? 'white' : 'black' },
+            ]}
+            numberOfLines={1}>
+            {bookTitle}
+          </Text>
         </View>
       </View>
 
       {echoes.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="chatbubble-outline" size={60} color={isDarkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)'} />
-          <Text style={[styles.emptyText, { color: isDarkMode ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.3)' }]}>Nenhum eco encontrado nesta parte do livro.</Text>
+          <Ionicons
+            name="chatbubble-outline"
+            size={60}
+            color={isDarkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)'}
+          />
+          <Text
+            style={[
+              styles.emptyText,
+              {
+                color: isDarkMode ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.3)',
+              },
+            ]}>
+            {'Nenhum eco encontrado nesta parte do livro.'}
+          </Text>
         </View>
       ) : (
         <Animated.FlatList
           testID="echo-flatlist"
           data={echoes}
-          keyExtractor={(item) => item.id}
+          keyExtractor={item => item.id}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
           onScroll={onScroll}
@@ -221,7 +288,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'serif',
     lineHeight: 24,
-  }
+  },
 });
 
 export default GalleryScreen;

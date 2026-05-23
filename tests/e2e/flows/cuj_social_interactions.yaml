@@ -1,0 +1,21 @@
+appId: com.bookrats
+---
+- launchApp
+- tapOn:
+    id: 'community-btn'
+- tapOn:
+    id: 'write-echo-btn'
+- tapOn:
+    id: 'echo-text-input'
+- inputText: 'Essa é uma anotação automática gerada pelo teste E2E do Maestro. #leitura'
+- tapOn:
+    id: 'publish-echo-btn'
+- takeScreenshot: echo_created
+- tapOn:
+    text: 'Ranking'
+- tapOn:
+    id: 'ranking-scope-global'
+- takeScreenshot: ranking_global
+- tapOn:
+    id: 'ranking-scope-amigos'
+- takeScreenshot: ranking_amigos

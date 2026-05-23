@@ -1,6 +1,6 @@
 describe('Centralized Logger Service', () => {
   let Logger;
-  
+
   beforeEach(() => {
     jest.resetModules(); // Clears cache so we can re-evaluate the module with different __DEV__ values
     jest.clearAllMocks();
@@ -25,7 +25,7 @@ describe('Centralized Logger Service', () => {
       Logger.info('Test info', { userId: 123 });
       expect(console.log).toHaveBeenCalledWith(
         expect.stringContaining('[INFO]'),
-        { userId: 123 }
+        { userId: 123 },
       );
     });
 
@@ -33,27 +33,34 @@ describe('Centralized Logger Service', () => {
       Logger.warn('Test warning');
       expect(console.warn).toHaveBeenCalledWith(
         expect.stringContaining('[WARN]'),
-        {}
+        {},
       );
     });
 
     it('should output errors to console.error', () => {
       const errorObj = new Error('test error');
       Logger.error('Test error msg', errorObj, { meta: true });
-      
+
       expect(console.error).toHaveBeenCalledWith(
         expect.stringContaining('[ERROR]'),
         errorObj,
-        { meta: true }
+        { meta: true },
       );
     });
 
     it('should handle default parameters for info and error', () => {
       Logger.info('Simple info');
-      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('[INFO]'), {});
+      expect(console.log).toHaveBeenCalledWith(
+        expect.stringContaining('[INFO]'),
+        {},
+      );
 
       Logger.error('Simple error');
-      expect(console.error).toHaveBeenCalledWith(expect.stringContaining('[ERROR]'), null, {});
+      expect(console.error).toHaveBeenCalledWith(
+        expect.stringContaining('[ERROR]'),
+        null,
+        {},
+      );
     });
   });
 

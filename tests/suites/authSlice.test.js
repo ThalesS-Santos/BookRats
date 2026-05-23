@@ -1,5 +1,13 @@
+import {
+  signUp as apiSignUp,
+  signIn as apiSignIn,
+  signInWithGoogle as apiSignInWithGoogle,
+  signOut as apiSignOut,
+  updatePresence as apiUpdatePresence,
+  updateReadingStatus as apiUpdateReadingStatus,
+} from '@core/api/auth';
 import { createAuthSlice } from '@core/store/slices/authSlice';
-import { signUp as apiSignUp, signIn as apiSignIn, signInWithGoogle as apiSignInWithGoogle, signOut as apiSignOut, updatePresence as apiUpdatePresence, updateReadingStatus as apiUpdateReadingStatus } from '@core/api/auth';
+
 import { usePopupStore } from '../../src/store/usePopupStore';
 
 jest.mock('@core/api/auth', () => ({
@@ -14,9 +22,9 @@ jest.mock('@core/api/auth', () => ({
 jest.mock('../../src/store/usePopupStore', () => ({
   usePopupStore: {
     getState: jest.fn().mockReturnValue({
-      showPopup: jest.fn()
-    })
-  }
+      showPopup: jest.fn(),
+    }),
+  },
 }));
 
 describe('Auth Slice', () => {
@@ -26,21 +34,24 @@ describe('Auth Slice', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     state = {};
-    setMock = jest.fn((newState) => {
-      state = { ...state, ...(typeof newState === 'function' ? newState(state) : newState) };
+    setMock = jest.fn(newState => {
+      state = {
+        ...state,
+        ...(typeof newState === 'function' ? newState(state) : newState),
+      };
     });
-    
+
     getMock = jest.fn(() => state);
-    
+
     const slice = createAuthSlice(setMock, getMock);
-    state = { 
-      ...slice, 
+    state = {
+      ...slice,
       user: null,
       authError: null,
       loading: false,
-      fetchUserData: jest.fn()
+      fetchUserData: jest.fn(),
     };
   });
 
@@ -48,7 +59,7 @@ describe('Auth Slice', () => {
     it('should set user and trigger fetchUserData', () => {
       const user = { uid: '123' };
       state.setAuthUser(user);
-      
+
       expect(setMock).toHaveBeenCalledWith({ user, loading: false });
       expect(setMock).toHaveBeenCalledWith({ loadingBooks: true });
       expect(state.fetchUserData).toHaveBeenCalledWith('123');
@@ -57,7 +68,13 @@ describe('Auth Slice', () => {
     it('should clear books and stats if user is null', () => {
       state.setAuthUser(null);
       expect(setMock).toHaveBeenCalledWith({ user: null, loading: false });
-      expect(setMock).toHaveBeenCalledWith({ books: [], streak: 0, totalPagesRead: 0, lastReadDate: null, loadingBooks: false });
+      expect(setMock).toHaveBeenCalledWith({
+        books: [],
+        streak: 0,
+        totalPagesRead: 0,
+        lastReadDate: null,
+        loadingBooks: false,
+      });
     });
   });
 
@@ -73,9 +90,14 @@ describe('Auth Slice', () => {
       const showPopupMock = usePopupStore.getState().showPopup;
 
       await state.signUp('test@email.com', '123456');
-      
-      expect(setMock).toHaveBeenCalledWith({ authError: 'Sign up fail', loading: false });
-      expect(showPopupMock).toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }));
+
+      expect(setMock).toHaveBeenCalledWith({
+        authError: 'Sign up fail',
+        loading: false,
+      });
+      expect(showPopupMock).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'error' }),
+      );
     });
   });
 
@@ -91,9 +113,14 @@ describe('Auth Slice', () => {
       const showPopupMock = usePopupStore.getState().showPopup;
 
       await state.signIn('test@email.com', '123456');
-      
-      expect(setMock).toHaveBeenCalledWith({ authError: 'Sign in fail', loading: false });
-      expect(showPopupMock).toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }));
+
+      expect(setMock).toHaveBeenCalledWith({
+        authError: 'Sign in fail',
+        loading: false,
+      });
+      expect(showPopupMock).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'error' }),
+      );
     });
   });
 
@@ -109,18 +136,25 @@ describe('Auth Slice', () => {
       const showPopupMock = usePopupStore.getState().showPopup;
 
       await state.signInWithGoogle('token123');
-      
-      expect(setMock).toHaveBeenCalledWith({ authError: 'Google login fail', loading: false });
-      expect(showPopupMock).toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }));
+
+      expect(setMock).toHaveBeenCalledWith({
+        authError: 'Google login fail',
+        loading: false,
+      });
+      expect(showPopupMock).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'error' }),
+      );
     });
   });
 
   describe('signOut', () => {
     it('should call updatePresence and apiSignOut', async () => {
       state.user = { uid: '123' };
-      const presenceSpy = jest.spyOn(state, 'updatePresence').mockImplementation();
+      const presenceSpy = jest
+        .spyOn(state, 'updatePresence')
+        .mockImplementation();
       await state.signOut();
-      
+
       expect(presenceSpy).toHaveBeenCalledWith(false, '123');
       expect(apiSignOut).toHaveBeenCalled();
       presenceSpy.mockRestore();
@@ -130,10 +164,13 @@ describe('Auth Slice', () => {
       state.user = { uid: '123' };
       apiSignOut.mockRejectedValueOnce(new Error('Signout error'));
       const errorSpy = jest.spyOn(console, 'error').mockImplementation();
-      
+
       await state.signOut();
-      
-      expect(errorSpy).toHaveBeenCalledWith("Sign out error:", expect.any(Error));
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        'Sign out error:',
+        expect.any(Error),
+      );
       errorSpy.mockRestore();
     });
   });
@@ -160,10 +197,13 @@ describe('Auth Slice', () => {
       state.user = { uid: 'state_uid' };
       apiUpdatePresence.mockRejectedValueOnce(new Error('Presence error'));
       const errorSpy = jest.spyOn(console, 'error').mockImplementation();
-      
+
       await state.updatePresence(true);
-      
-      expect(errorSpy).toHaveBeenCalledWith("Error updating presence:", expect.any(Error));
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        'Error updating presence:',
+        expect.any(Error),
+      );
       errorSpy.mockRestore();
     });
   });
@@ -185,10 +225,13 @@ describe('Auth Slice', () => {
       state.user = { uid: '123' };
       apiUpdateReadingStatus.mockRejectedValueOnce(new Error('Reading error'));
       const errorSpy = jest.spyOn(console, 'error').mockImplementation();
-      
+
       await state.updateReadingStatus('Book Title');
-      
-      expect(errorSpy).toHaveBeenCalledWith("Error updating reading status:", expect.any(Error));
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        'Error updating reading status:',
+        expect.any(Error),
+      );
       errorSpy.mockRestore();
     });
   });

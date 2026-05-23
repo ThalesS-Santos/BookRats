@@ -1,12 +1,20 @@
-import { signUp, signIn, signInWithGoogle, signOut, updatePresence, updateReadingStatus } from '@core/api/auth';
-import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  signOut as firebaseSignOut, 
-  signInWithCredential, 
-  GoogleAuthProvider 
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  signInWithCredential,
+  GoogleAuthProvider,
 } from 'firebase/auth';
 import { setDoc, getDoc } from 'firebase/firestore';
+
+import {
+  signUp,
+  signIn,
+  signInWithGoogle,
+  signOut,
+  updatePresence,
+  updateReadingStatus,
+} from '@core/api/auth';
 
 jest.mock('firebase/auth', () => ({
   createUserWithEmailAndPassword: jest.fn(),
@@ -14,8 +22,8 @@ jest.mock('firebase/auth', () => ({
   signOut: jest.fn(),
   signInWithCredential: jest.fn(),
   GoogleAuthProvider: {
-    credential: jest.fn().mockReturnValue('mock-credential')
-  }
+    credential: jest.fn().mockReturnValue('mock-credential'),
+  },
 }));
 
 jest.mock('firebase/firestore', () => ({
@@ -23,12 +31,12 @@ jest.mock('firebase/firestore', () => ({
   setDoc: jest.fn(),
   getDoc: jest.fn(),
   updateDoc: jest.fn(),
-  serverTimestamp: jest.fn().mockReturnValue('mock-timestamp')
+  serverTimestamp: jest.fn().mockReturnValue('mock-timestamp'),
 }));
 
 jest.mock('@core/firebase/firebase', () => ({
   auth: {},
-  db: {}
+  db: {},
 }));
 
 describe('Auth API Methods', () => {
@@ -44,20 +52,28 @@ describe('Auth API Methods', () => {
 
       const result = await signUp('test@email.com', 'pass123');
 
-      expect(createUserWithEmailAndPassword).toHaveBeenCalledWith(expect.anything(), 'test@email.com', 'pass123');
+      expect(createUserWithEmailAndPassword).toHaveBeenCalledWith(
+        expect.anything(),
+        'test@email.com',
+        'pass123',
+      );
       expect(setDoc).toHaveBeenCalledWith(
         undefined, // doc() returns undefined in mock
-        expect.objectContaining({ email: 'test@email.com', username: 'test' })
+        expect.objectContaining({ email: 'test@email.com', username: 'test' }),
       );
       expect(result).toEqual(mockUser.user);
     });
 
     it('should map error and throw', async () => {
-      createUserWithEmailAndPassword.mockRejectedValueOnce({ code: 'auth/email-already-in-use' });
+      createUserWithEmailAndPassword.mockRejectedValueOnce({
+        code: 'auth/email-already-in-use',
+      });
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
-      await expect(signUp('test@email.com', 'pass123')).rejects.toThrow('Este e-mail já está em uso.');
-      
+      await expect(signUp('test@email.com', 'pass123')).rejects.toThrow(
+        'Este e-mail já está em uso.',
+      );
+
       consoleSpy.mockRestore();
     });
   });
@@ -69,23 +85,33 @@ describe('Auth API Methods', () => {
 
       const result = await signIn('test@email.com', 'pass123');
 
-      expect(signInWithEmailAndPassword).toHaveBeenCalledWith(expect.anything(), 'test@email.com', 'pass123');
+      expect(signInWithEmailAndPassword).toHaveBeenCalledWith(
+        expect.anything(),
+        'test@email.com',
+        'pass123',
+      );
       expect(result).toEqual(mockUser.user);
     });
 
     it('should map error and throw', async () => {
-      signInWithEmailAndPassword.mockRejectedValueOnce({ code: 'auth/wrong-password' });
+      signInWithEmailAndPassword.mockRejectedValueOnce({
+        code: 'auth/wrong-password',
+      });
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
-      await expect(signIn('test@email.com', 'pass123')).rejects.toThrow('E-mail ou senha incorretos.');
-      
+      await expect(signIn('test@email.com', 'pass123')).rejects.toThrow(
+        'E-mail ou senha incorretos.',
+      );
+
       consoleSpy.mockRestore();
     });
   });
 
   describe('signInWithGoogle', () => {
     it('should sign in with google and set doc if user does not exist', async () => {
-      const mockUser = { user: { uid: 'u1', email: 'g@g.com', displayName: 'Google User' } };
+      const mockUser = {
+        user: { uid: 'u1', email: 'g@g.com', displayName: 'Google User' },
+      };
       signInWithCredential.mockResolvedValueOnce(mockUser);
       getDoc.mockResolvedValueOnce({ exists: () => false });
 
@@ -94,7 +120,7 @@ describe('Auth API Methods', () => {
       expect(signInWithCredential).toHaveBeenCalled();
       expect(setDoc).toHaveBeenCalledWith(
         undefined,
-        expect.objectContaining({ email: 'g@g.com', username: 'Google User' })
+        expect.objectContaining({ email: 'g@g.com', username: 'Google User' }),
       );
       expect(result).toEqual(mockUser.user);
     });
@@ -114,7 +140,7 @@ describe('Auth API Methods', () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
       await expect(signInWithGoogle('idToken123')).rejects.toThrow();
-      
+
       consoleSpy.mockRestore();
     });
   });
@@ -136,7 +162,11 @@ describe('Auth API Methods', () => {
   describe('updatePresence', () => {
     it('should update isOnline status', async () => {
       await updatePresence('u1', true);
-      expect(setDoc).toHaveBeenCalledWith(undefined, expect.objectContaining({ isOnline: true }), { merge: true });
+      expect(setDoc).toHaveBeenCalledWith(
+        undefined,
+        expect.objectContaining({ isOnline: true }),
+        { merge: true },
+      );
     });
 
     it('should catch error without throwing', async () => {
@@ -151,12 +181,20 @@ describe('Auth API Methods', () => {
   describe('updateReadingStatus', () => {
     it('should update currentReadingBook', async () => {
       await updateReadingStatus('u1', 'New Book');
-      expect(setDoc).toHaveBeenCalledWith(undefined, expect.objectContaining({ currentReadingBook: 'New Book' }), { merge: true });
+      expect(setDoc).toHaveBeenCalledWith(
+        undefined,
+        expect.objectContaining({ currentReadingBook: 'New Book' }),
+        { merge: true },
+      );
     });
 
     it('should set currentReadingBook to null if no title provided', async () => {
       await updateReadingStatus('u1', undefined);
-      expect(setDoc).toHaveBeenCalledWith(undefined, expect.objectContaining({ currentReadingBook: null }), { merge: true });
+      expect(setDoc).toHaveBeenCalledWith(
+        undefined,
+        expect.objectContaining({ currentReadingBook: null }),
+        { merge: true },
+      );
     });
 
     it('should catch error without throwing', async () => {
@@ -170,7 +208,9 @@ describe('Auth API Methods', () => {
 
   describe('signInWithGoogle Edge Cases', () => {
     it('should use email prefix if displayName is missing', async () => {
-      const mockUser = { user: { uid: 'u1', email: 'no-name@test.com', displayName: null } };
+      const mockUser = {
+        user: { uid: 'u1', email: 'no-name@test.com', displayName: null },
+      };
       signInWithCredential.mockResolvedValueOnce(mockUser);
       getDoc.mockResolvedValueOnce({ exists: () => false });
 
@@ -178,7 +218,7 @@ describe('Auth API Methods', () => {
 
       expect(setDoc).toHaveBeenCalledWith(
         undefined,
-        expect.objectContaining({ username: 'no-name' })
+        expect.objectContaining({ username: 'no-name' }),
       );
     });
   });

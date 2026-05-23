@@ -1,14 +1,14 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: ["./App.{js,jsx,ts,tsx}", "./src/**/*.{js,jsx,ts,tsx}"],
-  presets: [require("nativewind/preset")],
+  content: ['./App.{js,jsx,ts,tsx}', './src/**/*.{js,jsx,ts,tsx}'],
+  presets: [require('nativewind/preset')],
   darkMode: 'class',
   theme: {
     extend: {
       colors: {
         background: {
           light: '#FDFCF5', // Cream/Papyrus
-          dark: '#000000',  // Pure Black
+          dark: '#000000', // Pure Black
         },
         card: {
           light: '#F5F3E7',
@@ -33,7 +33,7 @@ module.exports = {
           muted: {
             light: '#6B7280',
             dark: '#9CA3AF',
-          }
+          },
         },
         border: {
           light: '#E5E7EB',
@@ -42,7 +42,7 @@ module.exports = {
         borderGlass: {
           light: 'rgba(203, 213, 225, 0.6)',
           dark: 'rgba(71, 85, 105, 0.4)',
-        }
+        },
       },
       fontFamily: {
         serif: ['Georgia', 'serif'],
@@ -61,8 +61,8 @@ module.exports = {
       letterSpacing: {
         ultra: '2px',
         mega: '3px',
-      }
+      },
     },
   },
   plugins: [],
-}
+};

@@ -1,8 +1,10 @@
 import React from 'react';
+
 import { render, act } from '@testing-library/react-native';
-import BookLoader from '../../src/ui/components/organisms/BookLoader';
-import { useThemeStore } from '../../src/store/useThemeStore';
 import { Animated } from 'react-native';
+
+import { useThemeStore } from '../../src/store/useThemeStore';
+import BookLoader from '../../src/ui/components/organisms/BookLoader';
 
 jest.mock('../../src/store/useThemeStore');
 
@@ -28,7 +30,7 @@ describe('BookLoader Component', () => {
 
   it('hides and sets shouldRender to false after animation when isVisible becomes false', () => {
     const { queryByText, rerender } = render(<BookLoader isVisible={true} />);
-    
+
     expect(queryByText(/SABIA QUE/)).toBeTruthy();
 
     act(() => {

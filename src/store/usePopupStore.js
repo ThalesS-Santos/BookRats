@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export const usePopupStore = create((set) => ({
+export const usePopupStore = create(set => ({
   visible: false,
   title: '',
   message: '',
@@ -8,21 +8,23 @@ export const usePopupStore = create((set) => ({
   onConfirm: null,
   onCancel: null,
 
-  showPopup: ({ title, message, type = 'info', onConfirm, onCancel }) => set({
-    visible: true,
-    title,
-    message,
-    type,
-    onConfirm,
-    onCancel
-  }),
+  showPopup: ({ title, message, type = 'info', onConfirm, onCancel }) =>
+    set({
+      visible: true,
+      title,
+      message,
+      type,
+      onConfirm,
+      onCancel,
+    }),
 
-  hidePopup: () => set({
-    visible: false,
-    title: '',
-    message: '',
-    type: 'info',
-    onConfirm: null,
-    onCancel: null
-  })
+  hidePopup: () =>
+    set({
+      visible: false,
+      title: '',
+      message: '',
+      type: 'info',
+      onConfirm: null,
+      onCancel: null,
+    }),
 }));

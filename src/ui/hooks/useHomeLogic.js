@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-import { Animated, Easing, InteractionManager } from 'react-native';
+
 import { useIsFocused } from '@react-navigation/native';
-import { useMainStore } from '@core/store';
+import { Animated, Easing, InteractionManager } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
-import { BookService } from '@core/services/BookService';
+
 import { BOOK_STATUS } from '@core/constants/bookStatus';
+import { BookService } from '@core/services/BookService';
+import { useMainStore } from '@core/store';
 
 /**
  * Custom Hook para gerenciar o estado e lógica da HomeScreen.
@@ -16,12 +18,14 @@ export const useHomeLogic = () => {
   const [recentNotes, setRecentNotes] = useState([]);
 
   // Store Selectors otimizados com useShallow
-  const { streak, books, user, loadingBooks } = useMainStore(useShallow(state => ({
-    streak: state.streak,
-    books: state.books,
-    user: state.user,
-    loadingBooks: state.loadingBooks
-  })));
+  const { streak, books, user, loadingBooks } = useMainStore(
+    useShallow(state => ({
+      streak: state.streak,
+      books: state.books,
+      user: state.user,
+      loadingBooks: state.loadingBooks,
+    })),
+  );
 
   const readingBooks = books.filter(b => b.status === BOOK_STATUS.READING);
 
@@ -55,7 +59,7 @@ export const useHomeLogic = () => {
           duration: 400,
           easing: Easing.out(Easing.quad),
           useNativeDriver: true,
-        })
+        }),
       ]).start();
     }
   }, [isFocused, loadingBooks, isReady, fadeAnim, slideAnim]);
@@ -65,7 +69,10 @@ export const useHomeLogic = () => {
     let mounted = true;
     const fetchNotes = async () => {
       if (!user) return;
-      const notes = await BookService.getRecentAnnotations(user.uid, readingBooks);
+      const notes = await BookService.getRecentAnnotations(
+        user.uid,
+        readingBooks,
+      );
       if (mounted) setRecentNotes(notes);
     };
 
@@ -73,11 +80,16 @@ export const useHomeLogic = () => {
       fetchNotes();
     }
 
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [user, books.length, loadingBooks, readingBooks[0]?.currentPage]);
 
   // Preparação de dados finais para a UI (com placeholders de esqueleto)
-  const listData = (loadingBooks || !isReady) ? [{id: 's1'}, {id: 's2'}, {id: 's3'}] : readingBooks;
+  const listData =
+    loadingBooks || !isReady
+      ? [{ id: 's1' }, { id: 's2' }, { id: 's3' }]
+      : readingBooks;
 
   return {
     user,
@@ -88,6 +100,6 @@ export const useHomeLogic = () => {
     listData,
     recentNotes,
     fadeAnim,
-    slideAnim
+    slideAnim,
   };
 };

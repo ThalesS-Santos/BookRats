@@ -1,6 +1,6 @@
 /**
  * Script de Teste Rápido: Google Books API (Real)
- * 
+ *
  * Este script valida se a sua chave de API está funcionando corretamente
  * e se o projeto consegue buscar dados reais.
  */
@@ -11,10 +11,12 @@ require('dotenv').config();
 async function runTest() {
   const apiKey = process.env.EXPO_PUBLIC_GOOGLE_BOOKS_API_KEY;
   const bookTitle = 'Dom Casmurro';
-  
+
   if (!apiKey) {
     console.error('❌ ERRO: Chave de API não encontrada no arquivo .env');
-    console.log('Certifique-se de que EXPO_PUBLIC_GOOGLE_BOOKS_API_KEY está definida.');
+    console.log(
+      'Certifique-se de que EXPO_PUBLIC_GOOGLE_BOOKS_API_KEY está definida.',
+    );
     return;
   }
 

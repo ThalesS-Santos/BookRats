@@ -1,0 +1,10 @@
+node_modules/
+.expo/
+coverage/
+dist/
+public/
+web-build/
+package-lock.json
+package.json
+jest-results.json
+jest-coverage-results.json

@@ -1,7 +1,28 @@
-import { createSocialSlice } from '@core/store/slices/socialSlice';
-import { subscribeToNotifications, markNotificationAsRead } from '@core/api/social';
+import {
+  collection,
+  onSnapshot,
+  query,
+  orderBy,
+  serverTimestamp,
+  addDoc,
+} from 'firebase/firestore';
+
+import {
+  subscribeToNotifications,
+  markNotificationAsRead,
+  subscribeToReceivedRequests,
+  subscribeToSentRequests,
+  subscribeToFriends,
+  acceptFriendRequest,
+  rejectFriendRequest,
+  sendFriendRequest,
+  getUsersByIds,
+  getPaginatedRanking,
+} from '@core/api/social';
 import { db } from '@core/firebase/firebase';
-import { collection, onSnapshot, query, orderBy, serverTimestamp, addDoc } from 'firebase/firestore';
+import { NotificationService } from '@core/services/NotificationService';
+import { createSocialSlice } from '@core/store/slices/socialSlice';
+
 import { usePopupStore } from '../../src/store/usePopupStore';
 
 // Mock dependencies
@@ -15,20 +36,34 @@ jest.mock('firebase/firestore', () => ({
 }));
 
 jest.mock('@core/firebase/firebase', () => ({
-  db: {}
+  db: {},
 }));
 
 jest.mock('@core/api/social', () => ({
   subscribeToNotifications: jest.fn(),
   markNotificationAsRead: jest.fn(),
+  subscribeToReceivedRequests: jest.fn(),
+  subscribeToSentRequests: jest.fn(),
+  subscribeToFriends: jest.fn(),
+  acceptFriendRequest: jest.fn(),
+  rejectFriendRequest: jest.fn(),
+  sendFriendRequest: jest.fn(),
+  getUsersByIds: jest.fn(),
+  getPaginatedRanking: jest.fn(),
+}));
+
+jest.mock('@core/services/NotificationService', () => ({
+  NotificationService: {
+    markAllAsRead: jest.fn(() => Promise.resolve()),
+  },
 }));
 
 jest.mock('../../src/store/usePopupStore', () => ({
   usePopupStore: {
     getState: jest.fn().mockReturnValue({
-      showPopup: jest.fn()
-    })
-  }
+      showPopup: jest.fn(),
+    }),
+  },
 }));
 
 describe('Social Slice', () => {
@@ -38,22 +73,34 @@ describe('Social Slice', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     state = {};
-    setMock = jest.fn((newState) => {
-      state = { ...state, ...(typeof newState === 'function' ? newState(state) : newState) };
+    setMock = jest.fn(newState => {
+      state = {
+        ...state,
+        ...(typeof newState === 'function' ? newState(state) : newState),
+      };
     });
-    
+
     getMock = jest.fn(() => state);
-    
+
     const slice = createSocialSlice(setMock, getMock);
-    state = { 
-      ...slice, 
+    state = {
+      ...slice,
       notifications: [],
       unreadCount: 0,
-      user: { uid: 'user1', displayName: 'Thales' },
+      user: {
+        uid: 'user1',
+        displayName: 'Thales',
+        photoURL: 'https://pic.com',
+      },
+      friends: [],
+      receivedRequests: [],
+      sentRequests: [],
+      totalPagesRead: 150,
+      totalClaps: 5,
       hasInfluencerBadge: false,
-      calculateInfluencerBadge: jest.fn()
+      calculateInfluencerBadge: jest.fn(),
     };
   });
 
@@ -66,16 +113,21 @@ describe('Social Slice', () => {
 
     it('should calculate badge on start and subscribe', () => {
       subscribeToNotifications.mockImplementation((uid, callback) => {
-        callback([{ id: 'n1', read: false }, { id: 'n2', read: true }]);
+        callback([
+          { id: 'n1', read: false },
+          { id: 'n2', read: true },
+        ]);
         return jest.fn();
       });
 
       state.startNotificationsListener('user1');
-      
+
       expect(state.calculateInfluencerBadge).toHaveBeenCalledWith('user1');
-      expect(setMock).toHaveBeenCalledWith(expect.objectContaining({ unreadCount: 1 }));
+      expect(setMock).toHaveBeenCalledWith(
+        expect.objectContaining({ unreadCount: 1 }),
+      );
     });
-    
+
     it('should call badge calculation again if unread > 0 and badge not held', () => {
       subscribeToNotifications.mockImplementation((uid, callback) => {
         callback([{ id: 'n1', read: false }]);
@@ -83,19 +135,295 @@ describe('Social Slice', () => {
       });
 
       state.startNotificationsListener('user1');
-      // Called once on start, once after callback
       expect(state.calculateInfluencerBadge).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('startSocialListeners', () => {
+    it('should return empty fn if no uid', () => {
+      const unsub = state.startSocialListeners(null);
+      expect(typeof unsub).toBe('function');
+      expect(subscribeToReceivedRequests).not.toHaveBeenCalled();
+    });
+
+    it('should enrich pending received requests with sender profiles', async () => {
+      const mockUnsubRecv = jest.fn();
+      const mockUnsubSent = jest.fn();
+      const mockUnsubFriends = jest.fn();
+
+      subscribeToReceivedRequests.mockImplementation((uid, callback) => {
+        callback([
+          { id: 'req1', senderId: 'sender1', status: 'pending' },
+          { id: 'req2', senderId: 'sender2', status: 'accepted' },
+        ]);
+        return mockUnsubRecv;
+      });
+
+      subscribeToSentRequests.mockImplementation((uid, callback) => {
+        callback([{ id: 'sent1', status: 'pending' }]);
+        return mockUnsubSent;
+      });
+
+      subscribeToFriends.mockImplementation((uid, callback) => {
+        callback(['friend1']);
+        return mockUnsubFriends;
+      });
+
+      getUsersByIds.mockImplementation(async ids => {
+        return ids.map(id => ({
+          id,
+          username: id === 'sender1' ? 'senderOne' : 'friendOne',
+        }));
+      });
+
+      const unsub = state.startSocialListeners('user1');
+
+      // Wait for any async/promises to resolve
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      expect(getUsersByIds).toHaveBeenCalledWith(['sender1']);
+      expect(setMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          receivedRequests: [
+            {
+              id: 'req1',
+              senderId: 'sender1',
+              status: 'pending',
+              sender: { id: 'sender1', username: 'senderOne' },
+            },
+          ],
+        }),
+      );
+
+      expect(setMock).toHaveBeenCalledWith({
+        sentRequests: [{ id: 'sent1', status: 'pending' }],
+      });
+
+      expect(getUsersByIds).toHaveBeenCalledWith(['friend1']);
+      expect(setMock).toHaveBeenCalledWith({
+        friends: [{ id: 'friend1', username: 'friendOne' }],
+      });
+
+      unsub();
+      expect(mockUnsubRecv).toHaveBeenCalled();
+      expect(mockUnsubSent).toHaveBeenCalled();
+      expect(mockUnsubFriends).toHaveBeenCalled();
+    });
+
+    it('should empty friends list if friendIds is empty', async () => {
+      subscribeToReceivedRequests.mockReturnValue(jest.fn());
+      subscribeToSentRequests.mockReturnValue(jest.fn());
+      subscribeToFriends.mockImplementation((uid, callback) => {
+        callback([]);
+        return jest.fn();
+      });
+
+      state.startSocialListeners('user1');
+      expect(setMock).toHaveBeenCalledWith({ friends: [] });
+    });
+  });
+
+  describe('acceptFriend', () => {
+    it('should do nothing if no user in store', async () => {
+      state.user = null;
+      await state.acceptFriend('req1');
+      expect(acceptFriendRequest).not.toHaveBeenCalled();
+    });
+
+    it('should call accept api and manage loading', async () => {
+      await state.acceptFriend('req1');
+      expect(setMock).toHaveBeenCalledWith({ socialLoading: true });
+      expect(acceptFriendRequest).toHaveBeenCalledWith(
+        'req1',
+        'user1',
+        'Thales',
+        'https://pic.com',
+      );
+      expect(setMock).toHaveBeenCalledWith({ socialLoading: false });
+    });
+
+    it('should handle missing displayName with email prefix', async () => {
+      state.user = { uid: 'user1', email: 'thales@bookrats.com' };
+      await state.acceptFriend('req1');
+      expect(acceptFriendRequest).toHaveBeenCalledWith(
+        'req1',
+        'user1',
+        'thales',
+        undefined,
+      );
+    });
+
+    it('should log error on exception', async () => {
+      acceptFriendRequest.mockRejectedValueOnce(new Error('fail'));
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+      await state.acceptFriend('req1');
+      expect(errorSpy).toHaveBeenCalled();
+      errorSpy.mockRestore();
+    });
+  });
+
+  describe('declineFriend', () => {
+    it('should call reject API and manage loading', async () => {
+      await state.declineFriend('req1');
+      expect(setMock).toHaveBeenCalledWith({ socialLoading: true });
+      expect(rejectFriendRequest).toHaveBeenCalledWith('req1');
+      expect(setMock).toHaveBeenCalledWith({ socialLoading: false });
+    });
+
+    it('should log error on exception', async () => {
+      rejectFriendRequest.mockRejectedValueOnce(new Error('fail'));
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+      await state.declineFriend('req1');
+      expect(errorSpy).toHaveBeenCalled();
+      errorSpy.mockRestore();
+    });
+  });
+
+  describe('sendFriendRequest', () => {
+    it('should do nothing if no user in store', async () => {
+      state.user = null;
+      await state.sendFriendRequest('target1');
+      expect(sendFriendRequest).not.toHaveBeenCalled();
+    });
+
+    it('should call sendFriendRequest API', async () => {
+      await state.sendFriendRequest('target1');
+      expect(sendFriendRequest).toHaveBeenCalledWith('user1', 'target1');
+    });
+
+    it('should log error on exception', async () => {
+      sendFriendRequest.mockRejectedValueOnce(new Error('fail'));
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+      await state.sendFriendRequest('target1');
+      expect(errorSpy).toHaveBeenCalled();
+      errorSpy.mockRestore();
+    });
+  });
+
+  describe('selectFilteredRanking', () => {
+    it('should return rankingList for global scope', () => {
+      state.rankingList = [{ id: 'user1' }, { id: 'user2' }];
+      const result = state.selectFilteredRanking('global')(state);
+      expect(result).toEqual(state.rankingList);
+    });
+
+    it('should return empty list if friends scope and user is missing', () => {
+      state.user = null;
+      const result = state.selectFilteredRanking('friends')(state);
+      expect(result).toEqual([]);
+    });
+
+    it('should combine current user and friends, sorted by total pages read', () => {
+      state.friends = [
+        { id: 'friend1', total_pages_read: 100 },
+        { id: 'friend2', total_pages_read: 200 },
+      ];
+      const result = state.selectFilteredRanking('friends')(state);
+      expect(result.length).toBe(3);
+      // Sorted: friend2 (200), user1 (150 - totalPagesRead), friend1 (100)
+      expect(result[0].id).toBe('friend2');
+      expect(result[1].id).toBe('user1');
+      expect(result[2].id).toBe('friend1');
+    });
+  });
+
+  describe('fetchRanking', () => {
+    it('should fetch ranking and update state', async () => {
+      getPaginatedRanking.mockResolvedValueOnce({
+        users: [{ id: 'user1' }],
+        lastDoc: 'doc1',
+        hasMore: true,
+      });
+
+      await state.fetchRanking(10);
+
+      expect(setMock).toHaveBeenCalledWith({
+        rankingLoading: true,
+        hasMoreRanking: true,
+        lastVisibleUser: null,
+      });
+      expect(getPaginatedRanking).toHaveBeenCalledWith(null, 10);
+      expect(setMock).toHaveBeenCalledWith({
+        rankingList: [{ id: 'user1' }],
+        lastVisibleUser: 'doc1',
+        hasMoreRanking: true,
+      });
+      expect(setMock).toHaveBeenCalledWith({ rankingLoading: false });
+    });
+
+    it('should catch error and log it', async () => {
+      getPaginatedRanking.mockRejectedValueOnce(new Error('fail'));
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+      await state.fetchRanking(10);
+      expect(errorSpy).toHaveBeenCalled();
+      errorSpy.mockRestore();
+    });
+  });
+
+  describe('fetchNextRankingPage', () => {
+    it('should do nothing if no more, loading, or no last doc', async () => {
+      state.hasMoreRanking = false;
+      await state.fetchNextRankingPage(10);
+      expect(getPaginatedRanking).not.toHaveBeenCalled();
+
+      state.hasMoreRanking = true;
+      state.loadingMoreRanking = true;
+      await state.fetchNextRankingPage(10);
+      expect(getPaginatedRanking).not.toHaveBeenCalled();
+
+      state.loadingMoreRanking = false;
+      state.lastVisibleUser = null;
+      await state.fetchNextRankingPage(10);
+      expect(getPaginatedRanking).not.toHaveBeenCalled();
+    });
+
+    it('should fetch next page and append users', async () => {
+      state.rankingList = [{ id: 'user1' }];
+      state.lastVisibleUser = 'doc1';
+      state.hasMoreRanking = true;
+      state.loadingMoreRanking = false;
+
+      getPaginatedRanking.mockResolvedValueOnce({
+        users: [{ id: 'user2' }],
+        lastDoc: 'doc2',
+        hasMore: false,
+      });
+
+      await state.fetchNextRankingPage(10);
+
+      expect(setMock).toHaveBeenCalledWith({ loadingMoreRanking: true });
+      expect(getPaginatedRanking).toHaveBeenCalledWith('doc1', 10);
+      expect(setMock).toHaveBeenCalledWith({
+        rankingList: [{ id: 'user1' }, { id: 'user2' }],
+        lastVisibleUser: 'doc2',
+        hasMoreRanking: false,
+      });
+      expect(setMock).toHaveBeenCalledWith({ loadingMoreRanking: false });
+    });
+
+    it('should catch error and log it', async () => {
+      state.lastVisibleUser = 'doc1';
+      state.hasMoreRanking = true;
+      state.loadingMoreRanking = false;
+
+      getPaginatedRanking.mockRejectedValueOnce(new Error('fail'));
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+      await state.fetchNextRankingPage(10);
+      expect(errorSpy).toHaveBeenCalled();
+      errorSpy.mockRestore();
     });
   });
 
   describe('markAsRead', () => {
     it('should mark single notification as read', async () => {
-      state.notifications = [{ id: 'n1', read: false }, { id: 'n2', read: false }];
-      
+      state.notifications = [
+        { id: 'n1', read: false },
+        { id: 'n2', read: false },
+      ];
+
       await state.markAsRead('user1', 'n1');
-      
+
       expect(markNotificationAsRead).toHaveBeenCalledWith('user1', 'n1');
-      // Zustand set logic is passed as a function, let's execute it manually since we mocked setMock
       const updateFn = setMock.mock.calls[0][0];
       const newState = updateFn(state);
       expect(newState.notifications[0].read).toBe(true);
@@ -104,22 +432,27 @@ describe('Social Slice', () => {
   });
 
   describe('markAllAsRead', () => {
-    it('should return if no unread notifications', async () => {
-      state.notifications = [{ id: 'n1', read: true }];
+    it('should return if notifications list is empty', async () => {
+      state.notifications = [];
       await state.markAllAsRead('user1');
-      expect(markNotificationAsRead).not.toHaveBeenCalled();
+      expect(NotificationService.markAllAsRead).not.toHaveBeenCalled();
     });
 
     it('should mark all unread as read', async () => {
-      state.notifications = [{ id: 'n1', read: false }, { id: 'n2', read: false }];
-      
+      state.notifications = [
+        { id: 'n1', read: false },
+        { id: 'n2', read: false },
+      ];
+
       await state.markAllAsRead('user1');
-      
-      expect(markNotificationAsRead).toHaveBeenCalledTimes(2);
-      
+
+      expect(NotificationService.markAllAsRead).toHaveBeenCalledWith('user1');
+
       const updateFn = setMock.mock.calls[0][0];
       const newState = updateFn(state);
       expect(newState.unreadCount).toBe(0);
+      expect(newState.notifications[0].read).toBe(true);
+      expect(newState.notifications[1].read).toBe(true);
     });
   });
 
@@ -132,7 +465,10 @@ describe('Social Slice', () => {
 
       state.subscribeToGroupMessages('group1');
       expect(setMock).toHaveBeenCalledWith({ chatError: null });
-      expect(setMock).toHaveBeenCalledWith({ messages: [{ id: 'm1', text: 'Hi' }], chatError: null });
+      expect(setMock).toHaveBeenCalledWith({
+        messages: [{ id: 'm1', text: 'Hi' }],
+        chatError: null,
+      });
     });
 
     it('subscribeToGroupMessages should handle error', () => {
@@ -143,17 +479,22 @@ describe('Social Slice', () => {
       const errorSpy = jest.spyOn(console, 'error').mockImplementation();
 
       state.subscribeToGroupMessages('group1');
-      expect(setMock).toHaveBeenCalledWith(expect.objectContaining({ chatError: expect.any(String) }));
+      expect(setMock).toHaveBeenCalledWith(
+        expect.objectContaining({ chatError: expect.any(String) }),
+      );
       errorSpy.mockRestore();
     });
 
     it('sendMessage should send text message', async () => {
       await state.sendMessage('group1', 'Hello');
-      expect(addDoc).toHaveBeenCalledWith(undefined, expect.objectContaining({
-        text: 'Hello',
-        type: 'text',
-        senderName: 'Thales'
-      }));
+      expect(addDoc).toHaveBeenCalledWith(
+        undefined,
+        expect.objectContaining({
+          text: 'Hello',
+          type: 'text',
+          senderName: 'Thales',
+        }),
+      );
     });
 
     it('sendMessage should return if no user', async () => {
@@ -163,26 +504,38 @@ describe('Social Slice', () => {
     });
 
     it('sendMessage should send object message', async () => {
-      await state.sendMessage('group1', { text: 'Notification', type: 'system' });
-      expect(addDoc).toHaveBeenCalledWith(undefined, expect.objectContaining({
+      await state.sendMessage('group1', {
         text: 'Notification',
-        type: 'system'
-      }));
+        type: 'system',
+      });
+      expect(addDoc).toHaveBeenCalledWith(
+        undefined,
+        expect.objectContaining({
+          text: 'Notification',
+          type: 'system',
+        }),
+      );
     });
 
     it('sendMessage should use email prefix if displayName is missing', async () => {
       state.user = { uid: 'u1', email: 'no-name@test.com', displayName: null };
       await state.sendMessage('group1', 'Hello');
-      expect(addDoc).toHaveBeenCalledWith(undefined, expect.objectContaining({
-        senderName: 'no-name'
-      }));
+      expect(addDoc).toHaveBeenCalledWith(
+        undefined,
+        expect.objectContaining({
+          senderName: 'no-name',
+        }),
+      );
     });
 
     it('sendMessage should default to type text if not provided in object', async () => {
       await state.sendMessage('group1', { text: 'Hello' });
-      expect(addDoc).toHaveBeenCalledWith(undefined, expect.objectContaining({
-        type: 'text'
-      }));
+      expect(addDoc).toHaveBeenCalledWith(
+        undefined,
+        expect.objectContaining({
+          type: 'text',
+        }),
+      );
     });
 
     it('sendMessage should show popup on error', async () => {
@@ -190,7 +543,9 @@ describe('Social Slice', () => {
       const showPopupMock = usePopupStore.getState().showPopup;
 
       await state.sendMessage('group1', 'Hello');
-      expect(showPopupMock).toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }));
+      expect(showPopupMock).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'error' }),
+      );
     });
   });
 
@@ -213,7 +568,6 @@ describe('Social Slice', () => {
       });
 
       state.startNotificationsListener('u1');
-      // Only called once at the start, not inside the callback because hasInfluencerBadge is true
       expect(state.calculateInfluencerBadge).toHaveBeenCalledTimes(1);
     });
   });

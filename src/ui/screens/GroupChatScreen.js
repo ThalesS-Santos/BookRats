@@ -1,10 +1,23 @@
-import { useMainStore } from '@core/store';
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
+
+import { Ionicons } from '@expo/vector-icons';
+import {
+  View,
+  Text,
+  FlatList,
+  TextInput,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { useMainStore } from '@core/store';
+
 import { useThemeStore } from '../../store/useThemeStore';
 import * as Haptics from '../../utils/haptics';
-import { Ionicons } from '@expo/vector-icons';
 
 export default function GroupChatScreen({ route, navigation }) {
   const { groupId, groupName } = route.params;
@@ -15,7 +28,9 @@ export default function GroupChatScreen({ route, navigation }) {
   const { isDarkMode } = useThemeStore();
   const user = useMainStore(state => state.user);
   const messages = useMainStore(state => state.messages) || [];
-  const subscribeToGroupMessages = useMainStore(state => state.subscribeToGroupMessages);
+  const subscribeToGroupMessages = useMainStore(
+    state => state.subscribeToGroupMessages,
+  );
   const sendMessage = useMainStore(state => state.sendMessage);
   const chatError = useMainStore(state => state.chatError);
 
@@ -38,13 +53,11 @@ export default function GroupChatScreen({ route, navigation }) {
   return (
     <View
       className="flex-1 bg-background-light dark:bg-background-dark"
-      style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
-    >
-      <KeyboardAvoidingView 
+      style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
+      <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-      >
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
         <View className="flex-1">
           {/* Main Content View (Header + Content) */}
           <View className="flex-1 px-6 pt-4">
@@ -55,16 +68,24 @@ export default function GroupChatScreen({ route, navigation }) {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   navigation.goBack();
                 }}
-                className="p-2 bg-card-light dark:bg-card-dark rounded-xl border border-border-light dark:border-border-dark mr-4"
-              >
-                <Ionicons name="arrow-back" size={20} color={isDarkMode ? '#E1E1E1' : '#1A1A1A'} />
+                className="p-2 bg-card-light dark:bg-card-dark rounded-xl border border-border-light dark:border-border-dark mr-4">
+                <Ionicons
+                  name="arrow-back"
+                  size={20}
+                  color={isDarkMode ? '#E1E1E1' : '#1A1A1A'}
+                />
               </TouchableOpacity>
-              <TouchableOpacity 
-                className="flex-1" 
-                onPress={() => navigation.navigate('GroupDetails', { groupId })}
-              >
-                <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-1">Grupo de Leitura</Text>
-                <Text className="text-text-light dark:text-text-dark text-xl font-serif font-bold" numberOfLines={1}>
+              <TouchableOpacity
+                className="flex-1"
+                onPress={() =>
+                  navigation.navigate('GroupDetails', { groupId })
+                }>
+                <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-1">
+                  Grupo de Leitura
+                </Text>
+                <Text
+                  className="text-text-light dark:text-text-dark text-xl font-serif font-bold"
+                  numberOfLines={1}>
                   {groupName || 'Chat'}
                 </Text>
               </TouchableOpacity>
@@ -72,14 +93,19 @@ export default function GroupChatScreen({ route, navigation }) {
 
             {chatError && (
               <View className="bg-red-500/10 p-4 rounded-2xl mb-4 border border-red-500/20">
-                <Text className="text-red-500 font-bold text-sm mb-1">⚠️ Erro de Permissão no Chat</Text>
+                <Text className="text-red-500 font-bold text-sm mb-1">
+                  ⚠️ Erro de Permissão no Chat
+                </Text>
                 <Text className="text-text-muted-light dark:text-text-muted-dark text-xs">
-                  {chatError}. Para corrigir, atualize as Regras do Firestore no Firebase Console para permitir leitura na coleção 'groups'.
+                  {chatError}. Para corrigir, atualize as Regras do Firestore no
+                  Firebase Console para permitir leitura na coleção 'groups'.
                 </Text>
               </View>
             )}
 
-            <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+            <TouchableWithoutFeedback
+              onPress={Keyboard.dismiss}
+              accessible={false}>
               <View className="flex-1">
                 <FlatList
                   ref={flatListRef}
@@ -87,7 +113,11 @@ export default function GroupChatScreen({ route, navigation }) {
                   inverted
                   keyExtractor={item => item.id}
                   showsVerticalScrollIndicator={false}
-                  contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end', paddingBottom: 20 }}
+                  contentContainerStyle={{
+                    flexGrow: 1,
+                    justifyContent: 'flex-end',
+                    paddingBottom: 20,
+                  }}
                   renderItem={({ item }) => {
                     const isMe = item.senderId === user?.uid;
                     const isSystem = item.type === 'system_notification';
@@ -103,7 +133,8 @@ export default function GroupChatScreen({ route, navigation }) {
                     }
 
                     return (
-                      <View className={`mb-3 ${isMe ? 'items-end' : 'items-start'}`}>
+                      <View
+                        className={`mb-3 ${isMe ? 'items-end' : 'items-start'}`}>
                         {!isMe && (
                           <Text className="text-text-muted-light dark:text-text-muted-dark text-xs mb-1 ml-2">
                             {String(item.senderName || '')}
@@ -114,9 +145,9 @@ export default function GroupChatScreen({ route, navigation }) {
                             isMe
                               ? 'bg-primary dark:bg-primary-dark rounded-tr-none'
                               : 'bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-tl-none'
-                          }`}
-                        >
-                          <Text className={`${isMe ? 'text-white' : 'text-text-light dark:text-text-dark'}`}>
+                          }`}>
+                          <Text
+                            className={`${isMe ? 'text-white' : 'text-text-light dark:text-text-dark'}`}>
                             {String(item.text || '')}
                           </Text>
                         </View>
@@ -129,13 +160,12 @@ export default function GroupChatScreen({ route, navigation }) {
           </View>
 
           {/* WhatsApp-style Sticky Input Bar */}
-          <View 
+          <View
             className="flex-row items-center p-3 border-t border-border-light dark:border-border-dark"
-            style={{ 
+            style={{
               backgroundColor: isDarkMode ? '#020617' : '#F5F3E7',
-              paddingBottom: Platform.OS === 'ios' ? 10 : 10 // Pinned styling
-            }}
-          >
+              paddingBottom: Platform.OS === 'ios' ? 10 : 10, // Pinned styling
+            }}>
             <TextInput
               className="flex-1 p-3 text-text-light dark:text-text-dark bg-background-light dark:bg-background-dark rounded-2xl px-4 mr-3 border border-border-light dark:border-border-dark"
               placeholder="Envie uma mensagem..."
@@ -148,8 +178,7 @@ export default function GroupChatScreen({ route, navigation }) {
             />
             <TouchableOpacity
               onPress={handleSendMessage}
-              className="p-3 bg-primary dark:bg-primary-dark rounded-full shadow-lg"
-            >
+              className="p-3 bg-primary dark:bg-primary-dark rounded-full shadow-lg">
               <Ionicons name="send" size={20} color="#FFF" />
             </TouchableOpacity>
           </View>

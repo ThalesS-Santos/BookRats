@@ -1,4 +1,27 @@
 import {
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  getDoc,
+  onSnapshot,
+  serverTimestamp,
+  arrayRemove,
+  arrayUnion,
+  orderBy,
+  limit,
+  startAfter,
+  documentId,
+  collectionGroup,
+  increment,
+  runTransaction,
+} from 'firebase/firestore';
+
+import {
   getPaginatedRanking,
   searchUsers,
   sendFriendRequest,
@@ -23,14 +46,8 @@ import {
   createNotification,
   subscribeToNotifications,
   markNotificationAsRead,
-  updateUserInfluencerStatus
+  updateUserInfluencerStatus,
 } from '@core/api/social';
-
-import {
-  collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc,
-  onSnapshot, serverTimestamp, arrayRemove, arrayUnion, orderBy, limit, startAfter,
-  documentId, collectionGroup, increment, runTransaction
-} from 'firebase/firestore';
 
 jest.mock('firebase/firestore', () => ({
   collection: jest.fn(),
@@ -52,23 +69,25 @@ jest.mock('firebase/firestore', () => ({
   documentId: jest.fn(),
   collectionGroup: jest.fn(),
   increment: jest.fn(),
-  runTransaction: jest.fn()
+  runTransaction: jest.fn(),
 }));
 
 jest.mock('@core/firebase/firebase', () => ({
-  db: {}
+  db: {},
 }));
 
 describe('Social API Methods', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     doc.mockReturnValue({ id: 'mock-id' }); // default for all doc() calls unless overridden
+    updateDoc.mockResolvedValue();
+    getDoc.mockResolvedValue({ exists: () => false });
   });
 
   describe('getPaginatedRanking', () => {
     it('should get paginated ranking without lastVisibleDoc', async () => {
       getDocs.mockResolvedValueOnce({
-        docs: [{ id: 'u1', data: () => ({ name: 'User 1' }) }]
+        docs: [{ id: 'u1', data: () => ({ name: 'User 1' }) }],
       });
       const res = await getPaginatedRanking();
       expect(res.users).toEqual([{ id: 'u1', name: 'User 1' }]);
@@ -122,13 +141,23 @@ describe('Social API Methods', () => {
     });
 
     it('acceptFriendRequest should update doc', async () => {
-      await acceptFriendRequest('req1');
+      getDoc.mockResolvedValueOnce({
+        exists: () => true,
+        data: () => ({ senderId: 'u2' }),
+      });
+      await acceptFriendRequest('req1', 'u1', 'Thales', null);
       expect(updateDoc).toHaveBeenCalled();
     });
 
     it('acceptFriendRequest should throw error', async () => {
+      getDoc.mockResolvedValueOnce({
+        exists: () => true,
+        data: () => ({ senderId: 'u2' }),
+      });
       updateDoc.mockRejectedValueOnce(new Error('Err'));
-      await expect(acceptFriendRequest('req1')).rejects.toThrow();
+      await expect(
+        acceptFriendRequest('req1', 'u1', 'Thales', null),
+      ).rejects.toThrow();
     });
 
     it('rejectFriendRequest should update doc', async () => {
@@ -142,7 +171,9 @@ describe('Social API Methods', () => {
     });
 
     it('removeFriendship should get both queries and delete docs', async () => {
-      getDocs.mockResolvedValueOnce({ docs: [{ ref: 'ref1' }] }).mockResolvedValueOnce({ docs: [] });
+      getDocs
+        .mockResolvedValueOnce({ docs: [{ ref: 'ref1' }] })
+        .mockResolvedValueOnce({ docs: [] });
       await removeFriendship('u1', 'u2');
       expect(deleteDoc).toHaveBeenCalled();
     });
@@ -180,14 +211,20 @@ describe('Social API Methods', () => {
     });
 
     it('getGroupDetails should return data', async () => {
-      getDoc.mockResolvedValueOnce({ exists: () => true, data: () => ({ members: ['u1'] }) });
+      getDoc.mockResolvedValueOnce({
+        exists: () => true,
+        data: () => ({ members: ['u1'] }),
+      });
       getDocs.mockResolvedValueOnce({ docs: [{ id: 'u1', data: () => ({}) }] });
       const details = await getGroupDetails('g1');
       expect(details.id).toBe('g1');
     });
 
     it('getGroupDetails should handle missing members field in doc', async () => {
-      getDoc.mockResolvedValueOnce({ exists: () => true, data: () => ({ name: 'Group No Members' }) });
+      getDoc.mockResolvedValueOnce({
+        exists: () => true,
+        data: () => ({ name: 'Group No Members' }),
+      });
       const details = await getGroupDetails('g1');
       expect(details.members).toEqual([]);
     });
@@ -248,28 +285,36 @@ describe('Social API Methods', () => {
 
   describe('subscriptions', () => {
     it('subscribeToSentRequests should call onSnapshot and trigger callback', () => {
-      onSnapshot.mockImplementationOnce((q, cb) => cb({ docs: [{ id: 'd1', data: () => ({}) }] }));
+      onSnapshot.mockImplementationOnce((q, cb) =>
+        cb({ docs: [{ id: 'd1', data: () => ({}) }] }),
+      );
       const cb = jest.fn();
       subscribeToSentRequests('u1', cb);
       expect(cb).toHaveBeenCalled();
     });
 
     it('subscribeToReceivedRequests should call onSnapshot and trigger callback', () => {
-      onSnapshot.mockImplementationOnce((q, cb) => cb({ docs: [{ id: 'd1', data: () => ({}) }] }));
+      onSnapshot.mockImplementationOnce((q, cb) =>
+        cb({ docs: [{ id: 'd1', data: () => ({}) }] }),
+      );
       const cb = jest.fn();
       subscribeToReceivedRequests('u1', cb);
       expect(cb).toHaveBeenCalled();
     });
 
     it('subscribeToGroups should call onSnapshot and trigger callback', () => {
-      onSnapshot.mockImplementationOnce((q, cb) => cb({ docs: [{ id: 'd1', data: () => ({}) }] }));
+      onSnapshot.mockImplementationOnce((q, cb) =>
+        cb({ docs: [{ id: 'd1', data: () => ({}) }] }),
+      );
       const cb = jest.fn();
       subscribeToGroups('u1', cb);
       expect(cb).toHaveBeenCalled();
     });
 
     it('subscribeToNotifications should call onSnapshot and trigger callback', () => {
-      onSnapshot.mockImplementationOnce((q, cb) => cb({ docs: [{ id: 'd1', data: () => ({}) }] }));
+      onSnapshot.mockImplementationOnce((q, cb) =>
+        cb({ docs: [{ id: 'd1', data: () => ({}) }] }),
+      );
       const cb = jest.fn();
       subscribeToNotifications('u1', cb);
       expect(cb).toHaveBeenCalled();
@@ -284,8 +329,24 @@ describe('Social API Methods', () => {
     it('getPublicEchoes should fetch, filter and sort (handling equal claps)', async () => {
       // Testing the sort branch where claps are equal, it sorts by timestamp
       const mockDocs = [
-        { id: 'e1', ref: { parent: { parent: { id: 'u1' } } }, data: () => ({ reactions: { claps: 10 }, timestamp: { seconds: 1 }, pageLocation: 10 }) },
-        { id: 'e2', ref: { parent: { parent: { id: 'u2' } } }, data: () => ({ reactions: { claps: 10 }, timestamp: { seconds: 2 }, pageLocation: 20 }) }
+        {
+          id: 'e1',
+          ref: { parent: { parent: { id: 'u1' } } },
+          data: () => ({
+            reactions: { claps: 10 },
+            timestamp: { seconds: 1 },
+            pageLocation: 10,
+          }),
+        },
+        {
+          id: 'e2',
+          ref: { parent: { parent: { id: 'u2' } } },
+          data: () => ({
+            reactions: { claps: 10 },
+            timestamp: { seconds: 2 },
+            pageLocation: 20,
+          }),
+        },
       ];
       getDocs.mockResolvedValueOnce({ docs: mockDocs });
 
@@ -296,21 +357,44 @@ describe('Social API Methods', () => {
 
     it('getPublicEchoes should handle missing fields in sort and skip filtering if userCurrentPage is null', async () => {
       const mockDocs = [
-        { id: 'e1', ref: { parent: { parent: { id: 'u1' } } }, data: () => ({ reactions: null }) }, // Null reactions
-        { id: 'e2', ref: { parent: { parent: { id: 'u2' } } }, data: () => ({ reactions: { claps: 5 } }) },
-        { id: 'e3', ref: { parent: { parent: { id: 'u3' } } }, data: () => ({ reactions: { claps: null } }) } // Null claps
+        {
+          id: 'e1',
+          ref: { parent: { parent: { id: 'u1' } } },
+          data: () => ({ reactions: null }),
+        }, // Null reactions
+        {
+          id: 'e2',
+          ref: { parent: { parent: { id: 'u2' } } },
+          data: () => ({ reactions: { claps: 5 } }),
+        },
+        {
+          id: 'e3',
+          ref: { parent: { parent: { id: 'u3' } } },
+          data: () => ({ reactions: { claps: null } }),
+        }, // Null claps
       ];
       getDocs.mockResolvedValueOnce({ docs: mockDocs });
 
       const echoes = await getPublicEchoes('b1', null, 'myuid');
       expect(echoes[0].id).toBe('e2'); // 5 claps
-      expect(echoes).toHaveLength(3); 
+      expect(echoes).toHaveLength(3);
     });
 
     it('getPublicEchoes should sort by timestamp if claps are equal and handle missing timestamps', async () => {
-       const mockDocs = [
-        { id: 'e1', ref: { parent: { parent: { id: 'u1' } } }, data: () => ({ reactions: { claps: 10 }, timestamp: null }) },
-        { id: 'e2', ref: { parent: { parent: { id: 'u2' } } }, data: () => ({ reactions: { claps: 10 }, timestamp: { seconds: 100 } }) }
+      const mockDocs = [
+        {
+          id: 'e1',
+          ref: { parent: { parent: { id: 'u1' } } },
+          data: () => ({ reactions: { claps: 10 }, timestamp: null }),
+        },
+        {
+          id: 'e2',
+          ref: { parent: { parent: { id: 'u2' } } },
+          data: () => ({
+            reactions: { claps: 10 },
+            timestamp: { seconds: 100 },
+          }),
+        },
       ];
       getDocs.mockResolvedValueOnce({ docs: mockDocs });
       const echoes = await getPublicEchoes('b1', null, 'myuid');
@@ -336,19 +420,33 @@ describe('Social API Methods', () => {
 
     it('addRatClap should catch error', async () => {
       updateDoc.mockRejectedValueOnce(new Error('Err'));
-      await expect(addRatClap('u1', 'b1', 'e1', 'u2', 'Thales')).rejects.toThrow();
+      await expect(
+        addRatClap('u1', 'b1', 'e1', 'u2', 'Thales'),
+      ).rejects.toThrow();
     });
 
     it('replyToEcho should run transaction and create notification', async () => {
-      const parentDocMock = { exists: () => true, data: () => ({ pageLocation: 10 }) };
+      const parentDocMock = {
+        exists: () => true,
+        data: () => ({ pageLocation: 10 }),
+      };
       const transactionMock = {
         get: jest.fn().mockResolvedValue(parentDocMock),
         set: jest.fn(),
-        update: jest.fn()
+        update: jest.fn(),
       };
-      runTransaction.mockImplementationOnce(async (db, cb) => cb(transactionMock));
+      runTransaction.mockImplementationOnce(async (db, cb) =>
+        cb(transactionMock),
+      );
 
-      const id = await replyToEcho('u1', 'b1', 'e1', 'hello', { displayName: 'User' }, 'u2');
+      const id = await replyToEcho(
+        'u1',
+        'b1',
+        'e1',
+        'hello',
+        { displayName: 'User' },
+        'u2',
+      );
       expect(transactionMock.set).toHaveBeenCalled();
       expect(transactionMock.update).toHaveBeenCalled();
       expect(id).toBe('mock-id');
@@ -360,37 +458,62 @@ describe('Social API Methods', () => {
       const transactionMock = {
         get: jest.fn().mockResolvedValue(parentDocMock),
         set: jest.fn(),
-        update: jest.fn()
+        update: jest.fn(),
       };
-      runTransaction.mockImplementationOnce(async (db, cb) => cb(transactionMock));
+      runTransaction.mockImplementationOnce(async (db, cb) =>
+        cb(transactionMock),
+      );
 
       await replyToEcho('u1', 'b1', 'e1', 'hello', {}, 'u1');
-      expect(transactionMock.set).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
-        pageLocation: null,
-        userMetadata: { displayName: 'Leitor', photoURL: null }
-      }));
+      expect(transactionMock.set).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          pageLocation: null,
+          userMetadata: { displayName: 'Leitor', photoURL: null },
+        }),
+      );
       expect(addDoc).not.toHaveBeenCalled(); // No notification for self-reply
     });
 
     it('replyToEcho should throw inside transaction if parent missing', async () => {
       const parentDocMock = { exists: () => false };
-      const transactionMock = { get: jest.fn().mockResolvedValue(parentDocMock) };
-      runTransaction.mockImplementationOnce(async (db, cb) => cb(transactionMock));
+      const transactionMock = {
+        get: jest.fn().mockResolvedValue(parentDocMock),
+      };
+      runTransaction.mockImplementationOnce(async (db, cb) =>
+        cb(transactionMock),
+      );
 
-      await expect(replyToEcho('u1', 'b1', 'e1', 'hello', {}, 'u2')).rejects.toThrow();
+      await expect(
+        replyToEcho('u1', 'b1', 'e1', 'hello', {}, 'u2'),
+      ).rejects.toThrow();
     });
 
     it('replyToEcho should catch error', async () => {
       runTransaction.mockRejectedValueOnce(new Error('Err'));
-      await expect(replyToEcho('u1', 'b1', 'e1', 'hello', {}, 'u2')).rejects.toThrow();
+      await expect(
+        replyToEcho('u1', 'b1', 'e1', 'hello', {}, 'u2'),
+      ).rejects.toThrow();
     });
 
     it('getEchoReplies should fetch and sort replies (equal claps)', async () => {
       getDocs.mockResolvedValueOnce({
         docs: [
-          { id: 'r1', data: () => ({ reactions: { claps: 2 }, timestamp: { seconds: 1 } }) },
-          { id: 'r2', data: () => ({ reactions: { claps: 2 }, timestamp: { seconds: 2 } }) }
-        ]
+          {
+            id: 'r1',
+            data: () => ({
+              reactions: { claps: 2 },
+              timestamp: { seconds: 1 },
+            }),
+          },
+          {
+            id: 'r2',
+            data: () => ({
+              reactions: { claps: 2 },
+              timestamp: { seconds: 2 },
+            }),
+          },
+        ],
       });
       const replies = await getEchoReplies('u1', 'b1', 'e1');
       expect(replies[0].id).toBe('r2');
@@ -402,9 +525,18 @@ describe('Social API Methods', () => {
         docs: [
           { id: 'r1', data: () => ({ reactions: null }) },
           { id: 'r2', data: () => ({ reactions: { claps: 5 } }) },
-          { id: 'r3', data: () => ({ reactions: { claps: 5 }, timestamp: null }) },
-          { id: 'r4', data: () => ({ reactions: { claps: 5 }, timestamp: { seconds: 100 } }) }
-        ]
+          {
+            id: 'r3',
+            data: () => ({ reactions: { claps: 5 }, timestamp: null }),
+          },
+          {
+            id: 'r4',
+            data: () => ({
+              reactions: { claps: 5 },
+              timestamp: { seconds: 100 },
+            }),
+          },
+        ],
       });
       const replies = await getEchoReplies('u1', 'b1', 'e1');
       expect(replies[0].id).toBe('r4'); // 5 claps, newer timestamp
@@ -421,7 +553,10 @@ describe('Social API Methods', () => {
 
   describe('Misc', () => {
     it('getUserDetails should return user data', async () => {
-      getDoc.mockResolvedValueOnce({ exists: () => true, data: () => ({ name: 'A' }) });
+      getDoc.mockResolvedValueOnce({
+        exists: () => true,
+        data: () => ({ name: 'A' }),
+      });
       expect(await getUserDetails('u1')).toEqual({ id: 'u1', name: 'A' });
     });
 

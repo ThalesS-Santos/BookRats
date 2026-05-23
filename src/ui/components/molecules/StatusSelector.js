@@ -1,9 +1,11 @@
 import React, { useMemo } from 'react';
+
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
 import { BOOK_STATUS } from '../../../core/constants/bookStatus';
 import { useThemeStore } from '../../../store/useThemeStore';
-import { COLORS } from '../../constants/colors';
 import * as Haptics from '../../../utils/haptics';
+import { COLORS } from '../../constants/colors';
 
 /**
  * Mapeamento de Status para labels amigáveis ao usuário.
@@ -26,7 +28,7 @@ const STATUS_LABELS = {
 const StatusSelector = ({ currentStatus, onStatusChange }) => {
   const { isDarkMode } = useThemeStore();
 
-  const handleSelect = (status) => {
+  const handleSelect = status => {
     if (status === currentStatus) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onStatusChange(status);
@@ -35,7 +37,7 @@ const StatusSelector = ({ currentStatus, onStatusChange }) => {
   const statusChips = useMemo(() => {
     return Object.entries(STATUS_LABELS).map(([status, label]) => {
       const isActive = currentStatus === status;
-      
+
       return (
         <TouchableOpacity
           key={status}
@@ -44,27 +46,35 @@ const StatusSelector = ({ currentStatus, onStatusChange }) => {
           style={[
             styles.chip,
             isActive ? styles.chipActive : styles.chipInactive,
-            { 
-              backgroundColor: isActive 
-                ? (isDarkMode ? COLORS.primary.dark : COLORS.primary.light)
-                : (isDarkMode ? COLORS.card.dark : COLORS.white),
+            {
+              backgroundColor: isActive
+                ? isDarkMode
+                  ? COLORS.primary.dark
+                  : COLORS.primary.light
+                : isDarkMode
+                  ? COLORS.card.dark
+                  : COLORS.white,
               borderColor: isActive
-                ? (isDarkMode ? COLORS.primary.dark : COLORS.primary.light)
-                : (isDarkMode ? COLORS.border.dark : COLORS.border.light)
-            }
-          ]}
-        >
-          <Text 
+                ? isDarkMode
+                  ? COLORS.primary.dark
+                  : COLORS.primary.light
+                : isDarkMode
+                  ? COLORS.border.dark
+                  : COLORS.border.light,
+            },
+          ]}>
+          <Text
             style={[
               styles.chipText,
               isActive ? styles.textActive : styles.textInactive,
               {
-                color: isActive 
-                  ? '#FFFFFF' 
-                  : (isDarkMode ? COLORS.text.muted.dark : COLORS.text.muted.light)
-              }
-            ]}
-          >
+                color: isActive
+                  ? '#FFFFFF'
+                  : isDarkMode
+                    ? COLORS.text.muted.dark
+                    : COLORS.text.muted.light,
+              },
+            ]}>
             {label}
           </Text>
         </TouchableOpacity>
@@ -72,11 +82,7 @@ const StatusSelector = ({ currentStatus, onStatusChange }) => {
     });
   }, [currentStatus, isDarkMode]);
 
-  return (
-    <View style={styles.container}>
-      {statusChips}
-    </View>
-  );
+  return <View style={styles.container}>{statusChips}</View>;
 };
 
 const styles = StyleSheet.create({
@@ -116,7 +122,7 @@ const styles = StyleSheet.create({
   },
   textInactive: {
     // Cor dinâmica via prop style
-  }
+  },
 });
 
 export default StatusSelector;

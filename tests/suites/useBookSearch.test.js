@@ -1,10 +1,11 @@
-import { renderHook, act } from '@testing-library/react-native';
 import { useBookSearch } from '@hooks/useBookSearch';
+import { renderHook, act } from '@testing-library/react-native';
+
 import { searchBooks } from '@core/api/googleBooks';
 
 // Mock searchBooks
 jest.mock('@core/api/googleBooks', () => ({
-  searchBooks: jest.fn()
+  searchBooks: jest.fn(),
 }));
 
 describe('useBookSearch hook', () => {
@@ -21,8 +22,11 @@ describe('useBookSearch hook', () => {
   });
 
   it('should trigger debounced search when query length > 2', async () => {
-    searchBooks.mockResolvedValue({ items: [{ id: '1', title: 'React Native' }], totalItems: 1 });
-    
+    searchBooks.mockResolvedValue({
+      items: [{ id: '1', title: 'React Native' }],
+      totalItems: 1,
+    });
+
     const { result } = renderHook(() => useBookSearch());
 
     await act(async () => {
@@ -34,7 +38,9 @@ describe('useBookSearch hook', () => {
       await new Promise(r => setTimeout(r, 1000));
     });
 
-    expect(searchBooks).toHaveBeenCalledWith(expect.objectContaining({ generalQuery: 'React' }));
+    expect(searchBooks).toHaveBeenCalledWith(
+      expect.objectContaining({ generalQuery: 'React' }),
+    );
     expect(result.current.results).toHaveLength(1);
     expect(result.current.results[0].title).toBe('React Native');
     expect(result.current.loading).toBe(false);
@@ -54,7 +60,7 @@ describe('useBookSearch hook', () => {
 
   it('should handle search errors gracefully', async () => {
     searchBooks.mockRejectedValue(new Error('Network Error'));
-    
+
     const { result } = renderHook(() => useBookSearch());
 
     await act(async () => {
@@ -65,7 +71,9 @@ describe('useBookSearch hook', () => {
       await new Promise(r => setTimeout(r, 1000));
     });
 
-    expect(result.current.error).toBe('Erro ao buscar livros. Tente novamente.');
+    expect(result.current.error).toBe(
+      'Erro ao buscar livros. Tente novamente.',
+    );
     expect(result.current.results).toEqual([]);
     expect(result.current.loading).toBe(false);
   });
@@ -88,7 +96,7 @@ describe('useBookSearch hook', () => {
 
     await act(async () => {
       // Set a query that passes the length check but is mostly whitespace
-      result.current.setQuery('   '); 
+      result.current.setQuery('   ');
     });
 
     // In the hook implementation, query.trim().length > 2 check would fail for '   '

@@ -1,5 +1,7 @@
 import React from 'react';
+
 import { render, fireEvent } from '@testing-library/react-native';
+
 import CommunityNote from '../../src/ui/components/molecules/CommunityNote';
 
 describe('CommunityNote Component', () => {
@@ -24,13 +26,13 @@ describe('CommunityNote Component', () => {
 
   it('renders correctly for front card', () => {
     const { getByText } = render(
-      <CommunityNote 
-        note={mockNote} 
-        onClap={mockOnClap} 
-        COLORS={COLORS} 
-        isDarkMode={false} 
-        isFrontCard={true} 
-      />
+      <CommunityNote
+        note={mockNote}
+        onClap={mockOnClap}
+        COLORS={COLORS}
+        isDarkMode={false}
+        isFrontCard={true}
+      />,
     );
 
     expect(getByText('Thales')).toBeTruthy();
@@ -41,13 +43,13 @@ describe('CommunityNote Component', () => {
 
   it('renders correctly for background card', () => {
     const { toJSON } = render(
-      <CommunityNote 
-        note={mockNote} 
-        onClap={mockOnClap} 
-        COLORS={COLORS} 
-        isDarkMode={false} 
-        isBackgroundCard={true} 
-      />
+      <CommunityNote
+        note={mockNote}
+        onClap={mockOnClap}
+        COLORS={COLORS}
+        isDarkMode={false}
+        isBackgroundCard={true}
+      />,
     );
     // Background card is just a View with styles
     expect(toJSON()).toBeTruthy();
@@ -55,12 +57,12 @@ describe('CommunityNote Component', () => {
 
   it('calls onClap when clap button is pressed', () => {
     const { getByText } = render(
-      <CommunityNote 
-        note={mockNote} 
-        onClap={mockOnClap} 
-        COLORS={COLORS} 
-        isDarkMode={true} 
-      />
+      <CommunityNote
+        note={mockNote}
+        onClap={mockOnClap}
+        COLORS={COLORS}
+        isDarkMode={true}
+      />,
     );
 
     const clapButton = getByText('5').parent;
@@ -71,11 +73,7 @@ describe('CommunityNote Component', () => {
 
   it('handles influencer star rendering', () => {
     const { getByText } = render(
-      <CommunityNote 
-        note={mockNote} 
-        onClap={mockOnClap} 
-        COLORS={COLORS} 
-      />
+      <CommunityNote note={mockNote} onClap={mockOnClap} COLORS={COLORS} />,
     );
     // If it doesn't crash and renders the influencer name, we're good.
     // Testing specific icons inside Ionicons is harder without extra setup.
@@ -83,13 +81,12 @@ describe('CommunityNote Component', () => {
   });
 
   it('handles non-influencer rendering', () => {
-    const note = { ...mockNote, userMetadata: { ...mockNote.userMetadata, isInfluencer: false } };
+    const note = {
+      ...mockNote,
+      userMetadata: { ...mockNote.userMetadata, isInfluencer: false },
+    };
     const { queryByTestId } = render(
-      <CommunityNote 
-        note={note} 
-        onClap={mockOnClap} 
-        COLORS={COLORS} 
-      />
+      <CommunityNote note={note} onClap={mockOnClap} COLORS={COLORS} />,
     );
     // Should render fine
     expect(true).toBe(true);

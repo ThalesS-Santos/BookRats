@@ -1,4 +1,5 @@
 import * as ExpoHaptics from 'expo-haptics';
+
 import { useThemeStore } from '../../src/store/useThemeStore';
 import * as Haptics from '../../src/utils/haptics';
 
@@ -13,7 +14,9 @@ describe('Haptics Utility', () => {
   it('calls impactAsync when haptics are enabled', async () => {
     useThemeStore.getState.mockReturnValue({ hapticsEnabled: true });
     await Haptics.impactAsync(ExpoHaptics.ImpactFeedbackStyle.Heavy);
-    expect(ExpoHaptics.impactAsync).toHaveBeenCalledWith(ExpoHaptics.ImpactFeedbackStyle.Heavy);
+    expect(ExpoHaptics.impactAsync).toHaveBeenCalledWith(
+      ExpoHaptics.ImpactFeedbackStyle.Heavy,
+    );
   });
 
   it('does not call impactAsync when haptics are disabled', async () => {
@@ -25,7 +28,9 @@ describe('Haptics Utility', () => {
   it('calls notificationAsync when haptics are enabled', async () => {
     useThemeStore.getState.mockReturnValue({ hapticsEnabled: true });
     await Haptics.notificationAsync(ExpoHaptics.NotificationFeedbackType.Error);
-    expect(ExpoHaptics.notificationAsync).toHaveBeenCalledWith(ExpoHaptics.NotificationFeedbackType.Error);
+    expect(ExpoHaptics.notificationAsync).toHaveBeenCalledWith(
+      ExpoHaptics.NotificationFeedbackType.Error,
+    );
   });
 
   it('does not call notificationAsync when haptics are disabled', async () => {

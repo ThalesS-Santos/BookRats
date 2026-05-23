@@ -1,11 +1,13 @@
 import React from 'react';
-import { View, Button } from 'react-native';
-import { render, fireEvent, act } from '@testing-library/react-native';
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { render, fireEvent, act } from '@testing-library/react-native';
+import { View, Button } from 'react-native';
+
 import { useThemeStore } from '../../src/store/useThemeStore';
 
 // Helper to wait for Zustand and AsyncStorage to settle
-const waitSettled = () => new Promise((resolve) => setTimeout(resolve, 10));
+const waitSettled = () => new Promise(resolve => setTimeout(resolve, 10));
 
 describe('Theme Persistence Audit', () => {
   beforeEach(async () => {
@@ -36,7 +38,7 @@ describe('Theme Persistence Audit', () => {
 
       expect(AsyncStorage.setItem).toHaveBeenCalledWith(
         'bookrats-theme-storage',
-        expect.stringContaining('"isDarkMode":true')
+        expect.stringContaining('"isDarkMode":true'),
       );
     });
 
@@ -49,7 +51,7 @@ describe('Theme Persistence Audit', () => {
 
       expect(AsyncStorage.setItem).toHaveBeenCalledWith(
         'bookrats-theme-storage',
-        expect.stringContaining('"hapticsEnabled":false')
+        expect.stringContaining('"hapticsEnabled":false'),
       );
     });
   });
@@ -61,7 +63,10 @@ describe('Theme Persistence Audit', () => {
         state: { isDarkMode: true, hapticsEnabled: false },
         version: 0,
       };
-      await AsyncStorage.setItem('bookrats-theme-storage', JSON.stringify(mockState));
+      await AsyncStorage.setItem(
+        'bookrats-theme-storage',
+        JSON.stringify(mockState),
+      );
 
       // 2. Force the store to re-hydrate
       await act(async () => {
@@ -91,10 +96,10 @@ describe('Theme Persistence Audit', () => {
       });
 
       // 4. Verify fallback to default (which is false for isDarkMode)
-      // Note: Zustand persist might catch the error and keep the current state 
-      // or fallback to initial depending on implementation. 
+      // Note: Zustand persist might catch the error and keep the current state
+      // or fallback to initial depending on implementation.
       // According to requirement: "reverts to the default false state".
-      
+
       expect(useThemeStore.getState().isDarkMode).toBe(false);
     });
   });
@@ -103,11 +108,14 @@ describe('Theme Persistence Audit', () => {
     const ThemeTestComponent = () => {
       const { isDarkMode, toggleTheme } = useThemeStore();
       return (
-        <View 
-          testID="theme-container" 
-          style={{ backgroundColor: isDarkMode ? '#000000' : '#FFFFFF' }}
-        >
-          <Button title="Toggle Theme" onPress={toggleTheme} testID="toggle-button" />
+        <View
+          testID="theme-container"
+          style={{ backgroundColor: isDarkMode ? '#000000' : '#FFFFFF' }}>
+          <Button
+            title="Toggle Theme"
+            onPress={toggleTheme}
+            testID="toggle-button"
+          />
         </View>
       );
     };

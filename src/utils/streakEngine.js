@@ -18,20 +18,21 @@ import { getLocalDateString } from './streak';
 /**
  * Processes a new activity and calculates the updated streak state.
  * Strictly uses YYYY-MM-DD strings for timezone-agnostic comparisons.
- * 
- * @param {StreakState} currentStreakState 
+ *
+ * @param {StreakState} currentStreakState
  * @param {string} activityDate - The date of the activity in YYYY-MM-DD format
  * @returns {StreakActionResponse}
  */
 export const processActivity = (currentStreakState, activityDate) => {
-  const { currentCount, longestCount, lastActivityDate, type } = currentStreakState;
+  const { currentCount, longestCount, lastActivityDate, type } =
+    currentStreakState;
 
   // 1. Idempotency Check: Same day activity
   if (lastActivityDate === activityDate) {
     return {
       streak: { ...currentStreakState },
       broken: false,
-      incremented: false
+      incremented: false,
     };
   }
 
@@ -42,10 +43,10 @@ export const processActivity = (currentStreakState, activityDate) => {
         currentCount: 1,
         longestCount: Math.max(longestCount, 1),
         lastActivityDate: activityDate,
-        type
+        type,
       },
       broken: false,
-      incremented: true
+      incremented: true,
     };
   }
 
@@ -63,10 +64,10 @@ export const processActivity = (currentStreakState, activityDate) => {
         currentCount: newCount,
         longestCount: Math.max(longestCount, newCount),
         lastActivityDate: activityDate,
-        type
+        type,
       },
       broken: false,
-      incremented: true
+      incremented: true,
     };
   }
 
@@ -76,9 +77,9 @@ export const processActivity = (currentStreakState, activityDate) => {
       currentCount: 1,
       longestCount: Math.max(longestCount, 1),
       lastActivityDate: activityDate,
-      type
+      type,
     },
     broken: true,
-    incremented: true
+    incremented: true,
   };
 };

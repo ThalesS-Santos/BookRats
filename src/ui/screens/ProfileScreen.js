@@ -1,41 +1,63 @@
-import { useMainStore } from '@core/store';
 import React, { useState, useMemo } from 'react';
-import { View, Text, Switch, TouchableOpacity, ScrollView } from 'react-native';
-import { useThemeStore } from '../../store/useThemeStore';
-import { usePopupStore } from '../../store/usePopupStore';
-import { BOOK_STATUS } from '@core/constants/bookStatus';
-import { ALL_BADGES } from '@constants/badges';
-import * as Haptics from '../../utils/haptics';
+
 import { Ionicons } from '@expo/vector-icons';
-import { FastAvatar } from '@ui/components';
+import { View, Text, Switch, TouchableOpacity, ScrollView } from 'react-native';
+
+import { ALL_BADGES } from '@constants/badges';
 import { COLORS } from '@constants/colors'; // ✅ FIX #3: import no topo, fora do componente
+import { BOOK_STATUS } from '@core/constants/bookStatus';
+import { UserNormalizationService } from '@core/services/UserNormalizationService';
+import { useMainStore } from '@core/store';
+import { FastAvatar } from '@ui/components';
+
+import { usePopupStore } from '../../store/usePopupStore';
+import { useThemeStore } from '../../store/useThemeStore';
+import * as Haptics from '../../utils/haptics';
+
+const TXT_SIGN_OUT = 'Sair da Conta';
 
 // ✅ FIX #1: InfoRow definida FORA do ProfileScreen.
 // Assim React não recria o tipo do componente a cada render,
 // evitando o ciclo de desmontagem/remontagem que causava o erro de navegação.
-const InfoRow = ({ label, value, icon, onPress, accentColor, showCompleted, isDarkMode }) => (
+const InfoRow = ({
+  label,
+  value,
+  icon,
+  onPress,
+  accentColor,
+  showCompleted,
+  isDarkMode,
+}) => (
   <TouchableOpacity
     onPress={onPress}
     disabled={!onPress}
-    className="flex-row items-center justify-between p-5 bg-card-light dark:bg-card-dark rounded-2xl mb-4 border border-border-light dark:border-border-dark"
-  >
+    className="flex-row items-center justify-between p-5 bg-card-light dark:bg-card-dark rounded-2xl mb-4 border border-border-light dark:border-border-dark">
     <View className="flex-row items-center">
       <View className="bg-primary/10 dark:bg-primary-dark/10 p-2 rounded-lg mr-4">
         <Ionicons name={icon} size={22} color={accentColor} />
       </View>
-      <Text className="text-text-light dark:text-text-dark font-serif font-bold text-lg">{label}</Text>
+      <Text className="text-text-light dark:text-text-dark font-serif font-bold text-lg">
+        {label}
+      </Text>
     </View>
     <View className="flex-row items-center">
-      <Text className="text-text-muted-light dark:text-text-muted-dark font-mono font-bold text-lg mr-2">{value}</Text>
+      <Text className="text-text-muted-light dark:text-text-muted-dark font-mono font-bold text-lg mr-2">
+        {value}
+      </Text>
       {onPress && (
-        <Ionicons name={showCompleted ? "chevron-up" : "chevron-down"} size={16} color={accentColor} />
+        <Ionicons
+          name={showCompleted ? 'chevron-up' : 'chevron-down'}
+          size={16}
+          color={accentColor}
+        />
       )}
     </View>
   </TouchableOpacity>
 );
 
 export default function ProfileScreen({ navigation }) {
-  const { isDarkMode, toggleTheme, hapticsEnabled, setHapticsEnabled } = useThemeStore();
+  const { isDarkMode, toggleTheme, hapticsEnabled, setHapticsEnabled } =
+    useThemeStore();
   const [showCompleted, setShowCompleted] = useState(false);
   const books = useMainStore(state => state.books);
   const streak = useMainStore(state => state.streak);
@@ -54,14 +76,19 @@ export default function ProfileScreen({ navigation }) {
   const [showTrophyWall, setShowTrophyWall] = useState(false);
 
   const accentColor = isDarkMode ? COLORS.primary.dark : COLORS.primary.light;
-  const readingBooks = books.filter(b => b.status === BOOK_STATUS.READING).length;
+  const readingBooks = books.filter(
+    b => b.status === BOOK_STATUS.READING,
+  ).length;
 
-  const userData = useMemo(() => ({
-    streak,
-    totalPagesRead,
-    completedBooks: totalBooksCompleted,
-    readingBooks
-  }), [streak, totalPagesRead, totalBooksCompleted, readingBooks]);
+  const userData = useMemo(
+    () => ({
+      streak,
+      totalPagesRead,
+      completedBooks: totalBooksCompleted,
+      readingBooks,
+    }),
+    [streak, totalPagesRead, totalBooksCompleted, readingBooks],
+  );
 
   const totalUnlocked = useMemo(() => {
     return ALL_BADGES.filter(badge => badge.check(userData)).length;
@@ -70,8 +97,21 @@ export default function ProfileScreen({ navigation }) {
   const processedBadges = useMemo(() => {
     const badgesWithStatus = ALL_BADGES.map(badge => {
       const isUnlocked = badge.check(userData);
-      const unlockInfo = unlockedBadges[badge.id];
-      const dateUnlocked = unlockInfo?.dateUnlocked ? new Date(unlockInfo.dateUnlocked).getTime() : 0;
+      const bId = badge.id;
+      let unlockInfo;
+      if (
+        typeof bId === 'string' &&
+        bId !== '__proto__' &&
+        bId !== 'constructor' &&
+        bId !== 'prototype'
+      ) {
+        unlockInfo = Object.prototype.hasOwnProperty.call(unlockedBadges, bId)
+          ? unlockedBadges[bId]
+          : undefined;
+      }
+      const dateUnlocked = unlockInfo?.dateUnlocked
+        ? new Date(unlockInfo.dateUnlocked).getTime()
+        : 0;
       return { ...badge, isUnlocked, dateUnlocked };
     });
 
@@ -89,7 +129,8 @@ export default function ProfileScreen({ navigation }) {
         if (a.isUnlocked && !b.isUnlocked) return -1;
         if (!a.isUnlocked && b.isUnlocked) return 1;
         if (a.isUnlocked && b.isUnlocked) {
-          if (a.dateUnlocked > 0 && b.dateUnlocked > 0) return b.dateUnlocked - a.dateUnlocked;
+          if (a.dateUnlocked > 0 && b.dateUnlocked > 0)
+            return b.dateUnlocked - a.dateUnlocked;
           if (a.dateUnlocked > 0 && b.dateUnlocked === 0) return -1;
           if (a.dateUnlocked === 0 && b.dateUnlocked > 0) return 1;
           return 0;
@@ -98,7 +139,8 @@ export default function ProfileScreen({ navigation }) {
       });
     } else if (badgeFilter === 'recent' || badgeFilter === 'unlocked') {
       filtered.sort((a, b) => {
-        if (a.dateUnlocked > 0 && b.dateUnlocked > 0) return b.dateUnlocked - a.dateUnlocked;
+        if (a.dateUnlocked > 0 && b.dateUnlocked > 0)
+          return b.dateUnlocked - a.dateUnlocked;
         if (a.dateUnlocked > 0) return -1;
         if (b.dateUnlocked > 0) return 1;
         return 0;
@@ -117,55 +159,79 @@ export default function ProfileScreen({ navigation }) {
       title: 'Sair da Conta',
       message: 'Deseja realmente sair do BookRats?',
       type: 'confirm',
-      onConfirm: signOut
+      onConfirm: signOut,
     });
   };
 
   return (
-    <ScrollView className="flex-1 bg-background-light dark:bg-background-dark p-6" showsVerticalScrollIndicator={false}>
-
+    <ScrollView
+      className="flex-1 bg-background-light dark:bg-background-dark p-6"
+      showsVerticalScrollIndicator={false}>
       {/* Top Header Row for Notifications */}
       <View className="flex-row justify-end items-center mb-2 z-10">
         <TouchableOpacity
           onPress={() => navigation.navigate('Notifications')}
-          className="p-3 bg-card-light dark:bg-card-dark rounded-full shadow-sm border border-border-light dark:border-border-dark relative"
-        >
-          <Ionicons name="notifications-outline" size={24} color={isDarkMode ? 'white' : 'black'} />
+          className="p-3 bg-card-light dark:bg-card-dark rounded-full shadow-sm border border-border-light dark:border-border-dark relative">
+          <Ionicons
+            name="notifications-outline"
+            size={24}
+            color={isDarkMode ? 'white' : 'black'}
+          />
           {unreadCount > 0 && (
-            <View className="absolute top-2 right-2 w-3 h-3 rounded-full bg-neon-green border-2 border-background-light dark:border-background-dark" style={{ backgroundColor: COLORS.neon_green }} />
+            <View
+              className="absolute top-2 right-2 w-3 h-3 rounded-full bg-neon-green border-2 border-background-light dark:border-background-dark"
+              style={{ backgroundColor: COLORS.neon_green }}
+            />
           )}
         </TouchableOpacity>
       </View>
 
       <View className="items-center mt-2 mb-10">
         <FastAvatar
-          source={user?.profilePic}
+          source={UserNormalizationService.normalizeUserAvatar(user)}
           size={100}
           style={{ marginBottom: 16 }}
           border
         />
         <View className="flex-row items-center">
-          <Text className="text-text-light dark:text-text-dark text-3xl font-serif font-bold" numberOfLines={1}>
-            {user?.email?.split('@')[0] || 'Leitor Rat'}
+          <Text
+            className="text-text-light dark:text-text-dark text-3xl font-serif font-bold"
+            numberOfLines={1}>
+            {UserNormalizationService.normalizeDisplayName(user)}
           </Text>
           {(hasInfluencerBadge || user?.isInfluencer) && (
-            <Ionicons name="star" size={24} color={COLORS.neon_green} style={{ marginLeft: 8 }} />
+            <Ionicons
+              name="star"
+              size={24}
+              color={COLORS.neon_green}
+              style={{ marginLeft: 8 }}
+            />
           )}
         </View>
         <View className="flex-row items-center mt-2">
           <Ionicons name="flame" size={18} color={COLORS.streak} />
-          <Text className="text-streak font-bold font-mono ml-1">Streak: {streak} dias</Text>
+          <Text className="text-streak font-bold font-mono ml-1">
+            Streak: {streak} dias
+          </Text>
         </View>
       </View>
 
       <View className="mb-10">
-        <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-4 ml-2">Personalização</Text>
+        <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-4 ml-2">
+          Personalização
+        </Text>
         <View className="flex-row items-center justify-between p-5 bg-card-light dark:bg-card-dark rounded-2xl border border-border-light dark:border-border-dark shadow-sm">
           <View className="flex-row items-center">
             <View className="bg-primary/10 dark:bg-primary-dark/10 p-2 rounded-lg mr-4">
-              <Ionicons name={isDarkMode ? "moon" : "sunny"} size={22} color={accentColor} />
+              <Ionicons
+                name={isDarkMode ? 'moon' : 'sunny'}
+                size={22}
+                color={accentColor}
+              />
             </View>
-            <Text className="text-text-light dark:text-text-dark font-serif font-bold text-lg">Modo Escuro</Text>
+            <Text className="text-text-light dark:text-text-dark font-serif font-bold text-lg">
+              Modo Escuro
+            </Text>
           </View>
           <Switch
             value={isDarkMode}
@@ -180,7 +246,9 @@ export default function ProfileScreen({ navigation }) {
             <View className="bg-primary/10 dark:bg-primary-dark/10 p-2 rounded-lg mr-4">
               <Ionicons name="pulse-outline" size={22} color={accentColor} />
             </View>
-            <Text className="text-text-light dark:text-text-dark font-serif font-bold text-lg">Feedback Tátil</Text>
+            <Text className="text-text-light dark:text-text-dark font-serif font-bold text-lg">
+              Feedback Tátil
+            </Text>
           </View>
           <Switch
             value={hapticsEnabled}
@@ -197,17 +265,24 @@ export default function ProfileScreen({ navigation }) {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
           setShowTrophyWall(!showTrophyWall);
         }}
-        className="flex-row items-center justify-between p-5 bg-card-light dark:bg-card-dark rounded-2xl mb-4 border border-border-light dark:border-border-dark"
-      >
+        className="flex-row items-center justify-between p-5 bg-card-light dark:bg-card-dark rounded-2xl mb-4 border border-border-light dark:border-border-dark">
         <View className="flex-row items-center">
           <View className="bg-primary/10 dark:bg-primary-dark/10 p-2 rounded-lg mr-4">
             <Ionicons name="trophy-outline" size={22} color={accentColor} />
           </View>
-          <Text className="text-text-light dark:text-text-dark font-serif font-bold text-lg">Meus Troféus</Text>
+          <Text className="text-text-light dark:text-text-dark font-serif font-bold text-lg">
+            Meus Troféus
+          </Text>
         </View>
         <View className="flex-row items-center">
-          <Text className="text-text-muted-light dark:text-text-muted-dark font-mono font-bold text-lg mr-2">{totalUnlocked} / {ALL_BADGES.length}</Text>
-          <Ionicons name={showTrophyWall ? "chevron-up" : "chevron-down"} size={16} color={accentColor} />
+          <Text className="text-text-muted-light dark:text-text-muted-dark font-mono font-bold text-lg mr-2">
+            {totalUnlocked} / {ALL_BADGES.length}
+          </Text>
+          <Ionicons
+            name={showTrophyWall ? 'chevron-up' : 'chevron-down'}
+            size={16}
+            color={accentColor}
+          />
         </View>
       </TouchableOpacity>
 
@@ -220,7 +295,7 @@ export default function ProfileScreen({ navigation }) {
               { id: 'all', label: 'Todos' },
               { id: 'unlocked', label: 'Conquistados' },
               { id: 'locked', label: 'Bloqueados' },
-              { id: 'recent', label: 'Recentes' }
+              { id: 'recent', label: 'Recentes' },
             ].map(tab => {
               const isActive = badgeFilter === tab.id;
               return (
@@ -231,9 +306,11 @@ export default function ProfileScreen({ navigation }) {
                     setBadgeFilter(tab.id);
                     setBadgeLimit(9);
                   }}
-                  className={`py-2 rounded-xl flex-1 items-center ${isActive ? 'bg-primary dark:bg-primary-dark shadow-sm' : ''}`}
-                >
-                  <Text className={`text-[10px] font-bold ${isActive ? 'text-white font-serif' : 'text-text-muted-light dark:text-text-muted-dark'}`}>{tab.label}</Text>
+                  className={`py-2 rounded-xl flex-1 items-center ${isActive ? 'bg-primary dark:bg-primary-dark shadow-sm' : ''}`}>
+                  <Text
+                    className={`text-[10px] font-bold ${isActive ? 'text-white font-serif' : 'text-text-muted-light dark:text-text-muted-dark'}`}>
+                    {tab.label}
+                  </Text>
                 </TouchableOpacity>
               );
             })}
@@ -246,26 +323,36 @@ export default function ProfileScreen({ navigation }) {
                   key={badge.id}
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-                    showPopup({ title: badge.title, message: `Missão: ${badge.mission}`, type: badge.isUnlocked ? 'success' : 'info' });
+                    showPopup({
+                      title: badge.title,
+                      message: `Missão: ${badge.mission}`,
+                      type: badge.isUnlocked ? 'success' : 'info',
+                    });
                   }}
                   className={`p-3 rounded-xl border items-center mb-2 w-[31%] ${
                     badge.isUnlocked
                       ? 'bg-card-light dark:bg-card-dark border-primary/20 dark:border-primary-dark/20'
                       : 'bg-card-light dark:bg-card-dark border-dashed border-gray-400 dark:border-gray-600 opacity-40'
-                  }`}
-                >
+                  }`}>
                   <View className="relative">
-                    <Ionicons name={badge.icon} size={28} color={badge.isUnlocked ? "#D97706" : "#4B5563"} />
+                    <Ionicons
+                      name={badge.icon}
+                      size={28}
+                      color={badge.isUnlocked ? '#D97706' : '#4B5563'}
+                    />
                     {!badge.isUnlocked && (
                       <View className="absolute -top-1 -right-1 bg-background-light dark:bg-background-dark rounded-full p-0.5">
-                        <Ionicons name="lock-closed" size={10} color="#EF4444" />
+                        <Ionicons
+                          name="lock-closed"
+                          size={10}
+                          color="#EF4444"
+                        />
                       </View>
                     )}
                   </View>
                   <Text
                     className={`text-[10px] font-bold mt-1 text-center ${badge.isUnlocked ? 'text-text-light dark:text-text-dark font-serif' : 'text-text-muted-light dark:text-text-muted-dark'}`}
-                    numberOfLines={1}
-                  >
+                    numberOfLines={1}>
                     {badge.title}
                   </Text>
                 </TouchableOpacity>
@@ -273,7 +360,9 @@ export default function ProfileScreen({ navigation }) {
             </View>
           ) : (
             <View className="py-6 items-center">
-              <Text className="text-text-muted-light dark:text-text-muted-dark text-xs italic">Nenhum troféu nesta categoria.</Text>
+              <Text className="text-text-muted-light dark:text-text-muted-dark text-xs italic">
+                Nenhum troféu nesta categoria.
+              </Text>
             </View>
           )}
 
@@ -285,10 +374,16 @@ export default function ProfileScreen({ navigation }) {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                   setBadgeLimit(prev => prev + 9);
                 }}
-                className="flex-1 p-4 rounded-xl border border-primary/30 dark:border-primary-dark/30 bg-primary/5 dark:bg-primary-dark/5 flex-row justify-center items-center mr-1"
-              >
-                <Ionicons name="chevron-down" size={16} color={accentColor} style={{ marginRight: 6 }} />
-                <Text className="text-primary dark:text-primary-dark font-bold text-xs uppercase tracking-wider">Mais Troféus</Text>
+                className="flex-1 p-4 rounded-xl border border-primary/30 dark:border-primary-dark/30 bg-primary/5 dark:bg-primary-dark/5 flex-row justify-center items-center mr-1">
+                <Ionicons
+                  name="chevron-down"
+                  size={16}
+                  color={accentColor}
+                  style={{ marginRight: 6 }}
+                />
+                <Text className="text-primary dark:text-primary-dark font-bold text-xs uppercase tracking-wider">
+                  Mais Troféus
+                </Text>
               </TouchableOpacity>
             )}
             {badgeLimit > 9 && (
@@ -297,10 +392,16 @@ export default function ProfileScreen({ navigation }) {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                   setBadgeLimit(prev => Math.max(9, prev - 9));
                 }}
-                className="flex-1 p-4 rounded-xl border border-gray-400/30 bg-gray-400/5 flex-row justify-center items-center ml-1"
-              >
-                <Ionicons name="chevron-up" size={16} color={isDarkMode ? '#A1A1AA' : '#71717A'} style={{ marginRight: 6 }} />
-                <Text className="text-text-muted-light dark:text-text-muted-dark font-bold text-xs uppercase tracking-wider">Menos Troféus</Text>
+                className="flex-1 p-4 rounded-xl border border-gray-400/30 bg-gray-400/5 flex-row justify-center items-center ml-1">
+                <Ionicons
+                  name="chevron-up"
+                  size={16}
+                  color={isDarkMode ? '#A1A1AA' : '#71717A'}
+                  style={{ marginRight: 6 }}
+                />
+                <Text className="text-text-muted-light dark:text-text-muted-dark font-bold text-xs uppercase tracking-wider">
+                  Menos Troféus
+                </Text>
               </TouchableOpacity>
             )}
           </View>
@@ -308,7 +409,9 @@ export default function ProfileScreen({ navigation }) {
       )}
 
       <View>
-        <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-4 ml-2">Estatísticas</Text>
+        <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-4 ml-2">
+          Estatísticas
+        </Text>
         <InfoRow
           label="Livros Lidos"
           value={totalBooksCompleted}
@@ -321,14 +424,24 @@ export default function ProfileScreen({ navigation }) {
 
         {showCompleted && (
           <View className="mb-4 bg-background-light dark:bg-background-dark p-4 rounded-2xl border border-border-light dark:border-border-dark -mt-2">
-            {books.filter(b => b.status === BOOK_STATUS.READ).map((b, idx, arr) => (
-              <View key={b.id} className={`flex-row justify-between items-center py-2 ${idx !== arr.length - 1 ? 'border-b border-border-light dark:border-border-dark' : ''}`}>
-                <Text className="text-text-light dark:text-text-dark font-bold text-sm flex-1 mr-2">{b.title}</Text>
-                <Text className="text-text-muted-light dark:text-text-muted-dark text-xs">{b.totalPages} pág.</Text>
-              </View>
-            ))}
+            {books
+              .filter(b => b.status === BOOK_STATUS.READ)
+              .map((b, idx, arr) => (
+                <View
+                  key={b.id}
+                  className={`flex-row justify-between items-center py-2 ${idx !== arr.length - 1 ? 'border-b border-border-light dark:border-border-dark' : ''}`}>
+                  <Text className="text-text-light dark:text-text-dark font-bold text-sm flex-1 mr-2">
+                    {b.title}
+                  </Text>
+                  <Text className="text-text-muted-light dark:text-text-muted-dark text-xs">
+                    {b.totalPages} pág.
+                  </Text>
+                </View>
+              ))}
             {totalBooksCompleted === 0 && (
-              <Text className="text-text-muted-light dark:text-text-muted-dark text-sm text-center">Nenhum livro lido ainda.</Text>
+              <Text className="text-text-muted-light dark:text-text-muted-dark text-sm text-center">
+                Nenhum livro lido ainda.
+              </Text>
             )}
           </View>
         )}
@@ -345,9 +458,8 @@ export default function ProfileScreen({ navigation }) {
 
       <TouchableOpacity
         className="mt-8 mb-6 p-5 items-center bg-red-500/10 rounded-2xl border border-red-500/20"
-        onPress={handleSignOut}
-      >
-        <Text className="text-red-500 font-bold text-lg">Sair da Conta</Text>
+        onPress={handleSignOut}>
+        <Text className="text-red-500 font-bold text-lg">{TXT_SIGN_OUT}</Text>
       </TouchableOpacity>
     </ScrollView>
   );
