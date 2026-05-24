@@ -6,7 +6,6 @@ import {
   Text,
   FlatList,
   ActivityIndicator,
-  StyleSheet,
   TouchableOpacity,
 } from 'react-native';
 
@@ -88,6 +87,8 @@ const RankingRow = React.memo(({ user, index, isCurrentUser }) => {
   );
 });
 
+RankingRow.displayName = 'RankingRow';
+
 /**
  * GlobalRanking
  * Organism that displays the global leaderboard with infinite scroll.
@@ -100,7 +101,6 @@ export default function GlobalRanking() {
     fetchNextRankingPage,
     rankingLoading,
     loadingMoreRanking,
-    hasMoreRanking,
     user: currentUser,
     selectFilteredRanking,
   } = useMainStore();
@@ -109,7 +109,7 @@ export default function GlobalRanking() {
 
   useEffect(() => {
     fetchRanking();
-  }, []);
+  }, [fetchRanking]);
 
   const renderItem = useCallback(
     ({ item, index }) => (

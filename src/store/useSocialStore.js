@@ -9,13 +9,11 @@ import {
   subscribeToSentRequests,
   subscribeToReceivedRequests,
   subscribeToGroups,
-  getUserDetails,
   getUsersByIds,
   removeFriendship as apiRemoveFriendship,
   leaveGroup as apiLeaveGroup,
   getPaginatedRanking as apiGetPaginatedRanking,
   subscribeToRanking as apiSubscribeToRanking,
-  getPublicEchoes as apiGetPublicEchoes,
   addRatClap as apiAddRatClap,
 } from '@core/api/social';
 import { Logger } from '@core/services/Logger';

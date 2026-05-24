@@ -34,8 +34,6 @@ export default function GroupChatScreen({ route, navigation }) {
   const sendMessage = useMainStore(state => state.sendMessage);
   const chatError = useMainStore(state => state.chatError);
 
-  const accentColor = isDarkMode ? '#A7C9A7' : '#5B8C5A';
-
   useEffect(() => {
     const unsubMessages = subscribeToGroupMessages(groupId);
     return () => {
@@ -98,7 +96,8 @@ export default function GroupChatScreen({ route, navigation }) {
                 </Text>
                 <Text className="text-text-muted-light dark:text-text-muted-dark text-xs">
                   {chatError}. Para corrigir, atualize as Regras do Firestore no
-                  Firebase Console para permitir leitura na coleção 'groups'.
+                  Firebase Console para permitir leitura na coleção {"'groups'"}
+                  .
                 </Text>
               </View>
             )}

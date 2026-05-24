@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef } from 'react';
+import React, { useMemo, useState } from 'react';
 
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -24,7 +24,7 @@ import { useThemeStore } from '../../store/useThemeStore';
 import * as Haptics from '../../utils/haptics';
 import { StatusSelector } from '../components';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const HEADER_MAX_HEIGHT = 450;
 const HEADER_MIN_HEIGHT = Platform.OS === 'ios' ? 100 : 80;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
@@ -54,6 +54,8 @@ const InfoCard = React.memo(({ icon, label, value, color }) => (
   </View>
 ));
 
+InfoCard.displayName = 'InfoCard';
+
 export default function BookDetailsScreen() {
   const navigation = useNavigation();
   const route = useRoute();
@@ -79,7 +81,7 @@ export default function BookDetailsScreen() {
   const [selectedStatus, setSelectedStatus] = useState(
     BOOK_STATUS.WANT_TO_READ,
   );
-  const scrollY = useRef(new Animated.Value(0)).current;
+  const [scrollY] = useState(() => new Animated.Value(0));
 
   if (!book) return null;
 

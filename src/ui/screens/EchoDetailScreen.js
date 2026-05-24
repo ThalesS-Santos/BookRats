@@ -15,22 +15,21 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { COLORS } from '@constants/colors';
 import { getEchoReplies, replyToEcho } from '@core/api/social';
 import { Logger } from '@core/services/Logger';
 import { UserNormalizationService } from '@core/services/UserNormalizationService';
 import { useMainStore } from '@core/store';
-import { CommunityNote } from '@ui/components';
-import { FastAvatar } from '@ui/components';
+import { CommunityNote, FastAvatar } from '@ui/components';
 
 import { useSocialStore } from '../../store/useSocialStore';
 import { useThemeStore } from '../../store/useThemeStore';
-import { COLORS } from '@constants/colors';
 
 const TXT_DISCUSSION = 'Discussão';
 const TXT_NO_COMMENTS = 'Ninguém comentou ainda. Seja o primeiro a responder!';
 
 export default function EchoDetailScreen({ route, navigation }) {
-  const { echoId, bookId, echo } = route.params;
+  const { echoId, echo } = route.params;
   const insets = useSafeAreaInsets();
 
   const { user } = useMainStore();
@@ -45,15 +44,20 @@ export default function EchoDetailScreen({ route, navigation }) {
   const flatListRef = useRef(null);
 
   useEffect(() => {
-    fetchReplies();
-  }, [echoId]);
-
-  const fetchReplies = async () => {
-    setLoading(true);
-    const fetched = await getEchoReplies(echo.userId, echo.bookId, echoId);
-    setReplies(fetched);
-    setLoading(false);
-  };
+    let active = true;
+    const load = async () => {
+      setLoading(true);
+      const fetched = await getEchoReplies(echo.userId, echo.bookId, echoId);
+      if (active) {
+        setReplies(fetched);
+        setLoading(false);
+      }
+    };
+    load();
+    return () => {
+      active = false;
+    };
+  }, [echo.userId, echo.bookId, echoId]);
 
   const handleSendReply = async () => {
     if (!inputText.trim() || isSubmitting) return;
@@ -154,7 +158,9 @@ export default function EchoDetailScreen({ route, navigation }) {
         </Text>
       </View>
       <Text className="text-text-light dark:text-text-dark font-serif italic text-sm leading-5">
-        "{item.text}"
+        {'"'}
+        {item.text}
+        {'"'}
       </Text>
       <View className="flex-row items-center mt-3">
         <View className="bg-card-light dark:bg-card-dark px-3 py-1 rounded-full border border-border-light dark:border-border-dark flex-row items-center">

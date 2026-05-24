@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { TouchableOpacity, Text, ActivityIndicator, View } from 'react-native';
 
-import { COLORS } from '@constants/colors';
 import { useMainStore } from '@core/store';
 
 import * as Haptics from '../../../utils/haptics';

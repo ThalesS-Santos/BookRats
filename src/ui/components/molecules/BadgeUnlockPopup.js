@@ -1,26 +1,16 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 
 import { Ionicons } from '@expo/vector-icons';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Dimensions,
-  StyleSheet,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
-  withDelay,
-  withSequence,
   runOnJS,
 } from 'react-native-reanimated';
 
 import { COLORS } from '@constants/colors';
 import { useMainStore } from '@core/store';
-
-const { width } = Dimensions.get('window');
 
 const TXT_NEW_ACHIEVEMENT = 'Nova Conquista!';
 const TXT_CONGRATS_BADGE = 'Parabéns! Você desbloqueou uma nova medalha.';
@@ -38,24 +28,28 @@ export default function BadgeUnlockPopup() {
 
   const translateY = useSharedValue(-200);
   const opacity = useSharedValue(0);
+  const animRef = useRef({ translateY, opacity });
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
     opacity: opacity.value,
   }));
 
-  const hidePopup = () => {
-    translateY.value = withSpring(-200, { damping: 15 });
-    opacity.value = withSpring(0, {}, () => {
+  const hidePopup = useCallback(() => {
+    animRef.current.translateY.value = withSpring(-200, { damping: 15 });
+    animRef.current.opacity.value = withSpring(0, {}, () => {
       runOnJS(clearUnlockedBadges)();
     });
-  };
+  }, [clearUnlockedBadges]);
 
   useEffect(() => {
     if (currentBadge) {
       // Entry Animation
-      translateY.value = withSpring(60, { damping: 12, stiffness: 90 });
-      opacity.value = withSpring(1);
+      animRef.current.translateY.value = withSpring(60, {
+        damping: 12,
+        stiffness: 90,
+      });
+      animRef.current.opacity.value = withSpring(1);
 
       // Auto-hide after 4 seconds
       const timer = setTimeout(() => {
@@ -64,7 +58,7 @@ export default function BadgeUnlockPopup() {
 
       return () => clearTimeout(timer);
     }
-  }, [currentBadge]);
+  }, [currentBadge, hidePopup]);
 
   if (!currentBadge) return null;
 

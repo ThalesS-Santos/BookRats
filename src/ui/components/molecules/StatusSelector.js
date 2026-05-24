@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -28,11 +28,14 @@ const STATUS_LABELS = {
 const StatusSelector = ({ currentStatus, onStatusChange }) => {
   const { isDarkMode } = useThemeStore();
 
-  const handleSelect = status => {
-    if (status === currentStatus) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    onStatusChange(status);
-  };
+  const handleSelect = useCallback(
+    status => {
+      if (status === currentStatus) return;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      onStatusChange(status);
+    },
+    [currentStatus, onStatusChange],
+  );
 
   const statusChips = useMemo(() => {
     return Object.entries(STATUS_LABELS).map(([status, label]) => {
@@ -80,7 +83,7 @@ const StatusSelector = ({ currentStatus, onStatusChange }) => {
         </TouchableOpacity>
       );
     });
-  }, [currentStatus, isDarkMode]);
+  }, [currentStatus, isDarkMode, handleSelect]);
 
   return <View style={styles.container}>{statusChips}</View>;
 };

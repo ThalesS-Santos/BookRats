@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 
 import { Ionicons } from '@expo/vector-icons';
 import { useIsFocused } from '@react-navigation/native';
@@ -17,9 +17,9 @@ import {
 } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
+import { COLORS } from '@constants/colors';
 import { UserNormalizationService } from '@core/services/UserNormalizationService';
 import { useMainStore } from '@core/store';
-import { BookLoader } from '@ui/components';
 import { FastAvatar } from '@ui/components';
 import { Skeleton } from '@ui/components';
 
@@ -27,15 +27,14 @@ import { usePopupStore } from '../../store/usePopupStore';
 import { useSocialStore } from '../../store/useSocialStore';
 import { useThemeStore } from '../../store/useThemeStore';
 import { debounce } from '../../utils/debounce';
-import { COLORS } from '@constants/colors';
 
 const TXT_CREATE_GROUP = 'Criar Grupo';
 
 // 🎨 Memoized Animated Components for Staggered Entry
 const AnimatedGroupItem = React.memo(
   ({ item, index, navigation, accentColor, COLORS, isDarkMode, isFocused }) => {
-    const fadeAnim = useRef(new Animated.Value(0)).current;
-    const slideAnim = useRef(new Animated.Value(20)).current;
+    const [fadeAnim] = useState(() => new Animated.Value(0));
+    const [slideAnim] = useState(() => new Animated.Value(20));
 
     useEffect(() => {
       if (isFocused && !item.isSkeleton) {
@@ -58,7 +57,7 @@ const AnimatedGroupItem = React.memo(
           }),
         ]).start();
       }
-    }, [isFocused, item.isSkeleton]);
+    }, [isFocused, item.isSkeleton, fadeAnim, index, slideAnim]);
 
     if (item.isSkeleton) {
       return (
@@ -123,10 +122,12 @@ const AnimatedGroupItem = React.memo(
   },
 );
 
+AnimatedGroupItem.displayName = 'AnimatedGroupItem';
+
 const AnimatedFriendItem = React.memo(
   ({ item, index, navigation, COLORS, isDarkMode, isFocused }) => {
-    const fadeAnim = useRef(new Animated.Value(0)).current;
-    const slideAnim = useRef(new Animated.Value(20)).current;
+    const [fadeAnim] = useState(() => new Animated.Value(0));
+    const [slideAnim] = useState(() => new Animated.Value(20));
 
     useEffect(() => {
       if (isFocused && !item.isSkeleton) {
@@ -149,7 +150,7 @@ const AnimatedFriendItem = React.memo(
           }),
         ]).start();
       }
-    }, [isFocused, item.isSkeleton]);
+    }, [isFocused, item.isSkeleton, fadeAnim, index, slideAnim]);
 
     if (item.isSkeleton) {
       return (
@@ -213,6 +214,8 @@ const AnimatedFriendItem = React.memo(
   },
 );
 
+AnimatedFriendItem.displayName = 'AnimatedFriendItem';
+
 export default function GroupsScreen({ navigation }) {
   const isFocused = useIsFocused();
   const [isReady, setIsReady] = useState(false);
@@ -242,8 +245,6 @@ export default function GroupsScreen({ navigation }) {
     rejectFriendRequest,
     createGroup,
     subscribeToSocialData,
-    removeFriend,
-    leaveGroup,
   } = useSocialStore(
     useShallow(state => ({
       friends: state.friends,
@@ -259,15 +260,13 @@ export default function GroupsScreen({ navigation }) {
       rejectFriendRequest: state.rejectFriendRequest,
       createGroup: state.createGroup,
       subscribeToSocialData: state.subscribeToSocialData,
-      removeFriend: state.removeFriend,
-      leaveGroup: state.leaveGroup,
     })),
   );
 
   const accentColor = isDarkMode ? '#A7C9A7' : '#5B8C5A';
 
   // Screen level animations
-  const headerFade = useRef(new Animated.Value(0)).current;
+  const [headerFade] = useState(() => new Animated.Value(0));
 
   // Use dummy skeletons during initial load OR when not "ready"
   const groupsData =
@@ -302,7 +301,7 @@ export default function GroupsScreen({ navigation }) {
         useNativeDriver: true,
       }).start();
     }
-  }, [isFocused, loadingSocial]);
+  }, [isFocused, loadingSocial, headerFade, isReady]);
 
   useEffect(() => {
     let unsub = () => {};
@@ -310,14 +309,15 @@ export default function GroupsScreen({ navigation }) {
       unsub = subscribeToSocialData(user.uid);
     }
     return () => unsub();
-  }, [user?.uid]);
+  }, [user?.uid, subscribeToSocialData]);
 
   // Memoize a versão debounced da busca
-  const debouncedSearch = useCallback(
-    debounce((text, uid) => {
-      searchUsers(text, uid);
-      setIsDebouncing(false);
-    }, 500),
+  const debouncedSearch = useMemo(
+    () =>
+      debounce((text, uid) => {
+        searchUsers(text, uid);
+        setIsDebouncing(false);
+      }, 500),
     [searchUsers],
   );
 
@@ -375,7 +375,7 @@ export default function GroupsScreen({ navigation }) {
         isFocused={isFocused}
       />
     ),
-    [navigation, accentColor, COLORS, isDarkMode, isFocused],
+    [navigation, accentColor, isDarkMode, isFocused],
   );
 
   const renderFriendItem = useCallback(
@@ -389,7 +389,7 @@ export default function GroupsScreen({ navigation }) {
         isFocused={isFocused}
       />
     ),
-    [navigation, COLORS, isDarkMode, isFocused],
+    [navigation, isDarkMode, isFocused],
   );
 
   return (
