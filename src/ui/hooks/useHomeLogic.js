@@ -30,8 +30,8 @@ export const useHomeLogic = () => {
   const readingBooks = books.filter(b => b.status === BOOK_STATUS.READING);
 
   // Valores de Animação
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
+  const [fadeAnim] = useState(() => new Animated.Value(0));
+  const [slideAnim] = useState(() => new Animated.Value(20));
 
   // Gerenciamento de Interação (evita travamentos na navegação)
   useEffect(() => {

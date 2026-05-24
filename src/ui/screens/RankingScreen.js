@@ -45,8 +45,8 @@ const RankingItem = React.memo(
     const { isDarkMode } = useThemeStore();
 
     // Animation Logic
-    const fadeAnim = useRef(new Animated.Value(0)).current;
-    const slideAnim = useRef(new Animated.Value(20)).current;
+    const [fadeAnim] = useState(() => new Animated.Value(0));
+    const [slideAnim] = useState(() => new Animated.Value(20));
 
     useEffect(() => {
       if (isFocused) {
@@ -196,6 +196,7 @@ const RankingItem = React.memo(
     );
   },
 );
+RankingItem.displayName = 'RankingItem';
 
 export default function RankingScreen({ navigation }) {
   const { isDarkMode } = useThemeStore();
@@ -219,7 +220,7 @@ export default function RankingScreen({ navigation }) {
   );
 
   const [refreshing, setRefreshing] = useState(false);
-  const headerFade = useRef(new Animated.Value(0)).current;
+  const [headerFade] = useState(() => new Animated.Value(0));
 
   // Use dummy skeletons during initial load OR when not "ready"
   const listData =
@@ -230,6 +231,7 @@ export default function RankingScreen({ navigation }) {
       : rankingList;
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsReady(true);
     subscribeToRanking();
     return () => unsubscribeFromRanking();

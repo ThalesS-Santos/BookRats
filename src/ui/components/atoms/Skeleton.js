@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { Animated, Easing } from 'react-native';
 
@@ -14,7 +14,7 @@ export default function Skeleton({
   children,
   testID,
 }) {
-  const opacityAnim = useRef(new Animated.Value(0.3)).current;
+  const [opacityAnim] = useState(() => new Animated.Value(0.3));
 
   useEffect(() => {
     Animated.loop(

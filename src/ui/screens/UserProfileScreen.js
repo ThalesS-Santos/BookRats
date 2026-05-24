@@ -93,7 +93,9 @@ export default function UserProfileScreen({ route, navigation }) {
               allNotes.push(
                 ...annots.map(a => ({ ...a, bookTitle: book.title })),
               );
-            } catch (e) {}
+            } catch (e) {
+              /* ignore */
+            }
           }
           allNotes.sort(
             (a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0),
@@ -118,6 +120,7 @@ export default function UserProfileScreen({ route, navigation }) {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData();
   }, [userId]);
 
@@ -488,7 +491,7 @@ export default function UserProfileScreen({ route, navigation }) {
             </Text>
           </View>
           <Text className="text-text-light dark:text-text-dark font-serif italic text-sm leading-5">
-            "{note.text}"
+            &quot;{note.text}&quot;
           </Text>
           <View className="flex-row items-center mt-2">
             <Ionicons name="globe-outline" size={12} color="#6B7280" />

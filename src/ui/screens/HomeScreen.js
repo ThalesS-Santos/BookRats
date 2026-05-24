@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
+import { COLORS } from '@constants/colors';
 import { BOOK_STATUS } from '@core/constants/bookStatus';
 import { UserNormalizationService } from '@core/services/UserNormalizationService';
 import { useMainStore } from '@core/store';
@@ -27,7 +28,6 @@ import { useHomeLogic } from '@ui/hooks/useHomeLogic';
 
 import { useThemeStore } from '../../store/useThemeStore';
 import * as Haptics from '../../utils/haptics';
-import { COLORS } from '@constants/colors';
 
 const TXT_WELCOME = 'Bem-vindo, ';
 const TXT_DAILY_SUMMARY = 'Resumo Diário';
@@ -78,6 +78,7 @@ const BookListItem = React.memo(
     );
   },
 );
+BookListItem.displayName = 'BookListItem';
 
 export default function HomeScreen({ navigation }) {
   const { isDarkMode } = useThemeStore();
@@ -100,6 +101,7 @@ export default function HomeScreen({ navigation }) {
 
   useEffect(() => {
     if (route.params?.filter) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveFilter(route.params.filter);
     }
   }, [route.params?.filter]);
@@ -377,7 +379,7 @@ export default function HomeScreen({ navigation }) {
                       </Text>
                     </View>
                     <Text className="text-text-light dark:text-text-dark font-serif italic text-sm leading-5">
-                      "{note.text}"
+                      &quot;{note.text}&quot;
                     </Text>
                   </View>
                 ))}

@@ -73,6 +73,7 @@ export default function GroupDetailsScreen({ route, navigation }) {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadDetails();
   }, [groupId]);
 
@@ -141,11 +142,12 @@ export default function GroupDetailsScreen({ route, navigation }) {
     );
   }, [storeSearchResults, group?.members]);
 
-  const debouncedSearch = useCallback(
-    debounce(text => {
-      searchUsers(text, user.uid);
-      setIsDebouncing(false);
-    }, 500),
+  const debouncedSearch = useMemo(
+    () =>
+      debounce(text => {
+        searchUsers(text, user.uid);
+        setIsDebouncing(false);
+      }, 500),
     [searchUsers, user.uid],
   );
 

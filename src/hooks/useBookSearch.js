@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 
 import { debounce } from '@utils/debounce';
 
@@ -85,9 +85,10 @@ export const useBookSearch = () => {
     }
   }, []);
 
-  const debouncedSearch = useRef(
-    debounce((q, f) => performSearch(q, f), 800),
-  ).current;
+  const debouncedSearch = useMemo(
+    () => debounce((q, f) => performSearch(q, f), 800),
+    [performSearch],
+  );
 
   useEffect(() => {
     if (
@@ -97,8 +98,11 @@ export const useBookSearch = () => {
     ) {
       debouncedSearch(query, filters);
     } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setResults([]);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTotalItems(0);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoading(false);
       debouncedSearch.cancel();
     }

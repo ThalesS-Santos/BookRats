@@ -37,7 +37,7 @@ const GalleryScreen = ({ route }) => {
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const scrollY = useRef(new Animated.Value(0)).current;
+  const [scrollY] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     const fetchEchoes = async () => {

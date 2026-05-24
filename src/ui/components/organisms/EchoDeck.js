@@ -21,15 +21,16 @@ const EchoDeck = ({ echoes, onClap, COLORS, isDarkMode, bookCover = null }) => {
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const currentIndexRef = useRef(0);
-  const position = useRef(new Animated.ValueXY()).current;
+  const [position] = useState(() => new Animated.ValueXY());
   const navigation = useNavigation();
 
   // Reset index when echoes change
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentIndex(0);
     currentIndexRef.current = 0;
     position.setValue({ x: 0, y: 0 });
-  }, [echoes]);
+  }, [echoes, position]);
 
   const handleTap = () => {
     const currentEcho = echoes[currentIndexRef.current];
@@ -42,7 +43,37 @@ const EchoDeck = ({ echoes, onClap, COLORS, isDarkMode, bookCover = null }) => {
     }
   };
 
-  const panResponder = useRef(
+  const onSwipeComplete = () => {
+    position.setValue({ x: 0, y: 0 });
+    setCurrentIndex(prev => {
+      const nextIndex = prev + 1;
+      currentIndexRef.current = nextIndex;
+      return nextIndex;
+    });
+  };
+
+  const forceSwipe = direction => {
+    const x = direction === 'right' ? width * 1.5 : -width * 1.5;
+    Animated.timing(position, {
+      toValue: { x, y: 0 },
+      duration: SWIPE_OUT_DURATION,
+      useNativeDriver: false,
+    }).start(() => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      onSwipeComplete();
+    });
+  };
+
+  const resetPosition = () => {
+    Animated.spring(position, {
+      toValue: { x: 0, y: 0 },
+      friction: 5,
+      useNativeDriver: false,
+    }).start();
+  };
+
+  // eslint-disable-next-line react-hooks/refs, react-hooks/immutability
+  const [panResponder] = useState(() =>
     PanResponder.create({
       onMoveShouldSetPanResponder: (evt, gestureState) => {
         return (
@@ -68,36 +99,7 @@ const EchoDeck = ({ echoes, onClap, COLORS, isDarkMode, bookCover = null }) => {
         }
       },
     }),
-  ).current;
-
-  const forceSwipe = direction => {
-    const x = direction === 'right' ? width * 1.5 : -width * 1.5;
-    Animated.timing(position, {
-      toValue: { x, y: 0 },
-      duration: SWIPE_OUT_DURATION,
-      useNativeDriver: false,
-    }).start(() => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      onSwipeComplete();
-    });
-  };
-
-  const onSwipeComplete = () => {
-    position.setValue({ x: 0, y: 0 });
-    setCurrentIndex(prev => {
-      const nextIndex = prev + 1;
-      currentIndexRef.current = nextIndex;
-      return nextIndex;
-    });
-  };
-
-  const resetPosition = () => {
-    Animated.spring(position, {
-      toValue: { x: 0, y: 0 },
-      friction: 5,
-      useNativeDriver: false,
-    }).start();
-  };
+  );
 
   const renderCards = () => {
     if (currentIndex >= echoes.length) {

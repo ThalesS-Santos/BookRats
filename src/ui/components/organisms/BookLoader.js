@@ -25,7 +25,7 @@ const BookLoader = ({ isVisible = true, bookCover = null }) => {
   const { isDarkMode } = useThemeStore();
   const [curiosity, setCuriosity] = useState('');
   const [shouldRender, setShouldRender] = useState(isVisible);
-  const fadeAnim = useRef(new Animated.Value(isVisible ? 1 : 0)).current;
+  const [fadeAnim] = useState(() => new Animated.Value(isVisible ? 1 : 0));
 
   // Theme-based colors
   const BG_COLOR = isDarkMode
@@ -36,7 +36,9 @@ const BookLoader = ({ isVisible = true, bookCover = null }) => {
 
   useEffect(() => {
     if (isVisible) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCuriosity(CURIOSITIES[Math.floor(Math.random() * CURIOSITIES.length)]);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShouldRender(true);
       Animated.timing(fadeAnim, {
         toValue: 1,
