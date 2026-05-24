@@ -6,7 +6,6 @@ import {
   where,
   getDocs,
   writeBatch,
-  doc,
 } from 'firebase/firestore';
 
 import { db } from '../firebase/firebase';

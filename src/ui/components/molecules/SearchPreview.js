@@ -1,18 +1,10 @@
 import React from 'react';
 
 import { Ionicons } from '@expo/vector-icons';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Image,
-  FlatList,
-  Dimensions,
-} from 'react-native';
+import { View, Text, TouchableOpacity, Image, FlatList } from 'react-native';
 
 import Skeleton from '../atoms/Skeleton';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = 130;
 const CARD_HEIGHT = 190;
 
@@ -96,7 +88,7 @@ const SearchPreview = ({ results, onSelect, loading, query }) => {
       <View className="p-8 items-center bg-card-light dark:bg-card-dark rounded-2xl border border-dashed border-border-light dark:border-border-dark mt-2">
         <Ionicons name="book-outline" size={40} color="#94A3B8" />
         <Text className="text-text-muted-light dark:text-text-muted-dark mt-3 font-serif italic text-center">
-          Nenhum título encontrado para "{query}"
+          {`Nenhum título encontrado para "${query}"`}
         </Text>
       </View>
     );
@@ -108,11 +100,11 @@ const SearchPreview = ({ results, onSelect, loading, query }) => {
     <View className="mt-4">
       <View className="flex-row justify-between items-center mb-4 px-1">
         <Text className="text-text-muted-light dark:text-text-muted-dark font-bold text-xs uppercase tracking-widest">
-          Sugestões da Nuvem
+          {'Sugestões da Nuvem'}
         </Text>
         <View className="bg-primary/10 dark:bg-primary/20 px-2 py-1 rounded-md">
           <Text className="text-primary dark:text-primary-light text-[9px] font-bold">
-            {results.length} ENCONTRADOS
+            {`${results.length} ENCONTRADOS`}
           </Text>
         </View>
       </View>

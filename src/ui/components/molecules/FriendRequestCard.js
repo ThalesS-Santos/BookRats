@@ -3,8 +3,8 @@ import React, { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 
-import { UserNormalizationService } from '@core/services/UserNormalizationService';
 import { Logger } from '@core/services/Logger';
+import { UserNormalizationService } from '@core/services/UserNormalizationService';
 import { useMainStore } from '@core/store';
 
 import * as Haptics from '../../../utils/haptics';

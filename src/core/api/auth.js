@@ -6,13 +6,7 @@ import {
   signInWithCredential,
   GoogleAuthProvider,
 } from 'firebase/auth';
-import {
-  doc,
-  setDoc,
-  getDoc,
-  updateDoc,
-  serverTimestamp,
-} from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 
 import { auth, db } from '@core/firebase/firebase';
 

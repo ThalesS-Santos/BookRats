@@ -1,19 +1,12 @@
 import React, { memo } from 'react';
 
 import { Ionicons } from '@expo/vector-icons';
-import { View, Text, TouchableOpacity, Image, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, Image } from 'react-native';
 
 import { COLORS } from '@constants/colors';
 
-import StatusSelector from './StatusSelector';
-import { BOOK_STATUS } from '../../../core/constants/bookStatus';
-import { useMainStore } from '../../../core/store';
 import { useThemeStore } from '../../../store/useThemeStore';
 import * as Haptics from '../../../utils/haptics';
-import { Skeleton } from '../atoms/Skeleton';
-
-const { width } = Dimensions.get('window');
-const COLUMN_WIDTH = (width - 48 - 16) / 2; // (Total width - screen padding - gap) / 2
 
 /**
  * ProgressBookCard Molecule
@@ -32,8 +25,6 @@ const ProgressBookCard = memo(
       (book.currentPage / (book.totalPages || 1)) * 100,
       100,
     );
-
-    const updateBookStatus = useMainStore(state => state.updateBookStatus);
 
     const handlePress = () => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -130,5 +121,7 @@ const ProgressBookCard = memo(
     );
   },
 );
+
+ProgressBookCard.displayName = 'ProgressBookCard';
 
 export default ProgressBookCard;

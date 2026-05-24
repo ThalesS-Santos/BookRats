@@ -1,11 +1,11 @@
 import { mapFirebaseError } from '@utils/errorMapper';
+import { sanitizeEchoText, sanitizeName } from '@utils/sanitize';
 import {
   validateFriendRequest,
   validateFriendRequestReceiver,
   validateEchoText,
   validateUserId,
 } from '@utils/validators';
-import { sanitizeEchoText, sanitizeName } from '@utils/sanitize';
 import {
   collection,
   query,
@@ -443,7 +443,7 @@ export const removeGroupMember = async (groupId, userId) => {
 export const getPublicEchoes = async (
   bookId = null,
   userCurrentPage = 999999,
-  currentUserId,
+  _currentUserId,
 ) => {
   try {
     const echoesRef = collectionGroup(db, 'annotations');

@@ -1,27 +1,23 @@
-import { useMainStore } from '@core/store';
-
 import './global.css';
 import React, { useEffect } from 'react';
 
-import { Ionicons } from '@expo/vector-icons';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import {
   NavigationContainer,
   DefaultTheme,
   DarkTheme,
   useNavigationContainerRef,
 } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as NavigationBar from 'expo-navigation-bar';
 import { StatusBar } from 'expo-status-bar';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useColorScheme } from 'nativewind';
-import { View, Platform, AppState } from 'react-native';
+import { Platform, AppState } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { COLORS } from '@constants/colors';
 import { auth } from '@core/firebase/firebase';
 import BadgeListenerService from '@core/services/BadgeListenerService';
+import { useMainStore } from '@core/store';
 import {
   CustomPopup,
   LoadingScreen,
@@ -64,7 +60,7 @@ export default function App() {
 
   useEffect(() => {
     setColorScheme(isDarkMode ? 'dark' : 'light');
-  }, [isDarkMode]);
+  }, [isDarkMode, setColorScheme]);
 
   useEffect(() => {
     BadgeListenerService.initialize();
@@ -79,7 +75,7 @@ export default function App() {
       setAuthUser(user);
     });
     return unsubscribe;
-  }, []);
+  }, [setAuthUser]);
 
   // Removed misplaced import and comments
 

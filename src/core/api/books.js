@@ -1,4 +1,5 @@
 import { mapFirebaseError } from '@utils/errorMapper';
+import { sanitizeEchoText } from '@utils/sanitize';
 import { updateStreak, getLocalDateString } from '@utils/streak';
 import {
   validateStatus,
@@ -6,7 +7,6 @@ import {
   validateDocumentId,
   validateUpdateFields,
 } from '@utils/validators';
-import { sanitizeEchoText } from '@utils/sanitize';
 import {
   doc,
   updateDoc,
@@ -24,9 +24,9 @@ import {
 } from 'firebase/firestore';
 
 import { db } from '@core/firebase/firebase';
+import { Logger } from '@core/services/Logger';
 
 import { BOOK_STATUS } from '../constants/bookStatus';
-import { Logger } from '@core/services/Logger';
 
 export const deleteBook = async (uid, bookId) => {
   try {

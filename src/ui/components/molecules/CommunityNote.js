@@ -113,7 +113,9 @@ const CommunityNote = ({
       <Text
         className="text-text-light dark:text-text-dark font-serif italic text-xs leading-4"
         numberOfLines={2}>
-        "{text}"
+        {'"'}
+        {text}
+        {'"'}
       </Text>
 
       <View className="flex-row justify-end">

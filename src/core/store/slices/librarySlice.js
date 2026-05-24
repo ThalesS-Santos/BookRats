@@ -4,7 +4,6 @@ import {
   collection,
   onSnapshot,
   updateDoc,
-  increment,
   serverTimestamp,
 } from 'firebase/firestore';
 
@@ -12,7 +11,6 @@ import {
   addBook as apiAddBook,
   updateBookProgress,
   markAsDNF as apiMarkAsDNF,
-  updateBookStatus as apiUpdateBookStatus,
 } from '@core/api/books';
 import { db } from '@core/firebase/firebase';
 
