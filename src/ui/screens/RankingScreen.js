@@ -1,12 +1,5 @@
-import React, {
-  useMemo,
-  useEffect,
-  useCallback,
-  useState,
-  useRef,
-} from 'react';
+import React, { useMemo, useEffect, useCallback, useState } from 'react';
 
-import { Ionicons } from '@expo/vector-icons';
 import { useIsFocused } from '@react-navigation/native';
 import {
   View,
@@ -17,7 +10,6 @@ import {
   TouchableOpacity,
   Animated,
   Easing,
-  InteractionManager,
 } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -71,7 +63,7 @@ const RankingItem = React.memo(
           }),
         ]).start();
       }
-    }, [isFocused]);
+    }, [isFocused, fadeAnim, slideAnim, index]);
 
     if (item.isSkeleton) {
       return (
@@ -235,7 +227,7 @@ export default function RankingScreen({ navigation }) {
     setIsReady(true);
     subscribeToRanking();
     return () => unsubscribeFromRanking();
-  }, []);
+  }, [subscribeToRanking, unsubscribeFromRanking]);
 
   useEffect(() => {
     if (isFocused && !loadingRanking && isReady) {
@@ -247,7 +239,7 @@ export default function RankingScreen({ navigation }) {
         useNativeDriver: true,
       }).start();
     }
-  }, [isFocused, loadingRanking]);
+  }, [isFocused, loadingRanking, isReady, headerFade]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -284,9 +276,9 @@ export default function RankingScreen({ navigation }) {
     }
 
     return mapped;
-  }, [listData, user, myTotalPages, loadingRanking]);
+  }, [listData, user, myTotalPages, loadingRanking, rankingList.length]);
 
-  const renderMedal = index => {
+  const renderMedal = useCallback(index => {
     if (index === 0) return <Text className="text-2xl">🥇</Text>;
     if (index === 1) return <Text className="text-2xl">🥈</Text>;
     if (index === 2) return <Text className="text-2xl">🥉</Text>;
@@ -295,7 +287,7 @@ export default function RankingScreen({ navigation }) {
         {index + 1}º
       </Text>
     );
-  };
+  }, []);
 
   const renderItem = useCallback(
     ({ item, index }) => (

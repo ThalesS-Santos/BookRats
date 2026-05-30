@@ -42,8 +42,16 @@ jest.mock('../../src/store/usePopupStore', () => ({
 }));
 
 // Mock the social store for the group notification try/catch
+jest.mock('../../src/store/useSocialStore', () => ({
+  useSocialStore: {
+    getState: jest.fn().mockReturnValue({
+      groups: [{ id: 'group1' }],
+    }),
+  },
+}));
+
 jest.mock(
-  '../../src/store/useSocialStore',
+  '../../../store/useSocialStore',
   () => ({
     useSocialStore: {
       getState: jest.fn().mockReturnValue({

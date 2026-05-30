@@ -5,16 +5,21 @@ import {
   onSnapshot,
   updateDoc,
   serverTimestamp,
+  increment,
 } from 'firebase/firestore';
 
 import {
   addBook as apiAddBook,
   updateBookProgress,
   markAsDNF as apiMarkAsDNF,
+  updateBook as apiUpdateBook,
+  addReadingLog,
+  deleteBook,
 } from '@core/api/books';
 import { db } from '@core/firebase/firebase';
 
 import { usePopupStore } from '../../../store/usePopupStore';
+import { useSocialStore } from '../../../store/useSocialStore';
 import { BOOK_STATUS, VALID_STATUSES } from '../../constants/bookStatus';
 import { Logger } from '../../services/Logger';
 
@@ -38,52 +43,82 @@ export const createLibrarySlice = (set, get) => ({
   fetchUserData: uid => {
     // Listen for user stats
     const userDocRef = doc(db, 'users', uid);
-    const unsubUser = onSnapshot(userDocRef, docSnap => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        set({
-          streak: data.current_streak || 0,
-          totalPagesRead: data.total_pages_read || 0,
-          lastReadDate: data.last_reading_date || null,
-          maxReadingSession: data.max_reading_session || 0,
-          lastReadingSession: data.last_reading_session || 0,
-          totalBooksCompleted: data.total_books_completed || 0,
-        });
+    const unsubUser = onSnapshot(
+      userDocRef,
+      docSnap => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          set({
+            streak: data.current_streak || 0,
+            totalPagesRead: data.total_pages_read || 0,
+            lastReadDate: data.last_reading_date || null,
+            maxReadingSession: data.max_reading_session || 0,
+            lastReadingSession: data.last_reading_session || 0,
+            totalBooksCompleted: data.total_books_completed || 0,
+          });
 
-        if (get().repairLocked) return;
+          if (get().repairLocked) return;
 
-        const summary = data.socialSummary || {};
-        const dbTotal = Number(data.total_pages_read || 0);
-        const dbStreak = Number(data.current_streak || 0);
-        const sumTotal = Number(summary.totalPagesRead || 0);
-        const sumStreak = Number(summary.currentStreak || 0);
+          const summary = data.socialSummary || {};
+          const dbTotal = Number(data.total_pages_read || 0);
+          const dbStreak = Number(data.current_streak || 0);
+          const sumTotal = Number(summary.totalPagesRead || 0);
+          const sumStreak = Number(summary.currentStreak || 0);
 
-        const isMissingSummary = !data.socialSummary;
-        const needsRepair =
-          isMissingSummary || sumTotal !== dbTotal || sumStreak !== dbStreak;
+          const isMissingSummary = !data.socialSummary;
+          const needsRepair =
+            isMissingSummary || sumTotal !== dbTotal || sumStreak !== dbStreak;
 
-        if (needsRepair) {
-          set({ repairLocked: true });
+          if (needsRepair) {
+            set({ repairLocked: true });
 
-          updateDoc(userDocRef, {
-            total_pages_read: data.total_pages_read ?? 0,
-            current_streak: data.current_streak ?? 0,
-            socialSummary: {
-              totalPagesRead: dbTotal,
-              currentStreak: dbStreak,
-              lastBookTitle: summary.lastBookTitle || 'Recém chegado',
-              lastActive: data.last_reading_date || getLocalDateString(),
-              profilePic: data.profilePic || null,
-            },
-          })
-            .then(() => {})
-            .catch(err => {
-              console.error('🩺 Repair error:', err);
-              set({ repairLocked: false });
-            });
+            updateDoc(userDocRef, {
+              total_pages_read: data.total_pages_read ?? 0,
+              current_streak: data.current_streak ?? 0,
+              socialSummary: {
+                totalPagesRead: dbTotal,
+                currentStreak: dbStreak,
+                lastBookTitle: summary.lastBookTitle || 'Recém chegado',
+                lastActive: data.last_reading_date || getLocalDateString(),
+                profilePic: data.profilePic || null,
+              },
+            })
+              .then(() => {})
+              .catch(err => {
+                console.error('🩺 Repair error:', err);
+                if (__DEV__) {
+                  console.info(
+                    `🩺 [Diagnostic] Repair failed for UID [${uid}]: [${err.code || 'unknown'}] - ${err.message}. ` +
+                      `Attempted synchronization values:`,
+                    {
+                      total_pages_read: data.total_pages_read ?? 0,
+                      current_streak: data.current_streak ?? 0,
+                      socialSummary: {
+                        totalPagesRead: dbTotal,
+                        currentStreak: dbStreak,
+                      },
+                    },
+                  );
+                }
+                set({ repairLocked: false });
+              });
+          }
         }
-      }
-    });
+      },
+      error => {
+        console.error('Error fetching user stats:', error);
+        if (__DEV__) {
+          let extraHint = '';
+          if (error.code === 'permission-denied') {
+            extraHint =
+              '\n💡 Hint: "permission-denied" on mobile can happen if Firebase App Check is enforcing, if the user token is expired, or due to a known React Native AsyncStorage startup delay where Firestore connects before Auth is ready.';
+          }
+          console.info(
+            `👤 [Diagnostic] Failed fetching user stats for UID [${uid}]: [${error.code || 'unknown'}] - ${error.message}${extraHint}`,
+          );
+        }
+      },
+    );
 
     // Listen for books sub-collection
     const booksColRef = collection(db, 'users', uid, 'books');
@@ -98,6 +133,16 @@ export const createLibrarySlice = (set, get) => ({
       },
       error => {
         console.error('Error fetching books:', error);
+        if (__DEV__) {
+          let extraHint = '';
+          if (error.code === 'permission-denied') {
+            extraHint =
+              '\n💡 Hint: Check Firebase Rules for /users/{userId}/books, ensure Auth state is synced, or check Firebase App Check settings on Android.';
+          }
+          console.info(
+            `📚 [Diagnostic] Failed fetching books for UID [${uid}]: [${error.code || 'unknown'}] - ${error.message}${extraHint}`,
+          );
+        }
         set({ loadingBooks: false });
       },
     );
@@ -177,7 +222,6 @@ export const createLibrarySlice = (set, get) => ({
 
       // Automated Group Notification
       try {
-        const { useSocialStore } = require('../../../store/useSocialStore');
         const groups = useSocialStore.getState().groups || [];
         const userName = user.displayName || user.email.split('@')[0];
 
@@ -269,7 +313,6 @@ export const createLibrarySlice = (set, get) => ({
 
     // 2. Background Sync
     try {
-      const { updateBook: apiUpdateBook } = require('@core/api/books');
       await apiUpdateBook(user.uid, bookId, {
         ...finalUpdates,
         updatedAt: serverTimestamp(),
@@ -277,8 +320,6 @@ export const createLibrarySlice = (set, get) => ({
 
       // 📈 Update User Stats if pages changed (handled in background)
       if (pageDelta !== 0 || finalUpdates.status !== undefined) {
-        const { db } = require('@core/firebase/firebase');
-        const { doc, updateDoc, increment } = require('firebase/firestore');
         const userRef = doc(db, 'users', user.uid);
 
         const wasRead = book.status === BOOK_STATUS.READ;
@@ -295,7 +336,6 @@ export const createLibrarySlice = (set, get) => ({
 
         // 🌟 Add Global Reading Log if progress increased
         if (pageDelta > 0) {
-          const { addReadingLog } = require('@core/api/books');
           await addReadingLog(user.uid, bookId, pageDelta);
         }
       }
@@ -328,7 +368,6 @@ export const createLibrarySlice = (set, get) => ({
     set({ books: books.filter(b => b.id !== bookId) });
 
     try {
-      const { deleteBook } = require('@core/api/books');
       await deleteBook(user.uid, bookId);
     } catch (error) {
       set({ books: previousBooks });

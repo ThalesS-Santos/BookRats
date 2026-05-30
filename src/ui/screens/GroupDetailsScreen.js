@@ -23,6 +23,7 @@ import {
   addGroupMember,
   leaveGroup,
 } from '@core/api/social';
+import { UserNormalizationService } from '@core/services/UserNormalizationService';
 import { useMainStore } from '@core/store';
 import { BookLoader } from '@ui/components';
 
@@ -212,7 +213,7 @@ export default function GroupDetailsScreen({ route, navigation }) {
           </View>
           <View className="flex-1">
             <Text className="text-text-light dark:text-text-dark font-bold">
-              {item.username || item.email.split('@')[0]}
+              {UserNormalizationService.normalizeDisplayName(item)}
             </Text>
             {isFirst && (
               <Text className="text-xs text-primary dark:text-primary-dark">
@@ -227,7 +228,7 @@ export default function GroupDetailsScreen({ route, navigation }) {
               onPress={() =>
                 handleRemoveMember(
                   item.id,
-                  item.username || item.email.split('@')[0],
+                  UserNormalizationService.normalizeDisplayName(item),
                 )
               }
               className="mr-2 p-1 bg-red-500/10 rounded-lg border border-red-500/20">
@@ -415,7 +416,7 @@ export default function GroupDetailsScreen({ route, navigation }) {
                       }}
                       className="flex-row items-center justify-between p-3 border-b border-border-light dark:border-border-dark">
                       <Text className="text-text-light dark:text-text-dark">
-                        {u.username || u.email.split('@')[0]}
+                        {UserNormalizationService.normalizeDisplayName(u)}
                       </Text>
                       <Ionicons
                         name="add-circle-outline"

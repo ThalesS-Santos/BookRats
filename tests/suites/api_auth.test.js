@@ -100,7 +100,7 @@ describe('Auth API Methods', () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
       await expect(signIn('test@email.com', 'pass123')).rejects.toThrow(
-        'E-mail ou senha incorretos.',
+        'E-mail não cadastrado ou senha incorreta. Se não tem uma conta, cadastre-se!',
       );
 
       consoleSpy.mockRestore();

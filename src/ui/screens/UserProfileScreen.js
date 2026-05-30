@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useMemo } from 'react';
 
 import { Ionicons } from '@expo/vector-icons';
@@ -49,7 +49,7 @@ export default function UserProfileScreen({ route, navigation }) {
   const [notes, setNotes] = useState([]);
   const [logs, setLogs] = useState([]);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const userData = await getUserDetails(userId);
       setFriend(userData);
@@ -117,12 +117,12 @@ export default function UserProfileScreen({ route, navigation }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, user, books, showPopup]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData();
-  }, [userId]);
+  }, [userId, loadData]);
 
   const totalPagesRead = useMemo(() => {
     if (userId === user?.uid) return myTotalPages;

@@ -100,7 +100,10 @@ export const updatePresence = async (uid, isOnline) => {
       { merge: true },
     );
   } catch (error) {
-    console.error('Presence update error:', error);
+    console.error(
+      `Presence update error for UID [${uid}] (isOnline: ${isOnline}): ` +
+        `[${error.code || 'unknown'}] - ${error.message}`,
+    );
   }
 };
 
@@ -115,6 +118,9 @@ export const updateReadingStatus = async (uid, bookTitle) => {
       { merge: true },
     );
   } catch (error) {
-    console.error('Reading status update error:', error);
+    console.error(
+      `Reading status update error for UID [${uid}] (bookTitle: "${bookTitle}"): ` +
+        `[${error.code || 'unknown'}] - ${error.message}`,
+    );
   }
 };

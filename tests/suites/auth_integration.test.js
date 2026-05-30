@@ -93,7 +93,11 @@ describe('Auth Integration Flow', () => {
 
     // Using waitFor to ensure UI update is complete
     await waitFor(() => {
-      expect(getByText('E-mail ou senha incorretos.')).toBeTruthy();
+      expect(
+        getByText(
+          'E-mail não cadastrado ou senha incorreta. Se não tem uma conta, cadastre-se!',
+        ),
+      ).toBeTruthy();
     });
   });
 

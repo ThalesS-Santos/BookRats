@@ -3,8 +3,14 @@ import { mapFirebaseError } from '@utils/errorMapper';
 describe('Error Mapper Utility', () => {
   const authCases = [
     ['auth/network-request-failed', 'Erro de conexão. Verifique sua internet.'],
-    ['auth/user-not-found', 'E-mail ou senha incorretos.'],
-    ['auth/wrong-password', 'E-mail ou senha incorretos.'],
+    [
+      'auth/user-not-found',
+      'E-mail não cadastrado ou senha incorreta. Se não tem uma conta, cadastre-se!',
+    ],
+    [
+      'auth/wrong-password',
+      'E-mail não cadastrado ou senha incorreta. Se não tem uma conta, cadastre-se!',
+    ],
     ['auth/email-already-in-use', 'Este e-mail já está em uso.'],
     ['auth/invalid-email', 'E-mail inválido.'],
     ['auth/weak-password', 'A senha é muito fraca.'],

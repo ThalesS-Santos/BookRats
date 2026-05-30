@@ -43,3 +43,8 @@ yarn-error.*
 /ios
 /android
 /coverage
+
+
+firestore.rules
+firestore.indexes.json
+

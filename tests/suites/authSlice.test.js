@@ -201,8 +201,9 @@ describe('Auth Slice', () => {
       await state.updatePresence(true);
 
       expect(errorSpy).toHaveBeenCalledWith(
-        'Error updating presence:',
-        expect.any(Error),
+        expect.stringContaining(
+          'Presence update error for UID [state_uid] (isOnline: true): Presence error',
+        ),
       );
       errorSpy.mockRestore();
     });

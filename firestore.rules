@@ -21,19 +21,66 @@ service cloud.firestore {
       return next is int && prev is int && ((next == prev) || (next == prev + 1) || (next == prev - 1));
     }
 
+    function getPages(data) {
+      return !('total_pages_read' in data) ? 0 : 
+        (data.total_pages_read is int ? data.total_pages_read : 0);
+    }
+
+    function getStreak(data) {
+      return !('current_streak' in data) ? 0 : 
+        (data.current_streak is int ? data.current_streak : 0);
+    }
+
+    function getCompleted(data) {
+      return !('total_books_completed' in data) ? 0 : 
+        (data.total_books_completed is int ? data.total_books_completed : 0);
+    }
+
+    function getClaps(data) {
+      return !('total_claps_received' in data) ? 0 : 
+        (data.total_claps_received is int ? data.total_claps_received : 0);
+    }
+
+    function getSocialPages(data) {
+      return ('socialSummary' in data && data.socialSummary != null && 'totalPagesRead' in data.socialSummary) ? 
+        (data.socialSummary.totalPagesRead is int ? data.socialSummary.totalPagesRead : 0) : 0;
+    }
+
+    function getSocialStreak(data) {
+      return ('socialSummary' in data && data.socialSummary != null && 'currentStreak' in data.socialSummary) ? 
+        (data.socialSummary.currentStreak is int ? data.socialSummary.currentStreak : 0) : 0;
+    }
+
+    function isRankingUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny([
+        'total_pages_read',
+        'current_streak',
+        'total_books_completed',
+        'total_claps_received',
+        'socialSummary'
+      ]);
+    }
+
     function isSafeRankingUpdate() {
-      return safeIntDelta(request.resource.data.total_pages_read, resource.data.total_pages_read, 2000) &&
-        safeStreakDelta(request.resource.data.current_streak, resource.data.current_streak) &&
-        safeCompletedDelta(request.resource.data.total_books_completed, resource.data.total_books_completed) &&
-        request.resource.data.total_claps_received == resource.data.total_claps_received &&
-        safeIntDelta(request.resource.data.socialSummary.totalPagesRead, resource.data.socialSummary.totalPagesRead, 2000) &&
-        safeStreakDelta(request.resource.data.socialSummary.currentStreak, resource.data.socialSummary.currentStreak);
+      return (
+        safeIntDelta(getPages(request.resource.data), getPages(resource.data), 2000) &&
+        safeStreakDelta(getStreak(request.resource.data), getStreak(resource.data)) &&
+        safeCompletedDelta(getCompleted(request.resource.data), getCompleted(resource.data)) &&
+        getClaps(request.resource.data) == getClaps(resource.data) &&
+        safeIntDelta(getSocialPages(request.resource.data), getSocialPages(resource.data), 2000) &&
+        safeStreakDelta(getSocialStreak(request.resource.data), getSocialStreak(resource.data))
+      ) || (
+        getPages(request.resource.data) == getPages(resource.data) &&
+        getStreak(request.resource.data) == getStreak(resource.data) &&
+        getSocialPages(request.resource.data) == getPages(request.resource.data) &&
+        getSocialStreak(request.resource.data) == getStreak(request.resource.data)
+      );
     }
 
     match /users/{userId} {
       allow read: if signedIn();
       allow create: if isOwner(userId);
-      allow update: if isOwner(userId) && isSafeRankingUpdate();
+      allow update: if isOwner(userId) && (!isRankingUpdate() || isSafeRankingUpdate());
       allow delete: if false;
 
       match /notifications/{notificationId} {
@@ -91,7 +138,18 @@ service cloud.firestore {
     match /groups/{groupId} {
       allow read: if signedIn();
       allow create: if signedIn() && request.auth.uid == request.resource.data.adminId;
-      allow update: if signedIn() && (request.auth.uid == resource.data.adminId || request.auth.uid in resource.data.members);
+      allow update: if signedIn() && (
+        // Cenário A: O remetente é o administrador (pode alterar qualquer campo do grupo)
+        request.auth.uid == resource.data.adminId ||
+        // Cenário B: O remetente é um membro comum (APENAS pode se adicionar ou remover da lista de members)
+        (
+          request.auth.uid in resource.data.members &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members']) &&
+          request.resource.data.adminId == resource.data.adminId &&
+          request.resource.data.name == resource.data.name &&
+          request.resource.data.description == resource.data.description
+        )
+      );
       allow delete: if signedIn() && request.auth.uid == resource.data.adminId;
 
       match /messages/{messageId} {

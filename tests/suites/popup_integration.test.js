@@ -85,10 +85,13 @@ describe('Popup Integration Flow', () => {
     fireEvent.changeText(getByPlaceholderText('••••••••'), 'wrong-pass');
     fireEvent.press(getByText('Entrar'));
 
-    // Assert the CustomPopup displays the correctly mapped message
-    // mapped from 'auth/wrong-password' -> 'E-mail ou senha incorretos.'
+    // mapped from 'auth/wrong-password'
     expect(await findByText('Erro no Login')).toBeTruthy();
-    expect(await findByText('E-mail ou senha incorretos.')).toBeTruthy();
+    expect(
+      await findByText(
+        'E-mail não cadastrado ou senha incorreta. Se não tem uma conta, cadastre-se!',
+      ),
+    ).toBeTruthy();
   });
 
   it('Scenario 4: Handling Overwrites (Consecutive Triggers)', async () => {

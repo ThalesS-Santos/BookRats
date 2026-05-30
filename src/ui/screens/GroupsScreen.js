@@ -678,7 +678,7 @@ export default function GroupsScreen({ navigation }) {
                     onPress={() => toggleFriendSelection(friend.id)}
                     className="flex-row items-center justify-between p-3 border-b border-border-light dark:border-border-dark">
                     <Text className="text-text-light dark:text-text-dark">
-                      {friend.username}
+                      {UserNormalizationService.normalizeDisplayName(friend)}
                     </Text>
                     <Ionicons
                       name={

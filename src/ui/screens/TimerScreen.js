@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 
 import { Ionicons } from '@expo/vector-icons';
 import { useKeepAwake } from 'expo-keep-awake';
@@ -60,7 +60,7 @@ export default function TimerScreen({ route, navigation }) {
     };
   }, [isActive, book, updateReadingStatus]);
 
-  const neonPulse = useRef(new Animated.Value(1)).current;
+  const [neonPulse] = useState(() => new Animated.Value(1));
 
   useEffect(() => {
     if (isPublic && showFinishForm) {
@@ -83,7 +83,7 @@ export default function TimerScreen({ route, navigation }) {
     } else {
       neonPulse.setValue(1);
     }
-  }, [isPublic, showFinishForm]);
+  }, [isPublic, showFinishForm, neonPulse]);
 
   const handlePublicToggle = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);

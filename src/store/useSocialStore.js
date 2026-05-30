@@ -17,9 +17,10 @@ import {
   addRatClap as apiAddRatClap,
 } from '@core/api/social';
 import { Logger } from '@core/services/Logger';
-import { useMainStore } from '@core/store';
 
 import { usePopupStore } from './usePopupStore';
+
+const safeRequire = require;
 
 export const useSocialStore = create((set, get) => ({
   friends: [],
@@ -312,6 +313,7 @@ export const useSocialStore = create((set, get) => ({
   },
 
   removeFriend: async friendId => {
+    const { useMainStore } = safeRequire('@core/store');
     const { user } = useMainStore.getState();
     if (!user) return;
     try {
@@ -327,6 +329,7 @@ export const useSocialStore = create((set, get) => ({
   },
 
   leaveGroup: async groupId => {
+    const { useMainStore } = safeRequire('@core/store');
     const { user } = useMainStore.getState();
     if (!user) return;
     try {
@@ -342,6 +345,7 @@ export const useSocialStore = create((set, get) => ({
   },
 
   clapEcho: async (targetUserId, bookId, echoId) => {
+    const { useMainStore } = safeRequire('@core/store');
     const { user } = useMainStore.getState();
     if (!user) return;
     const currentUserName =

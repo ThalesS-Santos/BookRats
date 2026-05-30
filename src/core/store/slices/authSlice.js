@@ -96,7 +96,17 @@ export const createAuthSlice = (set, get) => ({
     try {
       await apiUpdatePresence(targetUid, isOnline);
     } catch (error) {
-      console.error('Error updating presence:', error);
+      let extraHint = '';
+      if (
+        error.code === 'permission-denied' ||
+        error.message.includes('Missing or insufficient permissions')
+      ) {
+        extraHint =
+          '\n💡 Hint: "permission-denied" on mobile can happen if Firebase App Check is enforcing, if the users/{userId} doc is missing (SignUp failed midway), or due to a known React Native AsyncStorage startup delay where Firestore connects before Auth is ready.';
+      }
+      console.error(
+        `Presence update error for UID [${targetUid}] (isOnline: ${isOnline}): ${error.message}${extraHint}`,
+      );
     }
   },
 
