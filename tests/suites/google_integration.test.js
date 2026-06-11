@@ -1,14 +1,5 @@
 import { searchBooks } from '../../src/core/api/googleBooks';
-import { Logger } from '../../src/core/services/Logger';
-
-// Mock Logger to prevent console noise during expected error tests
-jest.mock('../../src/core/services/Logger', () => ({
-  Logger: {
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
-  },
-}));
+import { clearRecentLogs, getRecentLogs } from '../../src/core/observability';
 
 /**
  * 🧪 Google Books Integration Tests
@@ -17,6 +8,15 @@ jest.mock('../../src/core/services/Logger', () => ({
 describe('Google Books Integration (via MSW)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    clearRecentLogs();
+    // Silence expected error noise from the console transport
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('should fetch and normalize "Dom Casmurro" correctly with all fields (Step 1.8)', async () => {
@@ -58,7 +58,12 @@ describe('Google Books Integration (via MSW)', () => {
       'Erro interno no servidor remoto. Tente novamente mais tarde.',
     );
 
-    expect(Logger.error).toHaveBeenCalled();
+    // A structured record from the googleBooks namespace must exist.
+    expect(
+      getRecentLogs().some(
+        r => r.logger === 'core.api.googleBooks' && r.op === 'searchBooks',
+      ),
+    ).toBe(true);
   });
 
   it('should handle 429 Rate Limit Error via trigger keyword', async () => {
@@ -66,7 +71,11 @@ describe('Google Books Integration (via MSW)', () => {
       searchBooks({ generalQuery: 'trigger_rate_limit' }),
     ).rejects.toThrow('Too Many Requests');
 
-    expect(Logger.error).toHaveBeenCalled();
+    expect(
+      getRecentLogs().some(
+        r => r.logger === 'core.api.googleBooks' && r.op === 'searchBooks',
+      ),
+    ).toBe(true);
   });
 
   it('should return empty results if no query is provided', async () => {

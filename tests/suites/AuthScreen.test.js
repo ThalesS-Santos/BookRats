@@ -47,6 +47,13 @@ describe('AuthScreen', () => {
     expect(getByText('Entrar')).toBeTruthy();
   });
 
+  it('does not trigger Google prompt while request is not ready', () => {
+    Google.useIdTokenAuthRequest.mockReturnValue([null, null, mockPromptAsync]);
+    const { getByText } = render(<AuthScreen />);
+    fireEvent.press(getByText('Google'));
+    expect(mockPromptAsync).not.toHaveBeenCalled();
+  });
+
   it('toggles to register mode', () => {
     const { getByText } = render(<AuthScreen />);
     fireEvent.press(getByText('Cadastre-se'));
@@ -142,6 +149,20 @@ describe('AuthScreen', () => {
     });
   });
 
+  it('does not call Google sign-in when response is not success', async () => {
+    Google.useIdTokenAuthRequest.mockReturnValue([
+      { request: {} },
+      { type: 'cancel' },
+      mockPromptAsync,
+    ]);
+
+    render(<AuthScreen />);
+
+    await waitFor(() => {
+      expect(mockSignInWithGoogle).not.toHaveBeenCalled();
+    });
+  });
+
   it('renders loading state', () => {
     useMainStore.mockReturnValue({
       signIn: mockSignIn,
@@ -154,6 +175,24 @@ describe('AuthScreen', () => {
     const { getByTestId } = render(<AuthScreen />);
     // BookLoader is inside the button. It has testID="book-loader-container" from previous edit.
     expect(getByTestId('book-loader-container')).toBeTruthy();
+  });
+
+  it('validates on register mode before sign-up', () => {
+    const { getByText, getByPlaceholderText, getByTestId } = render(
+      <AuthScreen />,
+    );
+    fireEvent.press(getByText('Cadastre-se'));
+    fireEvent.changeText(getByPlaceholderText('seu@email.com'), 'bad');
+    fireEvent.changeText(getByTestId('password-input'), '123456');
+
+    fireEvent.press(getByText('Criar Conta'));
+
+    expect(mockShowPopup).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Aviso',
+      }),
+    );
+    expect(mockSignUp).not.toHaveBeenCalled();
   });
 
   it('renders in dark mode', () => {

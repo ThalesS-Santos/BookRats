@@ -4,6 +4,9 @@ import { ALL_BADGES } from '@constants/badges';
 import { updateUserInfluencerStatus } from '@core/api/social';
 import { BOOK_STATUS } from '@core/constants/bookStatus';
 import { db } from '@core/firebase/firebase';
+import { createLogger } from '@core/observability';
+
+const log = createLogger('core.store.gamification');
 
 /**
  * Gamification Slice handles badges, points, and achievements.
@@ -122,7 +125,12 @@ export const createGamificationSlice = (set, get) => ({
         await updateUserInfluencerStatus(uid, true);
       }
     } catch (e) {
-      console.error('Failed to calculate influencer badge:', e);
+      log.exception(e, {
+        op: 'calculateInfluencerBadge',
+        action: 'query',
+        resource: `users/${uid}/books/*/annotations`,
+        context: { uid },
+      });
     } finally {
       set({ calculatingBadge: false });
     }

@@ -1,20 +1,12 @@
 import { apiClient } from '@core/api/apiClient';
 import { searchBooks, getBookByIsbn } from '@core/api/googleBooks';
-import { Logger } from '@core/services/Logger';
+import { clearRecentLogs, getRecentLogs } from '@core/observability';
 import { PixelBook } from '@ui/assets';
 
 // Mock the apiClient singleton
 jest.mock('@core/api/apiClient', () => ({
   apiClient: {
     get: jest.fn(),
-  },
-}));
-
-// Mock the Logger service
-jest.mock('@core/services/Logger', () => ({
-  Logger: {
-    error: jest.fn(),
-    info: jest.fn(),
   },
 }));
 
@@ -151,20 +143,28 @@ describe('Google Books API Module', () => {
     });
 
     it('should log contextual error and rethrow if apiClient fails', async () => {
+      clearRecentLogs();
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
       const mockError = new Error('Quota Exceeded');
       apiClient.get.mockRejectedValue(mockError);
 
+      // The ORIGINAL error is preserved and rethrown for the caller...
       await expect(searchBooks({ title: 'Fail' })).rejects.toThrow(
         'Quota Exceeded',
       );
 
-      expect(Logger.error).toHaveBeenCalledWith(
-        'Google Books: Search failed',
-        mockError,
-        expect.objectContaining({
-          options: expect.objectContaining({ title: 'Fail' }),
-        }),
-      );
+      // ...while a structured record carries the operation context.
+      expect(
+        getRecentLogs().some(
+          r =>
+            r.logger === 'core.api.googleBooks' &&
+            r.op === 'searchBooks' &&
+            String(r.message).includes('Quota Exceeded'),
+        ),
+      ).toBe(true);
+      errorSpy.mockRestore();
+      warnSpy.mockRestore();
     });
 
     it('should handle multiple subjects in search', async () => {

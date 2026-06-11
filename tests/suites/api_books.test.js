@@ -168,7 +168,18 @@ describe('Books API Methods', () => {
       );
 
       expect(updateDoc).toHaveBeenCalledTimes(2); // one for book, one for user stats
-      expect(result).toEqual({ pagesReadToday: 20, isCompleted: false });
+      expect(result).toEqual(
+        expect.objectContaining({
+          pagesReadToday: 20,
+          isCompleted: false,
+          wasCompleted: false,
+          justCompleted: false,
+          sessionSeconds: 120,
+          newTotalPagesRead: 120, // 100 (previous) + 20 read now
+          newTotalBooksCompleted: 2, // unchanged (not completed)
+          newStreak: expect.any(Number),
+        }),
+      );
     });
 
     it('should complete book', async () => {

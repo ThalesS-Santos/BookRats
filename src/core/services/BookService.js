@@ -1,4 +1,7 @@
 import { getUserAnnotations } from '@core/api/books';
+import { createLogger } from '@core/observability';
+
+const log = createLogger('core.service.book');
 
 /**
  * Camada de Serviço (Domain Layer).
@@ -32,7 +35,12 @@ export const BookService = {
       );
       return allNotes.slice(0, limit);
     } catch (error) {
-      console.warn('Failed to fetch fresh notes:', error.message);
+      log.exception(error, {
+        op: 'getRecentAnnotations',
+        action: 'query',
+        level: 'WARN',
+        context: { uid, books: readingBooks.length },
+      });
       return [];
     }
   },

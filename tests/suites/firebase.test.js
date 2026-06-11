@@ -1,3 +1,4 @@
+import * as FirebaseAnalytics from 'firebase/analytics';
 import * as FirebaseApp from 'firebase/app';
 import * as FirebaseAuth from 'firebase/auth';
 import * as FirebaseFirestore from 'firebase/firestore';
@@ -21,6 +22,11 @@ jest.mock('firebase/firestore', () => ({
   getFirestore: jest.fn(() => ({ name: 'mock-db' })),
 }));
 
+jest.mock('firebase/analytics', () => ({
+  getAnalytics: jest.fn(() => ({ name: 'mock-analytics' })),
+  isSupported: jest.fn(() => Promise.resolve(true)),
+}));
+
 describe('Firebase Initialization', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -33,6 +39,21 @@ describe('Firebase Initialization', () => {
     expect(FirebaseApp.initializeApp).toHaveBeenCalled();
     expect(FirebaseAuth.initializeAuth).toHaveBeenCalled();
     expect(FirebaseFirestore.initializeFirestore).toHaveBeenCalled();
+    expect(FirebaseAuth.getReactNativePersistence).toHaveBeenCalled();
+    expect(FirebaseAuth.GoogleAuthProvider).toHaveBeenCalled();
+  });
+
+  it('should wire analytics only when supported', async () => {
+    jest.isolateModules(() => {
+      require('../../src/core/firebase/firebase');
+    });
+
+    await Promise.resolve();
+
+    expect(FirebaseAnalytics.isSupported).toHaveBeenCalled();
+    expect(FirebaseAnalytics.getAnalytics).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'mock-app' }),
+    );
   });
 
   it('should get existing apps if already initialized', () => {

@@ -16,12 +16,15 @@ import {
   addReadingLog,
   deleteBook,
 } from '@core/api/books';
-import { db } from '@core/firebase/firebase';
+import { db, auth } from '@core/firebase/firebase';
+import { createLogger } from '@core/observability';
 
 import { usePopupStore } from '../../../store/usePopupStore';
 import { useSocialStore } from '../../../store/useSocialStore';
 import { BOOK_STATUS, VALID_STATUSES } from '../../constants/bookStatus';
-import { Logger } from '../../services/Logger';
+import { MilestoneService } from '../../services/MilestoneService';
+
+const log = createLogger('core.store.library');
 
 /**
  * Library Slice handles all book-related logic.
@@ -39,6 +42,11 @@ export const createLibrarySlice = (set, get) => ({
   lastReadingSession: 0,
   totalBooksCompleted: 0,
   repairLocked: false,
+  // Counts permission-denied repair attempts this session so a cold-start
+  // auth/Firestore race can retry, but a genuine denial stops after a cap.
+  repairAttempts: 0,
+  // Lifetime achievements already announced to group chats ({ [id]: true }).
+  announcedMilestones: {},
 
   fetchUserData: uid => {
     // Listen for user stats
@@ -72,25 +80,69 @@ export const createLibrarySlice = (set, get) => ({
           if (needsRepair) {
             set({ repairLocked: true });
 
-            updateDoc(userDocRef, {
-              total_pages_read: data.total_pages_read ?? 0,
-              current_streak: data.current_streak ?? 0,
-              socialSummary: {
-                totalPagesRead: dbTotal,
-                currentStreak: dbStreak,
-                lastBookTitle: summary.lastBookTitle || 'Recém chegado',
-                lastActive: data.last_reading_date || getLocalDateString(),
-                profilePic: data.profilePic || null,
-              },
-            })
-              .then(() => {})
+            // ⏳ Force an Auth token fetch BEFORE the write. On cold start the
+            // Firestore channel can otherwise send the very first write before
+            // the credential attaches, yielding a spurious permission-denied.
+            const ensureAuthReady = auth?.currentUser
+              ? auth.currentUser.getIdToken().catch(() => {})
+              : Promise.resolve();
+
+            ensureAuthReady
+              .then(() =>
+                updateDoc(userDocRef, {
+                  total_pages_read: data.total_pages_read ?? 0,
+                  current_streak: data.current_streak ?? 0,
+                  socialSummary: {
+                    totalPagesRead: dbTotal,
+                    currentStreak: dbStreak,
+                    lastBookTitle: summary.lastBookTitle || 'Recém chegado',
+                    lastActive: data.last_reading_date || getLocalDateString(),
+                    profilePic: data.profilePic || null,
+                  },
+                }),
+              )
+              .then(() => {
+                // ✅ Release the lock and reset the retry counter on success so
+                // future desyncs can still be repaired in this session.
+                set({ repairLocked: false, repairAttempts: 0 });
+              })
               .catch(err => {
-                console.error('🩺 Repair error:', err);
-                if (__DEV__) {
-                  console.info(
-                    `🩺 [Diagnostic] Repair failed for UID [${uid}]: [${err.code || 'unknown'}] - ${err.message}. ` +
-                      `Attempted synchronization values:`,
-                    {
+                const isPermission =
+                  err.code === 'permission-denied' ||
+                  (err.message || '').includes(
+                    'Missing or insufficient permissions',
+                  );
+
+                const attempts = (get().repairAttempts || 0) + 1;
+                const MAX_REPAIR_ATTEMPTS = 5;
+                const givingUp =
+                  isPermission && attempts >= MAX_REPAIR_ATTEMPTS;
+
+                // 🕓 On cold start the Firestore write can fire before the Auth
+                // token finishes attaching, yielding a transient permission
+                // error. Release the lock so the next snapshot (once the token
+                // is ready) retries — but cap retries so a genuine denial does
+                // not spam forever.
+                if (givingUp) {
+                  set({ repairAttempts: attempts }); // keep lock → stop retrying
+                } else {
+                  set({ repairLocked: false, repairAttempts: attempts });
+                }
+
+                log.exception(err, {
+                  op: 'repairSocialSummary',
+                  action: 'update',
+                  resource: `users/${uid}`,
+                  level: isPermission && !givingUp ? 'WARN' : 'ERROR',
+                  message: givingUp
+                    ? 'Social-summary repair giving up after retries'
+                    : 'Social-summary repair failed',
+                  context: {
+                    uid,
+                    attempt: attempts,
+                    maxAttempts: MAX_REPAIR_ATTEMPTS,
+                    coldStartRace: isPermission,
+                    attempted: {
                       total_pages_read: data.total_pages_read ?? 0,
                       current_streak: data.current_streak ?? 0,
                       socialSummary: {
@@ -98,25 +150,19 @@ export const createLibrarySlice = (set, get) => ({
                         currentStreak: dbStreak,
                       },
                     },
-                  );
-                }
-                set({ repairLocked: false });
+                  },
+                });
               });
           }
         }
       },
       error => {
-        console.error('Error fetching user stats:', error);
-        if (__DEV__) {
-          let extraHint = '';
-          if (error.code === 'permission-denied') {
-            extraHint =
-              '\n💡 Hint: "permission-denied" on mobile can happen if Firebase App Check is enforcing, if the user token is expired, or due to a known React Native AsyncStorage startup delay where Firestore connects before Auth is ready.';
-          }
-          console.info(
-            `👤 [Diagnostic] Failed fetching user stats for UID [${uid}]: [${error.code || 'unknown'}] - ${error.message}${extraHint}`,
-          );
-        }
+        log.exception(error, {
+          op: 'fetchUserData.userStats',
+          action: 'listen',
+          resource: `users/${uid}`,
+          context: { uid },
+        });
       },
     );
 
@@ -132,17 +178,12 @@ export const createLibrarySlice = (set, get) => ({
         set({ books: sortedBooks, loadingBooks: false });
       },
       error => {
-        console.error('Error fetching books:', error);
-        if (__DEV__) {
-          let extraHint = '';
-          if (error.code === 'permission-denied') {
-            extraHint =
-              '\n💡 Hint: Check Firebase Rules for /users/{userId}/books, ensure Auth state is synced, or check Firebase App Check settings on Android.';
-          }
-          console.info(
-            `📚 [Diagnostic] Failed fetching books for UID [${uid}]: [${error.code || 'unknown'}] - ${error.message}${extraHint}`,
-          );
-        }
+        log.exception(error, {
+          op: 'fetchUserData.books',
+          action: 'listen',
+          resource: `users/${uid}/books`,
+          context: { uid },
+        });
         set({ loadingBooks: false });
       },
     );
@@ -166,16 +207,22 @@ export const createLibrarySlice = (set, get) => ({
 
     // 🛡️ Strict Status Validation (Etapa 2)
     if (!status || !VALID_STATUSES.includes(status)) {
-      Logger.error(
-        `[Library] Aborted addition: Invalid or missing status "${status}".`,
-      );
+      log.error('Aborted addBook: invalid or missing status', {
+        op: 'addBook',
+        code: 'BR_VALIDATION',
+        category: 'VALIDATION',
+        context: { status, title },
+      });
       return;
     }
 
     if (id && books.some(b => b.id === id)) {
-      Logger.warn(
-        `[Library Integrity] Duplicate ID detected: ${id}. Skipping.`,
-      );
+      log.warn('Aborted addBook: duplicate book id', {
+        op: 'addBook',
+        code: 'BR_VALIDATION',
+        category: 'VALIDATION',
+        context: { bookId: id },
+      });
       return;
     }
 
@@ -220,25 +267,80 @@ export const createLibrarySlice = (set, get) => ({
         },
       );
 
-      // Automated Group Notification
+      // 🏆 Milestone announcements (replaces the old per-update chat spam).
+      // Only fires on real, lifetime landmarks + per-book completion.
       try {
         const groups = useSocialStore.getState().groups || [];
-        const userName = user.displayName || user.email.split('@')[0];
+        if (groups.length > 0 && get().sendMessage) {
+          const userName = user.displayName || user.email.split('@')[0];
+          const announced = get().announcedMilestones || {};
 
-        for (const group of groups) {
-          if (get().sendMessage) {
-            await get().sendMessage(group.id, {
-              text: `🔥 @${userName} acaba de ler ${res.pagesReadToday} páginas de "${book.title}"!`,
-              type: 'system_notification',
-              pagesRead: res.pagesReadToday,
-              bookTitle: book.title,
+          const { messages, newlyAnnounced } = MilestoneService.detect(
+            {
+              sessionSeconds: res.sessionSeconds,
+              sessionPages: res.pagesReadToday,
+              totalPagesRead: res.newTotalPagesRead,
+              totalBooksCompleted: res.newTotalBooksCompleted,
+              streak: res.newStreak,
+            },
+            announced,
+            userName,
+          );
+
+          const chatMessages = [...messages];
+
+          // Per-book completion message (not deduped — fires each completion).
+          if (res.justCompleted) {
+            const bookSeconds =
+              (book.logs || []).reduce(
+                (sum, log) => sum + (log.timeSeconds || 0),
+                0,
+              ) + (res.sessionSeconds || 0);
+            chatMessages.push(
+              MilestoneService.buildCompletionMessage(
+                userName,
+                book.title,
+                bookSeconds,
+              ),
+            );
+          }
+
+          if (chatMessages.length > 0) {
+            for (const group of groups) {
+              for (const text of chatMessages) {
+                await get().sendMessage(group.id, {
+                  text,
+                  type: 'system_notification',
+                });
+              }
+            }
+          }
+
+          // Persist newly-reached lifetime milestones so they never re-fire.
+          if (newlyAnnounced.length > 0) {
+            const updated = { ...announced };
+            newlyAnnounced.forEach(id => {
+              updated[id] = true;
             });
+            set({ announcedMilestones: updated });
           }
         }
       } catch (e) {
-        console.warn('Could not send group notification:', e.message);
+        log.exception(e, {
+          op: 'updateProgress.milestones',
+          action: 'write',
+          level: 'WARN',
+          message: 'Could not send milestone notification',
+          context: { bookId },
+        });
       }
     } catch (error) {
+      log.exception(error, {
+        op: 'updateProgress',
+        action: 'update',
+        resource: `users/${user.uid}/books/${bookId}`,
+        context: { bookId, newPage },
+      });
       usePopupStore.getState().showPopup({
         title: 'Erro ao Salvar',
         message: error.message,
@@ -253,7 +355,12 @@ export const createLibrarySlice = (set, get) => ({
     try {
       await apiMarkAsDNF(user.uid, bookId, BOOK_STATUS.DROPPED);
     } catch (error) {
-      console.error(error.message);
+      log.exception(error, {
+        op: 'markAsDNF',
+        action: 'update',
+        resource: `users/${user.uid}/books/${bookId}`,
+        context: { bookId },
+      });
     }
   },
 
@@ -284,9 +391,12 @@ export const createLibrarySlice = (set, get) => ({
     // 3. If status is manually set to READ -> Jump progress to 100%
     if (finalUpdates.status !== undefined) {
       if (!VALID_STATUSES.includes(finalUpdates.status)) {
-        Logger.error(
-          `[Library] Aborted update: Invalid status "${finalUpdates.status}" for book ${bookId}`,
-        );
+        log.error('Aborted updateBook: invalid status', {
+          op: 'updateBook',
+          code: 'BR_VALIDATION',
+          category: 'VALIDATION',
+          context: { bookId, status: finalUpdates.status },
+        });
         return;
       }
 
@@ -341,10 +451,13 @@ export const createLibrarySlice = (set, get) => ({
       }
     } catch (error) {
       // 3. Rollback Mechanism on failure
-      Logger.error(
-        `[Library Sync] Failed to update book ${bookId}. Rolling back.`,
-        error,
-      );
+      log.exception(error, {
+        op: 'updateBook',
+        action: 'update',
+        resource: `users/${user.uid}/books/${bookId}`,
+        message: 'Book update failed — rolling back optimistic state',
+        context: { bookId, pageDelta, rolledBack: true },
+      });
       set({ books: previousBooks });
 
       usePopupStore.getState().showPopup({

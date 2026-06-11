@@ -8,12 +8,13 @@ export const usePopupStore = create(set => ({
   onConfirm: null,
   onCancel: null,
 
-  showPopup: ({ title, message, type = 'info', onConfirm, onCancel }) =>
+  showPopup: ({ title, message, type = 'info', icon, onConfirm, onCancel }) =>
     set({
       visible: true,
       title,
       message,
       type,
+      icon,
       onConfirm,
       onCancel,
     }),

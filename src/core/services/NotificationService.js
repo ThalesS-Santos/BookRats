@@ -8,7 +8,11 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 
+import { createLogger } from '@core/observability';
+
 import { db } from '../firebase/firebase';
+
+const log = createLogger('core.service.notification');
 
 /**
  * NotificationService
@@ -52,7 +56,12 @@ export const NotificationService = {
         timestamp: serverTimestamp(), // Used for database sorting
       });
     } catch (error) {
-      console.error('Error sending notification:', error);
+      log.exception(error, {
+        op: 'sendNotification',
+        action: 'create',
+        resource: `users/${targetUserId}/notifications`,
+        context: { targetUserId, type, senderId },
+      });
     }
   },
 
@@ -78,7 +87,12 @@ export const NotificationService = {
 
       await batch.commit();
     } catch (error) {
-      console.error('Error marking all notifications as read:', error);
+      log.exception(error, {
+        op: 'markAllAsRead',
+        action: 'batch',
+        resource: `users/${userId}/notifications`,
+        context: { userId },
+      });
     }
   },
 };

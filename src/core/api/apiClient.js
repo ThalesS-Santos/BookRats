@@ -1,6 +1,8 @@
 import { auth } from '@core/firebase/firebase';
-import { Logger } from '@core/services/Logger';
+import { createLogger } from '@core/observability';
 import { useMainStore } from '@core/store';
+
+const log = createLogger('core.api.client');
 
 /**
  * Custom API Client wrapper over native fetch.
@@ -31,7 +33,12 @@ class ApiClient {
         headers.set('Authorization', `Bearer ${token}`);
       }
     } catch (e) {
-      Logger.warn('Failed to retrieve Firebase token', { error: e });
+      log.exception(e, {
+        op: 'request.authHeader',
+        action: 'token',
+        level: 'WARN',
+        context: { url },
+      });
     }
 
     if (!headers.has('Content-Type')) {
@@ -56,8 +63,12 @@ class ApiClient {
 
           // 1. Handle 401 / 403 (Unauthorized / Forbidden)
           if (status === 401 || status === 403) {
-            Logger.warn(`${status} Unauthorized. Triggering logout...`, {
-              url,
+            log.warn('Unauthorized response — triggering logout', {
+              op: 'request',
+              action: 'http',
+              resource: url,
+              providerCode: `HTTP_${status}`,
+              context: { url, status },
             });
             const { signOut } = useMainStore.getState();
             if (signOut) {
@@ -73,16 +84,25 @@ class ApiClient {
             if (status === 503 && attempt < maxRetries) {
               attempt++;
               const delay = Math.pow(2, attempt) * 500; // Exponential backoff
-              Logger.warn(
-                `Received 503. Retrying in ${delay}ms... (Attempt ${attempt})`,
-                { url },
-              );
+              log.warn('Service unavailable (503) — retrying', {
+                op: 'request',
+                action: 'http',
+                resource: url,
+                providerCode: 'HTTP_503',
+                retryable: true,
+                context: { url, attempt, delayMs: delay },
+              });
               await new Promise(resolve => setTimeout(resolve, delay));
               continue;
             }
-            Logger.error(`Server Error ${status} on ${url}`, null, {
-              url,
-              status,
+            log.error('Remote server error', {
+              op: 'request',
+              action: 'http',
+              resource: url,
+              code: 'BR_NETWORK',
+              category: 'NETWORK',
+              providerCode: `HTTP_${status}`,
+              context: { url, status },
             });
             throw new Error(
               'Erro interno no servidor remoto. Tente novamente mais tarde.',
@@ -106,10 +126,12 @@ class ApiClient {
         return await response.json();
       } catch (error) {
         if (attempt >= maxRetries) {
-          Logger.error(
-            `Request failed after ${attempt} attempts: ${url}`,
-            error,
-          );
+          log.exception(error, {
+            op: 'request',
+            action: 'http',
+            resource: url,
+            context: { url, attempts: attempt },
+          });
           throw error;
         }
         attempt++;

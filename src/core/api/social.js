@@ -1,4 +1,3 @@
-import { mapFirebaseError } from '@utils/errorMapper';
 import { sanitizeEchoText, sanitizeName } from '@utils/sanitize';
 import {
   validateFriendRequest,
@@ -30,9 +29,11 @@ import {
 } from 'firebase/firestore';
 
 import { db } from '@core/firebase/firebase';
-import { Logger } from '@core/services/Logger';
+import { createLogger } from '@core/observability';
 
 import { NotificationService } from '../services/NotificationService';
+
+const log = createLogger('core.api.social');
 
 export const subscribeToRanking = (onUpdate, pageSize = 50) => {
   const { getAuth } = require('firebase/auth');
@@ -53,7 +54,11 @@ export const subscribeToRanking = (onUpdate, pageSize = 50) => {
       onUpdate(users);
     },
     error => {
-      Logger.error('Error subscribing to ranking:', error);
+      log.exception(error, {
+        op: 'subscribeToRanking',
+        action: 'listen',
+        resource: 'users',
+      });
     },
   );
 };
@@ -85,8 +90,12 @@ export const getPaginatedRanking = async (
 
     return { users, lastDoc, hasMore: users.length === pageSize };
   } catch (error) {
-    Logger.error('Error getting paginated ranking:', error);
-    throw new Error(mapFirebaseError(error));
+    throw log.failure(error, {
+      op: 'getPaginatedRanking',
+      action: 'query',
+      resource: 'users',
+      context: { pageSize, paginated: !!lastVisibleDoc },
+    });
   }
 };
 
@@ -101,8 +110,12 @@ export const searchUsers = async queryText => {
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
-    Logger.error('Search users error:', error);
-    throw new Error(mapFirebaseError(error));
+    throw log.failure(error, {
+      op: 'searchUsers',
+      action: 'query',
+      resource: 'users',
+      context: { queryLength: queryText.length },
+    });
   }
 };
 
@@ -126,8 +139,12 @@ export const sendFriendRequest = async (senderUid, receiverUid) => {
       timestamp: serverTimestamp(),
     });
   } catch (error) {
-    Logger.error('Send friend request error:', error);
-    throw new Error(mapFirebaseError(error));
+    throw log.failure(error, {
+      op: 'sendFriendRequest',
+      action: 'create',
+      resource: 'friendships',
+      context: { senderUid, receiverUid },
+    });
   }
 };
 
@@ -165,8 +182,12 @@ export const acceptFriendRequest = async (
       message: `${currentUserName} aceitou seu pedido de amizade!`,
     });
   } catch (error) {
-    Logger.error('Accept friend request error:', error);
-    throw new Error(mapFirebaseError(error));
+    throw log.failure(error, {
+      op: 'acceptFriendRequest',
+      action: 'update',
+      resource: `friendships/${requestId}`,
+      context: { requestId, currentUserId },
+    });
   }
 };
 
@@ -175,8 +196,12 @@ export const rejectFriendRequest = async requestId => {
     const docRef = doc(db, 'friendships', requestId);
     await updateDoc(docRef, { status: 'rejected' });
   } catch (error) {
-    Logger.error('Reject friend request error:', error);
-    throw new Error(mapFirebaseError(error));
+    throw log.failure(error, {
+      op: 'rejectFriendRequest',
+      action: 'update',
+      resource: `friendships/${requestId}`,
+      context: { requestId },
+    });
   }
 };
 
@@ -193,8 +218,12 @@ export const createGroup = async (name, adminId, memberIds) => {
     });
     return groupRef.id;
   } catch (error) {
-    Logger.error('Create group error:', error);
-    throw new Error(mapFirebaseError(error));
+    throw log.failure(error, {
+      op: 'createGroup',
+      action: 'create',
+      resource: 'groups',
+      context: { adminId, memberCount: (memberIds || []).length },
+    });
   }
 };
 
@@ -207,10 +236,12 @@ export const subscribeToSentRequests = (uid, onUpdate) => {
       onUpdate(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     },
     error => {
-      Logger.error(
-        '[Friendships] Error in sent requests listener:',
-        error.message,
-      );
+      log.exception(error, {
+        op: 'subscribeToSentRequests',
+        action: 'listen',
+        resource: 'friendships',
+        context: { uid },
+      });
     },
   );
 };
@@ -226,10 +257,12 @@ export const subscribeToReceivedRequests = (uid, onUpdate) => {
       onUpdate(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     },
     error => {
-      Logger.error(
-        '[Friendships] Error in received requests listener:',
-        error.message,
-      );
+      log.exception(error, {
+        op: 'subscribeToReceivedRequests',
+        action: 'listen',
+        resource: 'friendships',
+        context: { uid },
+      });
     },
   );
 };
@@ -264,7 +297,12 @@ export const subscribeToFriends = (uid, onUpdate) => {
       update();
     },
     error => {
-      Logger.error('[Friends] Error in sent friends listener:', error.message);
+      log.exception(error, {
+        op: 'subscribeToFriends.sent',
+        action: 'listen',
+        resource: 'friendships',
+        context: { uid },
+      });
     },
   );
 
@@ -275,10 +313,12 @@ export const subscribeToFriends = (uid, onUpdate) => {
       update();
     },
     error => {
-      Logger.error(
-        '[Friends] Error in received friends listener:',
-        error.message,
-      );
+      log.exception(error, {
+        op: 'subscribeToFriends.received',
+        action: 'listen',
+        resource: 'friendships',
+        context: { uid },
+      });
     },
   );
 
@@ -299,7 +339,12 @@ export const subscribeToGroups = (uid, onUpdate, onError) => {
       onUpdate(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     },
     error => {
-      Logger.error('[Groups] Error in groups listener:', error.message);
+      log.exception(error, {
+        op: 'subscribeToGroups',
+        action: 'listen',
+        resource: 'groups',
+        context: { uid },
+      });
       if (onError) onError(error);
     },
   );
@@ -310,7 +355,12 @@ export const getUserDetails = async uid => {
     const docSnap = await getDoc(doc(db, 'users', uid));
     return docSnap.exists() ? { id: uid, ...docSnap.data() } : null;
   } catch (error) {
-    Logger.error('Error getting user details:', uid, error);
+    log.exception(error, {
+      op: 'getUserDetails',
+      action: 'read',
+      resource: `users/${uid}`,
+      context: { uid },
+    });
     return null;
   }
 };
@@ -342,8 +392,12 @@ export const getUsersByIds = async uids => {
 
     return results.flat();
   } catch (error) {
-    Logger.error('Error in getUsersByIds:', error);
-    throw new Error(mapFirebaseError(error));
+    throw log.failure(error, {
+      op: 'getUsersByIds',
+      action: 'query',
+      resource: 'users',
+      context: { count: uids.length },
+    });
   }
 };
 
@@ -368,8 +422,12 @@ export const removeFriendship = async (uid, friendId) => {
       await deleteDoc(d.ref);
     }
   } catch (error) {
-    Logger.error('Error removing friendship:', error);
-    throw new Error(mapFirebaseError(error));
+    throw log.failure(error, {
+      op: 'removeFriendship',
+      action: 'delete',
+      resource: 'friendships',
+      context: { uid, friendId },
+    });
   }
 };
 
@@ -380,8 +438,12 @@ export const leaveGroup = async (groupId, uid) => {
       members: arrayRemove(uid),
     });
   } catch (error) {
-    Logger.error('Error leaving group:', error);
-    throw new Error(mapFirebaseError(error));
+    throw log.failure(error, {
+      op: 'leaveGroup',
+      action: 'update',
+      resource: `groups/${groupId}`,
+      context: { groupId, uid },
+    });
   }
 };
 
@@ -397,8 +459,12 @@ export const getGroupDetails = async groupId => {
 
     return { id: groupId, ...data, members };
   } catch (error) {
-    Logger.error('Error getting group details:', error);
-    throw new Error(mapFirebaseError(error));
+    throw log.failure(error, {
+      op: 'getGroupDetails',
+      action: 'read',
+      resource: `groups/${groupId}`,
+      context: { groupId },
+    });
   }
 };
 
@@ -407,8 +473,12 @@ export const updateGroupDetails = async (groupId, name, description) => {
     const groupRef = doc(db, 'groups', groupId);
     await updateDoc(groupRef, { name, description });
   } catch (error) {
-    Logger.error('Error updating group details:', error);
-    throw new Error(mapFirebaseError(error));
+    throw log.failure(error, {
+      op: 'updateGroupDetails',
+      action: 'update',
+      resource: `groups/${groupId}`,
+      context: { groupId },
+    });
   }
 };
 
@@ -419,8 +489,12 @@ export const addGroupMember = async (groupId, userId) => {
       members: arrayUnion(userId),
     });
   } catch (error) {
-    Logger.error('Error adding group member:', error);
-    throw new Error(mapFirebaseError(error));
+    throw log.failure(error, {
+      op: 'addGroupMember',
+      action: 'update',
+      resource: `groups/${groupId}`,
+      context: { groupId, userId },
+    });
   }
 };
 
@@ -431,8 +505,12 @@ export const removeGroupMember = async (groupId, userId) => {
       members: arrayRemove(userId),
     });
   } catch (error) {
-    Logger.error('Error removing group member:', error);
-    throw new Error(mapFirebaseError(error));
+    throw log.failure(error, {
+      op: 'removeGroupMember',
+      action: 'update',
+      resource: `groups/${groupId}`,
+      context: { groupId, userId },
+    });
   }
 };
 
@@ -501,9 +579,14 @@ export const getPublicEchoes = async (
 
     return echoes.slice(0, 20);
   } catch (error) {
-    Logger.error('Error getting echoes:', error);
-    // 💡 If index is missing, firebase returns an error.
-    // Usually, Firestore will provide a link in the error console to create the index.
+    // 💡 A failed-precondition here usually means a missing Firestore index —
+    // the structured log carries the code so it's identifiable at a glance.
+    log.exception(error, {
+      op: 'getPublicEchoes',
+      action: 'query',
+      resource: 'collectionGroup(annotations)',
+      context: { bookId, userCurrentPage },
+    });
     return [];
   }
 };
@@ -543,8 +626,12 @@ export const addRatClap = async (
       });
     }
   } catch (error) {
-    Logger.error('Error adding clap:', error);
-    throw new Error(mapFirebaseError(error));
+    throw log.failure(error, {
+      op: 'addRatClap',
+      action: 'update',
+      resource: `users/${userId}/books/${bookId}/annotations/${echoId}`,
+      context: { ownerId: userId, bookId, echoId, currentUserId },
+    });
   }
 };
 
@@ -628,8 +715,12 @@ export const replyToEcho = async (
 
     return replyRef.id;
   } catch (error) {
-    Logger.error('Error replying to echo:', error);
-    throw new Error(mapFirebaseError(error));
+    throw log.failure(error, {
+      op: 'replyToEcho',
+      action: 'transaction',
+      resource: `users/${parentUserId}/books/${parentBookId}/annotations/${parentEchoId}`,
+      context: { parentUserId, parentBookId, parentEchoId, currentUserId },
+    });
   }
 };
 
@@ -667,7 +758,12 @@ export const getEchoReplies = async (
 
     return replies;
   } catch (error) {
-    Logger.error('Error getting echo replies:', error);
+    log.exception(error, {
+      op: 'getEchoReplies',
+      action: 'query',
+      resource: `users/${parentUserId}/books/${parentBookId}/annotations`,
+      context: { parentUserId, parentBookId, parentEchoId },
+    });
     return [];
   }
 };
@@ -698,7 +794,12 @@ export const createNotification = async (
       timestamp: serverTimestamp(),
     });
   } catch (error) {
-    Logger.error('Error creating notification:', error);
+    log.exception(error, {
+      op: 'createNotification',
+      action: 'create',
+      resource: `users/${targetUserId}/notifications`,
+      context: { targetUserId, type, bookId, echoId },
+    });
   }
 };
 
@@ -717,10 +818,12 @@ export const subscribeToNotifications = (uid, onUpdate) => {
       onUpdate(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     },
     error => {
-      Logger.error(
-        '[Notifications] Error in notifications listener:',
-        error.message,
-      );
+      log.exception(error, {
+        op: 'subscribeToNotifications',
+        action: 'listen',
+        resource: `users/${uid}/notifications`,
+        context: { uid },
+      });
     },
   );
 };
@@ -733,7 +836,12 @@ export const markNotificationAsRead = async (uid, notificationId) => {
     const notifRef = doc(db, 'users', uid, 'notifications', notificationId);
     await updateDoc(notifRef, { read: true });
   } catch (error) {
-    Logger.error('Error marking notification as read:', error);
+    log.exception(error, {
+      op: 'markNotificationAsRead',
+      action: 'update',
+      resource: `users/${uid}/notifications/${notificationId}`,
+      context: { uid, notificationId },
+    });
   }
 };
 
@@ -745,6 +853,11 @@ export const updateUserInfluencerStatus = async (uid, isInfluencer) => {
     const userRef = doc(db, 'users', uid);
     await updateDoc(userRef, { isInfluencer });
   } catch (error) {
-    Logger.error('Error updating influencer status:', error);
+    log.exception(error, {
+      op: 'updateUserInfluencerStatus',
+      action: 'update',
+      resource: `users/${uid}`,
+      context: { uid, isInfluencer },
+    });
   }
 };

@@ -1,7 +1,9 @@
+import { createLogger } from '@core/observability';
 import { BookNormalizationService } from '@core/services/BookNormalizationService';
-import { Logger } from '@core/services/Logger';
 
 import { apiClient } from './apiClient';
+
+const log = createLogger('core.api.googleBooks');
 
 /**
  * Base URL for the Google Books API Volume endpoint.
@@ -71,10 +73,12 @@ export const searchBooks = async (options = {}) => {
 
   const url = `${BASE_URL}?${params.toString()}`;
 
-  // Log final URL in Development Mode for debugging
-  if (__DEV__) {
-    Logger.info(`[GoogleBooks] Fetching: ${url}`);
-  }
+  log.debug('Fetching Google Books', {
+    op: 'searchBooks',
+    action: 'http',
+    resource: BASE_URL,
+    context: { url, query: q },
+  });
 
   try {
     const data = await apiClient.get(url);
@@ -84,7 +88,14 @@ export const searchBooks = async (options = {}) => {
       totalItems: data.totalItems || 0,
     };
   } catch (error) {
-    Logger.error('Google Books: Search failed', error, { options, url });
+    // apiClient already produces friendly, curated messages for HTTP failures,
+    // so log structured context but preserve and rethrow the ORIGINAL error.
+    log.exception(error, {
+      op: 'searchBooks',
+      action: 'http',
+      resource: BASE_URL,
+      context: { url, query: q },
+    });
     throw error;
   }
 };

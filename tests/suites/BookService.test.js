@@ -56,10 +56,10 @@ describe('BookService', () => {
         { id: 'b1' },
       ]);
       expect(result).toEqual([]);
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Failed to fetch fresh notes:',
-        'Fail API',
-      );
+      expect(consoleSpy).toHaveBeenCalled();
+      const logged = String(consoleSpy.mock.calls[0][0]);
+      expect(logged).toContain('getRecentAnnotations');
+      expect(logged).toContain('Fail API');
 
       consoleSpy.mockRestore();
     });

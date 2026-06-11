@@ -1,103 +1,70 @@
 /**
- * @typedef {Object} LogParams
- * @property {string} message - A mensagem a ser logada
- * @property {any} [error] - Objeto de erro original, se houver
- * @property {Record<string, any>} [context] - Dados adicionais de contexto (ex: ids, rota atual)
+ * Backwards-compatible Logger facade.
+ *
+ * The real implementation now lives in `@core/observability`. This shim keeps
+ * the historical `Logger.info/warn/error(message, error?, context?)` signature
+ * working for call sites that haven't been migrated yet — every call is routed
+ * into the new structured pipeline.
+ *
+ * New code should prefer:  import { createLogger } from '@core/observability';
  */
+import { createLogger } from '@core/observability';
+import { redact } from '@core/observability/redact';
 
-class LoggerService {
-  constructor() {
-    this.isDevelopment = __DEV__;
-  }
+const legacy = createLogger('legacy');
 
-  /**
-   * Sanitiza mensagens e objetos de contexto para ocultar informações sensíveis (ex: API Keys)
-   * @param {any} data
-   * @returns {any}
-   */
-  sanitize(data) {
-    if (typeof data === 'string') {
-      // Mascara chaves de API comuns em URLs (key=..., apiKey=...)
-      return data.replace(
-        /(key|apiKey|auth|token)=([a-zA-Z0-9_-]{10,})/g,
-        '$1=REDACTED',
-      );
+/** Normalize a loose 2nd/3rd argument into { err, context }. */
+const coerce = (a, b) => {
+  let err;
+  let context = {};
+
+  const absorb = value => {
+    if (value == null) return;
+    if (value instanceof Error) {
+      err = value;
+    } else if (typeof value === 'object') {
+      context = { ...context, ...value };
+    } else {
+      // Primitive extra (e.g. a uid string or error.message)
+      context = { ...context, detail: value };
     }
-    if (data && typeof data === 'object') {
-      const sanitized = Array.isArray(data) ? [] : {};
-      for (const [key, value] of Object.entries(data)) {
-        if (
-          key === '__proto__' ||
-          key === 'constructor' ||
-          key === 'prototype'
-        ) {
-          continue;
-        }
-        if (
-          ['apiKey', 'key', 'token', 'authorization'].includes(
-            key.toLowerCase(),
-          )
-        ) {
-          sanitized[key] = 'REDACTED';
-        } else {
-          sanitized[key] = this.sanitize(value);
-        }
-      }
-      return sanitized;
-    }
-    return data;
-  }
+  };
 
-  /**
-   * Log de Informações
-   * @param {string} message
-   * @param {Record<string, any>} [context]
-   */
+  absorb(a);
+  absorb(b);
+  return { err, context };
+};
+
+export const Logger = {
+  /** Exposed for legacy callers that used Logger.sanitize directly. */
+  sanitize: redact,
+
   info(message, context = {}) {
-    if (this.isDevelopment) {
-      console.log(
-        `[INFO] ${new Date().toISOString()} - ${this.sanitize(message)}`,
-        this.sanitize(context),
-      );
-    }
-    // Em produção, logs de INFO geralmente não são enviados para não onerar rede/armazenamento
-  }
+    legacy.info(message, { op: 'legacy', context });
+  },
 
-  /**
-   * Log de Avisos (Não-críticos)
-   * @param {string} message
-   * @param {Record<string, any>} [context]
-   */
   warn(message, context = {}) {
-    if (this.isDevelopment) {
-      console.warn(
-        `[WARN] ${new Date().toISOString()} - ${this.sanitize(message)}`,
-        this.sanitize(context),
-      );
+    const { err, context: ctx } = coerce(context);
+    if (err) {
+      legacy.exception(err, {
+        op: 'legacy',
+        level: 'WARN',
+        message,
+        context: ctx,
+      });
     } else {
-      // TODO: Sentry.captureMessage(message, 'warning');
+      legacy.warn(message, { op: 'legacy', context: ctx });
     }
-  }
+  },
 
-  /**
-   * Log de Erros (Críticos)
-   * @param {string} message
-   * @param {any} [error]
-   * @param {Record<string, any>} [context]
-   */
-  error(message, error = null, context = {}) {
-    if (this.isDevelopment) {
-      console.error(
-        `[ERROR] ${new Date().toISOString()} - ${this.sanitize(message)}`,
-        error,
-        this.sanitize(context),
-      );
+  error(message, error, context) {
+    const { err, context: ctx } = coerce(error, context);
+    if (err) {
+      legacy.exception(err, { op: 'legacy', message, context: ctx });
     } else {
-      // Produção: Relata o erro silenciosamente para o serviço de monitoramento
-      // ex: Sentry.captureException(error, { extra: context, tags: { message } });
-      // Fallback mínimo se o serviço falhar (não usar console.error puro para não vazar stack no logcat de prod)
+      legacy.error(message, { op: 'legacy', context: ctx });
     }
-  }
-}
+  },
+};
 
-export const Logger = new LoggerService();
+export default Logger;

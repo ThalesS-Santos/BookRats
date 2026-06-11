@@ -146,7 +146,7 @@ describe('Library Slice', () => {
       expect(unsubBooks).toHaveBeenCalled();
     });
 
-    it('should lock repair and updateDoc if summary is out of sync', () => {
+    it('should lock repair and updateDoc if summary is out of sync', async () => {
       const mockDocSnap = {
         exists: () => true,
         data: () => ({
@@ -167,6 +167,10 @@ describe('Library Slice', () => {
       state.fetchUserData('user1');
 
       expect(setMock).toHaveBeenCalledWith({ repairLocked: true });
+
+      // The write now waits for the auth token handshake (async), so flush
+      // the microtask queue before asserting.
+      await new Promise(process.nextTick);
       expect(updateDoc).toHaveBeenCalled();
     });
 
@@ -192,8 +196,84 @@ describe('Library Slice', () => {
       // Since updateDoc is async, we need to wait for the next tick
       await new Promise(process.nextTick);
 
-      expect(errorSpy).toHaveBeenCalledWith('🩺 Repair error:', mockError);
-      expect(setMock).toHaveBeenCalledWith({ repairLocked: false });
+      // Transient (non-permission) errors release the lock so a later snapshot
+      // can retry; the structured ERROR record carries op + original message.
+      expect(errorSpy).toHaveBeenCalled();
+      const logged = String(errorSpy.mock.calls[0][0]);
+      expect(logged).toContain('repairSocialSummary');
+      expect(logged).toContain('Social-summary repair failed');
+      expect(state.repairLocked).toBe(false);
+      errorSpy.mockRestore();
+    });
+
+    it('should release the lock on permission-denied to allow a cold-start retry', async () => {
+      const mockDocSnap = {
+        exists: () => true,
+        data: () => ({ socialSummary: null }), // triggers repair
+      };
+
+      onSnapshot.mockImplementation((ref, callback) => {
+        if (ref === 'userDocRef') callback(mockDocSnap);
+        return jest.fn();
+      });
+
+      doc.mockReturnValue('userDocRef');
+      const permError = Object.assign(
+        new Error('Missing or insufficient permissions'),
+        { code: 'permission-denied' },
+      );
+      updateDoc.mockRejectedValueOnce(permError);
+
+      // A retryable cold-start permission failure is logged as WARN.
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+      state.fetchUserData('user1');
+      await new Promise(process.nextTick);
+
+      // First failure: lock released + attempt counted, so the next snapshot
+      // (once the auth token is ready) can retry.
+      expect(state.repairLocked).toBe(false);
+      expect(state.repairAttempts).toBe(1);
+      expect(warnSpy).toHaveBeenCalled();
+      const logged = String(warnSpy.mock.calls[0][0]);
+      expect(logged).toContain('repairSocialSummary');
+      expect(logged).toContain('BR_FIRESTORE_PERMISSION_DENIED');
+      warnSpy.mockRestore();
+    });
+
+    it('should give up after the max permission-denied retries (no infinite spam)', async () => {
+      const mockDocSnap = {
+        exists: () => true,
+        data: () => ({ socialSummary: null }), // triggers repair
+      };
+
+      onSnapshot.mockImplementation((ref, callback) => {
+        if (ref === 'userDocRef') callback(mockDocSnap);
+        return jest.fn();
+      });
+
+      doc.mockReturnValue('userDocRef');
+      const permError = Object.assign(
+        new Error('Missing or insufficient permissions'),
+        { code: 'permission-denied' },
+      );
+      updateDoc.mockRejectedValueOnce(permError);
+
+      // Pretend 4 retries already happened this session; this is the 5th.
+      state.repairAttempts = 4;
+
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      state.fetchUserData('user1');
+      await new Promise(process.nextTick);
+
+      // At the cap the lock stays engaged (true) so it stops retrying, and the
+      // give-up is escalated to a structured ERROR record.
+      expect(state.repairLocked).toBe(true);
+      expect(errorSpy).toHaveBeenCalled();
+      const logged = String(errorSpy.mock.calls[0][0]);
+      expect(logged).toContain('repair giving up after retries');
+      expect(logged).toContain('BR_FIRESTORE_PERMISSION_DENIED');
       errorSpy.mockRestore();
     });
 
@@ -237,10 +317,9 @@ describe('Library Slice', () => {
 
       state.fetchUserData('user1');
 
-      expect(errorSpy).toHaveBeenCalledWith(
-        'Error fetching books:',
-        expect.any(Error),
-      );
+      expect(errorSpy).toHaveBeenCalled();
+      const logged = String(errorSpy.mock.calls[0][0]);
+      expect(logged).toContain('fetchUserData.books');
       expect(setMock).toHaveBeenCalledWith({ loadingBooks: false });
       errorSpy.mockRestore();
     });
@@ -332,29 +411,63 @@ describe('Library Slice', () => {
   });
 
   describe('updateProgress', () => {
-    it('should call updateBookProgress and sendMessage for notifications', async () => {
+    it('should announce a milestone via sendMessage when a landmark is reached', async () => {
       state.books = [{ id: 'book1', title: 'My Book' }];
+      state.announcedMilestones = {};
 
-      updateBookProgress.mockResolvedValueOnce({ pagesReadToday: 20 });
+      // 60 pages in one session crosses the "50 pages in a session" milestone.
+      updateBookProgress.mockResolvedValueOnce({
+        pagesReadToday: 60,
+        sessionSeconds: 300,
+        newTotalPagesRead: 160,
+        newTotalBooksCompleted: 2,
+        newStreak: 1,
+        justCompleted: false,
+      });
 
-      await state.updateProgress('book1', 50, 120);
+      await state.updateProgress('book1', 60, 300);
 
       expect(updateBookProgress).toHaveBeenCalled();
       expect(state.sendMessage).toHaveBeenCalledWith(
         'group1',
         expect.objectContaining({
-          text: expect.stringContaining('Thales acaba de ler 20 páginas'),
-          bookTitle: 'My Book',
+          text: expect.stringContaining('50 páginas'),
+          type: 'system_notification',
         }),
       );
+    });
+
+    it('should NOT message the chat when no milestone is reached (no spam)', async () => {
+      state.books = [{ id: 'book1', title: 'My Book' }];
+      state.announcedMilestones = {};
+      // Below every threshold: short session, few pages, no totals crossed.
+      updateBookProgress.mockResolvedValueOnce({
+        pagesReadToday: 10,
+        sessionSeconds: 60,
+        newTotalPagesRead: 110,
+        newTotalBooksCompleted: 0,
+        newStreak: 1,
+        justCompleted: false,
+      });
+
+      await state.updateProgress('book1', 30, 60);
+      expect(state.sendMessage).not.toHaveBeenCalled();
     });
 
     it('should fallback to email prefix if displayName is missing', async () => {
       state.user = { uid: 'u1', email: 'no-name@test.com', displayName: null };
       state.books = [{ id: 'book1', title: 'My Book' }];
-      updateBookProgress.mockResolvedValueOnce({ pagesReadToday: 20 });
+      state.announcedMilestones = {};
+      updateBookProgress.mockResolvedValueOnce({
+        pagesReadToday: 60,
+        sessionSeconds: 300,
+        newTotalPagesRead: 160,
+        newTotalBooksCompleted: 2,
+        newStreak: 1,
+        justCompleted: false,
+      });
 
-      await state.updateProgress('book1', 50, 120);
+      await state.updateProgress('book1', 60, 300);
       expect(state.sendMessage).toHaveBeenCalledWith(
         'group1',
         expect.objectContaining({
@@ -395,19 +508,26 @@ describe('Library Slice', () => {
       expect(state.sendMessage).not.toHaveBeenCalled();
     });
 
-    it('should handle error when group notification fails', async () => {
+    it('should handle error when milestone notification fails', async () => {
       state.books = [{ id: 'book1', title: 'My Book' }];
-      updateBookProgress.mockResolvedValueOnce({ pagesReadToday: 20 });
+      state.announcedMilestones = {};
+      updateBookProgress.mockResolvedValueOnce({
+        pagesReadToday: 60,
+        sessionSeconds: 300,
+        newTotalPagesRead: 160,
+        newTotalBooksCompleted: 2,
+        newStreak: 1,
+        justCompleted: false,
+      });
       state.sendMessage.mockRejectedValueOnce(new Error('Send message failed'));
 
       const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
 
-      await state.updateProgress('book1', 50, 120);
+      await state.updateProgress('book1', 60, 300);
 
-      expect(warnSpy).toHaveBeenCalledWith(
-        'Could not send group notification:',
-        'Send message failed',
-      );
+      expect(warnSpy).toHaveBeenCalled();
+      const logged = String(warnSpy.mock.calls[0][0]);
+      expect(logged).toContain('Could not send milestone notification');
       warnSpy.mockRestore();
     });
 
@@ -446,7 +566,10 @@ describe('Library Slice', () => {
 
       await state.markAsDNF('book1');
 
-      expect(errorSpy).toHaveBeenCalledWith('DNF failed');
+      expect(errorSpy).toHaveBeenCalled();
+      const logged = String(errorSpy.mock.calls[0][0]);
+      expect(logged).toContain('markAsDNF');
+      expect(logged).toContain('DNF failed');
       errorSpy.mockRestore();
     });
   });

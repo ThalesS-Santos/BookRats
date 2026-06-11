@@ -41,13 +41,16 @@ service cloud.firestore {
         (data.total_claps_received is int ? data.total_claps_received : 0);
     }
 
+    // 🛡️ `is map` (not just != null) — if a legacy/malformed doc stored
+    // socialSummary as a scalar, `in` over a non-map would ERROR during rule
+    // evaluation and deny every ranking update (including the self-repair).
     function getSocialPages(data) {
-      return ('socialSummary' in data && data.socialSummary != null && 'totalPagesRead' in data.socialSummary) ? 
+      return ('socialSummary' in data && data.socialSummary is map && 'totalPagesRead' in data.socialSummary) ?
         (data.socialSummary.totalPagesRead is int ? data.socialSummary.totalPagesRead : 0) : 0;
     }
 
     function getSocialStreak(data) {
-      return ('socialSummary' in data && data.socialSummary != null && 'currentStreak' in data.socialSummary) ? 
+      return ('socialSummary' in data && data.socialSummary is map && 'currentStreak' in data.socialSummary) ?
         (data.socialSummary.currentStreak is int ? data.socialSummary.currentStreak : 0) : 0;
     }
 

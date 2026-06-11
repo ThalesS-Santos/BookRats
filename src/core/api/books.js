@@ -1,4 +1,3 @@
-import { mapFirebaseError } from '@utils/errorMapper';
 import { sanitizeEchoText } from '@utils/sanitize';
 import { updateStreak, getLocalDateString } from '@utils/streak';
 import {
@@ -24,17 +23,23 @@ import {
 } from 'firebase/firestore';
 
 import { db } from '@core/firebase/firebase';
-import { Logger } from '@core/services/Logger';
+import { createLogger } from '@core/observability';
 
 import { BOOK_STATUS } from '../constants/bookStatus';
+
+const log = createLogger('core.api.books');
 
 export const deleteBook = async (uid, bookId) => {
   try {
     const bookRef = doc(db, 'users', uid, 'books', bookId);
     await deleteDoc(bookRef);
   } catch (error) {
-    Logger.error('Error deleting book:', error);
-    throw new Error(mapFirebaseError(error));
+    throw log.failure(error, {
+      op: 'deleteBook',
+      action: 'delete',
+      resource: `users/${uid}/books/${bookId}`,
+      context: { uid, bookId },
+    });
   }
 };
 
@@ -45,7 +50,12 @@ export const getUserReadingLogs = async uid => {
     const snap = await getDocs(q);
     return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
-    Logger.error('Error getting reading logs:', error);
+    log.exception(error, {
+      op: 'getUserReadingLogs',
+      action: 'query',
+      resource: `users/${uid}/readingLogs`,
+      context: { uid },
+    });
     return [];
   }
 };
@@ -67,7 +77,12 @@ export const addReadingLog = async (uid, bookId, delta) => {
       { merge: true },
     );
   } catch (error) {
-    Logger.error('Error adding reading log:', error);
+    log.exception(error, {
+      op: 'addReadingLog',
+      action: 'write',
+      resource: `users/${uid}/readingLogs/${getLocalDateString()}`,
+      context: { uid, bookId, delta },
+    });
   }
 };
 
@@ -119,8 +134,12 @@ export const addBook = async (
     });
     return bookRef.id;
   } catch (error) {
-    Logger.error('Error adding book:', error);
-    throw new Error(mapFirebaseError(error));
+    throw log.failure(error, {
+      op: 'addBook',
+      action: id ? 'write' : 'create',
+      resource: `users/${uid}/books/${id || '(new)'}`,
+      context: { uid, bookId: id, title, totalPages: pages, status },
+    });
   }
 };
 
@@ -152,7 +171,13 @@ export const updateBookProgress = async (
     throw new Error('Erro de validação: Verifique os números informados.');
   }
 
-  const { streak, lastReadDate, maxReadingSession = 0 } = streakData;
+  const {
+    streak,
+    lastReadDate,
+    maxReadingSession = 0,
+    totalPagesRead = 0,
+    totalBooksCompleted = 0,
+  } = streakData;
   const todayStr = getLocalDateString();
   const newStreak = updateStreak(lastReadDate, streak);
   const pagesReadToday = Math.max(0, nPage - book.currentPage);
@@ -205,10 +230,27 @@ export const updateBookProgress = async (
     // 🌟 Add Global Reading Log
     await addReadingLog(uid, book.id, pagesReadToday);
 
-    return { pagesReadToday, isCompleted };
+    const justCompleted = isCompleted && !wasCompleted;
+    return {
+      pagesReadToday,
+      isCompleted,
+      wasCompleted,
+      justCompleted,
+      sessionSeconds: tSeconds,
+      newStreak,
+      // Post-update lifetime totals (store value updates async via listener,
+      // so we derive them here for immediate milestone evaluation).
+      newTotalPagesRead: totalPagesRead + pagesReadToday,
+      newTotalBooksCompleted:
+        totalBooksCompleted + (justCompleted ? 1 : isRegressing ? -1 : 0),
+    };
   } catch (error) {
-    Logger.error('Error updating progress:', error);
-    throw new Error(mapFirebaseError(error));
+    throw log.failure(error, {
+      op: 'updateBookProgress',
+      action: 'update',
+      resource: `users/${uid}/books/${book.id}`,
+      context: { uid, bookId: book.id, newPage: nPage, pagesReadToday },
+    });
   }
 };
 
@@ -227,8 +269,12 @@ export const updateBook = async (uid, bookId, updates) => {
       updatedAt: serverTimestamp(),
     });
   } catch (error) {
-    Logger.error('Error updating book:', error);
-    throw new Error(mapFirebaseError(error));
+    throw log.failure(error, {
+      op: 'updateBook',
+      action: 'update',
+      resource: `users/${uid}/books/${bookId}`,
+      context: { uid, bookId, fields: Object.keys(updates || {}) },
+    });
   }
 };
 
@@ -248,8 +294,12 @@ export const getUserBooks = async uid => {
     const snap = await getDocs(booksRef);
     return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
-    Logger.error('Error getting user books:', error);
-    throw new Error(mapFirebaseError(error));
+    throw log.failure(error, {
+      op: 'getUserBooks',
+      action: 'query',
+      resource: `users/${uid}/books`,
+      context: { uid },
+    });
   }
 };
 
@@ -304,8 +354,12 @@ export const addAnnotation = async (
       timestamp: serverTimestamp(),
     });
   } catch (error) {
-    Logger.error('Error adding annotation:', error);
-    throw new Error(mapFirebaseError(error));
+    throw log.failure(error, {
+      op: 'addAnnotation',
+      action: 'create',
+      resource: `users/${uid}/books/${bookId}/annotations`,
+      context: { uid, bookId, page: pageNum, isPublic, isReply: !!parentId },
+    });
   }
 };
 
@@ -326,7 +380,11 @@ export const getUserAnnotations = async (uid, bookId, onlyPublic = false) => {
     const snap = await getDocs(q);
     return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
-    Logger.error('Error getting annotations:', error);
-    throw new Error(mapFirebaseError(error));
+    throw log.failure(error, {
+      op: 'getUserAnnotations',
+      action: 'query',
+      resource: `users/${uid}/books/${bookId}/annotations`,
+      context: { uid, bookId, onlyPublic },
+    });
   }
 };

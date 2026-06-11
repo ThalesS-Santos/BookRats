@@ -52,6 +52,8 @@ describe('Auth Slice', () => {
       authError: null,
       loading: false,
       fetchUserData: jest.fn(),
+      startNotificationsListener: jest.fn(() => jest.fn()),
+      startSocialListeners: jest.fn(() => jest.fn()),
     };
   });
 
@@ -63,9 +65,20 @@ describe('Auth Slice', () => {
       expect(setMock).toHaveBeenCalledWith({ user, loading: false });
       expect(setMock).toHaveBeenCalledWith({ loadingBooks: true });
       expect(state.fetchUserData).toHaveBeenCalledWith('123');
+      expect(state.startNotificationsListener).toHaveBeenCalledWith('123');
+      expect(state.startSocialListeners).toHaveBeenCalledWith('123');
+      expect(setMock).toHaveBeenCalledWith({
+        unsubNotifications: expect.any(Function),
+        unsubSocialListeners: expect.any(Function),
+      });
     });
 
     it('should clear books and stats if user is null', () => {
+      const unsubNotifications = jest.fn();
+      const unsubSocialListeners = jest.fn();
+      state.unsubNotifications = unsubNotifications;
+      state.unsubSocialListeners = unsubSocialListeners;
+
       state.setAuthUser(null);
       expect(setMock).toHaveBeenCalledWith({ user: null, loading: false });
       expect(setMock).toHaveBeenCalledWith({
@@ -74,6 +87,25 @@ describe('Auth Slice', () => {
         totalPagesRead: 0,
         lastReadDate: null,
         loadingBooks: false,
+        repairLocked: false,
+        repairAttempts: 0,
+        unsubUserData: null,
+        unsubNotifications: null,
+        unsubSocialListeners: null,
+      });
+      expect(unsubNotifications).toHaveBeenCalled();
+      expect(unsubSocialListeners).toHaveBeenCalled();
+    });
+
+    it('should skip listener wiring when helpers are unavailable', () => {
+      state.startNotificationsListener = undefined;
+      state.startSocialListeners = undefined;
+
+      state.setAuthUser({ uid: 'abc' });
+
+      expect(setMock).not.toHaveBeenCalledWith({
+        unsubNotifications: expect.any(Function),
+        unsubSocialListeners: expect.any(Function),
       });
     });
   });
@@ -152,7 +184,7 @@ describe('Auth Slice', () => {
       state.user = { uid: '123' };
       const presenceSpy = jest
         .spyOn(state, 'updatePresence')
-        .mockImplementation();
+        .mockResolvedValue(undefined);
       await state.signOut();
 
       expect(presenceSpy).toHaveBeenCalledWith(false, '123');
@@ -167,11 +199,20 @@ describe('Auth Slice', () => {
 
       await state.signOut();
 
-      expect(errorSpy).toHaveBeenCalledWith(
-        'Sign out error:',
-        expect.any(Error),
-      );
+      expect(errorSpy).toHaveBeenCalled();
+      const logged = String(errorSpy.mock.calls[0][0]);
+      expect(logged).toContain('signOut');
+      expect(logged).toContain('Signout error');
       errorSpy.mockRestore();
+    });
+
+    it('should skip presence update when user is missing', async () => {
+      state.user = null;
+
+      await state.signOut();
+
+      expect(apiSignOut).toHaveBeenCalled();
+      expect(apiUpdatePresence).not.toHaveBeenCalled();
     });
   });
 
@@ -193,19 +234,42 @@ describe('Auth Slice', () => {
       expect(apiUpdatePresence).not.toHaveBeenCalled();
     });
 
-    it('should log error on failure', async () => {
+    it('should log a structured error on failure', async () => {
       state.user = { uid: 'state_uid' };
       apiUpdatePresence.mockRejectedValueOnce(new Error('Presence error'));
       const errorSpy = jest.spyOn(console, 'error').mockImplementation();
 
       await state.updatePresence(true);
 
-      expect(errorSpy).toHaveBeenCalledWith(
-        expect.stringContaining(
-          'Presence update error for UID [state_uid] (isOnline: true): Presence error',
-        ),
-      );
+      expect(errorSpy).toHaveBeenCalled();
+      const logged = String(errorSpy.mock.calls[0][0]);
+      expect(logged).toContain('updatePresence');
+      expect(logged).toContain('Presence error');
       errorSpy.mockRestore();
+    });
+
+    it('should classify permission-denied with the catalog code', async () => {
+      state.user = { uid: 'state_uid' };
+      apiUpdatePresence.mockRejectedValueOnce({
+        code: 'permission-denied',
+        message: 'Missing or insufficient permissions',
+      });
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      await state.updatePresence(true);
+
+      expect(errorSpy).toHaveBeenCalled();
+      const logged = String(errorSpy.mock.calls[0][0]);
+      // The structured record carries the stable BookRats error code.
+      expect(logged).toContain('BR_FIRESTORE_PERMISSION_DENIED');
+      expect(logged).toContain('users/state_uid');
+      errorSpy.mockRestore();
+    });
+
+    it('should return when no uid is available', async () => {
+      state.user = null;
+      await state.updatePresence(true);
+      expect(apiUpdatePresence).not.toHaveBeenCalled();
     });
   });
 
@@ -229,10 +293,10 @@ describe('Auth Slice', () => {
 
       await state.updateReadingStatus('Book Title');
 
-      expect(errorSpy).toHaveBeenCalledWith(
-        'Error updating reading status:',
-        expect.any(Error),
-      );
+      expect(errorSpy).toHaveBeenCalled();
+      const logged = String(errorSpy.mock.calls[0][0]);
+      expect(logged).toContain('updateReadingStatus');
+      expect(logged).toContain('Reading error');
       errorSpy.mockRestore();
     });
   });

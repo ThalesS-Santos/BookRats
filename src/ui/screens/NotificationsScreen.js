@@ -27,21 +27,13 @@ const TXT_NO_NOTIFICATIONS =
 export default function NotificationsScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const {
-    notifications,
-    markAsRead,
-    markAllAsRead,
-    user,
-    receivedRequests,
-    startSocialListeners,
-  } = useMainStore();
+  const { notifications, markAsRead, markAllAsRead, user, receivedRequests } =
+    useMainStore();
   const { isDarkMode } = useThemeStore();
 
-  useEffect(() => {
-    if (!user) return;
-    const unsub = startSocialListeners(user.uid);
-    return unsub;
-  }, [user]);
+  // ℹ️ Social/notification listeners are already wired globally on login
+  // (authSlice.setAuthUser). Starting them again here created duplicate
+  // Firestore subscriptions, so this screen just reads the shared state.
 
   const handleNotificationPress = notif => {
     if (!notif.read && user) markAsRead(user.uid, notif.id);

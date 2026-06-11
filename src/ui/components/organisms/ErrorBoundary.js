@@ -3,8 +3,10 @@ import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { View, Text, TouchableOpacity } from 'react-native';
 
-import { Logger } from '@core/services/Logger';
+import { createLogger } from '@core/observability';
 import { useMainStore } from '@core/store';
+
+const log = createLogger('ui.ErrorBoundary');
 
 const TXT_ERROR_TITLE = 'Ops! Algo deu errado.';
 const TXT_ERROR_DESC =
@@ -23,12 +25,17 @@ export default class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     const user = useMainStore.getState().user;
-    Logger.error('React ErrorBoundary Caught Exception', error, {
-      screenName: this.props.screenName || 'unknown',
-      userId: user?.uid || null,
-      errorInfo,
-      componentStack: errorInfo?.componentStack || null,
-      jsStack: error?.stack || null,
+    log.exception(error, {
+      op: 'componentDidCatch',
+      action: 'render',
+      level: 'FATAL',
+      message: 'React render tree crashed',
+      resource: this.props.screenName || 'unknown',
+      context: {
+        screenName: this.props.screenName || 'unknown',
+        userId: user?.uid || null,
+        componentStack: errorInfo?.componentStack || null,
+      },
     });
   }
 

@@ -2,31 +2,32 @@ import { create } from 'zustand';
 
 import {
   searchUsers as apiSearchUsers,
-  sendFriendRequest as apiSendFriendRequest,
-  acceptFriendRequest as apiAcceptFriendRequest,
-  rejectFriendRequest as apiRejectFriendRequest,
   createGroup as apiCreateGroup,
-  subscribeToSentRequests,
-  subscribeToReceivedRequests,
   subscribeToGroups,
-  getUsersByIds,
   removeFriendship as apiRemoveFriendship,
   leaveGroup as apiLeaveGroup,
   getPaginatedRanking as apiGetPaginatedRanking,
   subscribeToRanking as apiSubscribeToRanking,
   addRatClap as apiAddRatClap,
 } from '@core/api/social';
-import { Logger } from '@core/services/Logger';
+import { createLogger } from '@core/observability';
 
 import { usePopupStore } from './usePopupStore';
 
-const safeRequire = require;
+const log = createLogger('store.social');
+
+// ⚠️ useMainStore must be loaded lazily (at call time) to break the require
+// cycle: @core/store → librarySlice → useSocialStore → @core/store.
+// It MUST be a literal `require('@core/store')` call — babel-module-resolver
+// only rewrites the alias on literal require/import calls, so an aliased
+// helper (the old `safeRequire`) shipped the raw '@core/store' string to
+// Metro's runtime, crashing with "Requiring unknown module".
+const getMainStore = () => require('@core/store').useMainStore;
 
 export const useSocialStore = create((set, get) => ({
-  friends: [],
-  pendingRequests: [], // Requests received
-  allReceived: [], // All received requests for resolution
-  sentRequests: [], // Requests sent
+  friends: [], // Mirrored from useMainStore (single source of truth)
+  pendingRequests: [], // Pending received requests (mirrored)
+  sentRequests: [], // Requests sent (mirrored)
   groups: [],
   searchResults: [],
   loadingSearch: false,
@@ -142,44 +143,23 @@ export const useSocialStore = create((set, get) => ({
     }
   },
 
+  // 🔗 Friend actions delegate to the main social slice, which owns the user
+  // context and passes the full argument set the API requires (the previous
+  // direct calls here were missing currentUserId/name/avatar).
   sendFriendRequest: async (senderUid, receiverUid) => {
     if (senderUid === receiverUid) return;
-    try {
-      await apiSendFriendRequest(senderUid, receiverUid);
-    } catch (error) {
-      Logger.error('Error sending friend request', error);
-      usePopupStore.getState().showPopup({
-        title: 'Erro na Solicitação',
-        message: error.message,
-        type: 'error',
-      });
-    }
+    const useMainStore = getMainStore();
+    return useMainStore.getState().sendFriendRequest(receiverUid);
   },
 
   acceptFriendRequest: async requestId => {
-    try {
-      await apiAcceptFriendRequest(requestId);
-    } catch (error) {
-      Logger.error('Error accepting friend request', error);
-      usePopupStore.getState().showPopup({
-        title: 'Erro ao Aceitar',
-        message: error.message,
-        type: 'error',
-      });
-    }
+    const useMainStore = getMainStore();
+    return useMainStore.getState().acceptFriend(requestId);
   },
 
   rejectFriendRequest: async requestId => {
-    try {
-      await apiRejectFriendRequest(requestId);
-    } catch (error) {
-      Logger.error('Error rejecting friend request', error);
-      usePopupStore.getState().showPopup({
-        title: 'Erro ao Recusar',
-        message: error.message,
-        type: 'error',
-      });
-    }
+    const useMainStore = getMainStore();
+    return useMainStore.getState().declineFriend(requestId);
   },
 
   loadingSocial: true,
@@ -188,7 +168,12 @@ export const useSocialStore = create((set, get) => ({
     try {
       return await apiCreateGroup(name, adminId, memberIds);
     } catch (error) {
-      Logger.error('Error creating group', error);
+      log.exception(error, {
+        op: 'createGroup',
+        action: 'create',
+        resource: 'groups',
+        context: { adminId },
+      });
       usePopupStore.getState().showPopup({
         title: 'Erro ao Criar Grupo',
         message: error.message,
@@ -205,121 +190,75 @@ export const useSocialStore = create((set, get) => ({
     }
 
     set({ loadingSocial: true });
-    let isSentLoaded = false;
-    let isReceivedLoaded = false;
-    let isGroupsLoaded = false;
 
-    const checkComplete = () => {
-      if (isSentLoaded && isReceivedLoaded && isGroupsLoaded) {
-        set({ loadingSocial: false });
-      }
+    // 🔗 friends / sent / received requests are owned by the main store's
+    // social slice (wired once on login). Mirror them here so screens reading
+    // useSocialStore stay in sync — without a duplicate set of Firestore
+    // listeners and without the old resolveFriendships race condition.
+    const useMainStore = getMainStore();
+
+    const syncFromMain = () => {
+      const ms = useMainStore.getState();
+      set({
+        friends: ms.friends || [],
+        sentRequests: ms.sentRequests || [],
+        pendingRequests: (ms.receivedRequests || []).map(req => ({
+          ...req,
+          senderName:
+            req.sender?.username ||
+            req.sender?.displayName ||
+            req.sender?.email?.split('@')[0] ||
+            'Convite',
+        })),
+      });
     };
 
-    // 1. Sent Requests
-    const unsubSent = subscribeToSentRequests(
-      uid,
-      async reqs => {
-        set({ sentRequests: reqs });
-        await get().resolveFriendships(uid);
-        isSentLoaded = true;
-        checkComplete();
-      },
-      error => {
-        Logger.warn('Error fetching sent requests', { error: error?.message });
-        isSentLoaded = true; // Mark as "attempted" to not block checkComplete
-        checkComplete();
+    const unsubMirror = useMainStore.subscribe(
+      state => [state.friends, state.sentRequests, state.receivedRequests],
+      syncFromMain,
+      {
+        equalityFn: (a, b) => a[0] === b[0] && a[1] === b[1] && a[2] === b[2],
+        fireImmediately: true,
       },
     );
 
-    // 2. Received Requests
-    const unsubReceived = subscribeToReceivedRequests(
-      uid,
-      async reqs => {
-        set({
-          pendingRequests: reqs.filter(r => r.status === 'pending'),
-          allReceived: reqs,
-        });
-        await get().resolveFriendships(uid);
-        isReceivedLoaded = true;
-        checkComplete();
-      },
-      error => {
-        Logger.warn('Error fetching received requests', {
-          error: error?.message,
-        });
-        isReceivedLoaded = true;
-        checkComplete();
-      },
-    );
-
-    // 3. Groups
+    // Groups stay owned by this store (the main slice doesn't track them).
     const unsubGroups = subscribeToGroups(
       uid,
       groupsList => {
-        set({ groups: groupsList });
-        isGroupsLoaded = true;
-        checkComplete();
+        set({ groups: groupsList, loadingSocial: false });
       },
       error => {
-        Logger.warn('Error fetching groups', { error: error?.message });
-        isGroupsLoaded = true;
-        checkComplete();
+        log.exception(error, {
+          op: 'subscribeToSocialData.groups',
+          action: 'listen',
+          resource: 'groups',
+          level: 'WARN',
+          context: { uid },
+        });
+        set({ loadingSocial: false });
       },
     );
 
     return () => {
-      unsubSent();
-      unsubReceived();
+      unsubMirror();
       unsubGroups();
     };
   },
 
-  resolveFriendships: async uid => {
-    const { sentRequests, allReceived = [] } = get();
-    const allRequests = [...sentRequests, ...allReceived];
-    const acceptedRequests = allRequests.filter(r => r.status === 'accepted');
-
-    // 1. Get unique friend IDs
-    const friendIds = [
-      ...new Set(
-        acceptedRequests.map(r =>
-          r.senderId === uid ? r.receiverId : r.senderId,
-        ),
-      ),
-    ];
-
-    // 2. Fetch friend details in batch ⚡
-    const friendsData = await getUsersByIds(friendIds);
-    set({ friends: friendsData });
-
-    // 3. Resolve names for pending requests in batch ⚡
-    const { pendingRequests } = get();
-    const pendingSenderIds = pendingRequests.map(req => req.senderId);
-    const pendingSendersDetails = await getUsersByIds(pendingSenderIds);
-
-    const pendingWithDetails = pendingRequests
-      .map(req => {
-        const details = pendingSendersDetails.find(d => d.id === req.senderId);
-        return details
-          ? {
-              ...req,
-              senderName: details.username || details.email.split('@')[0],
-            }
-          : null;
-      })
-      .filter(Boolean);
-
-    set({ pendingRequests: pendingWithDetails });
-  },
-
   removeFriend: async friendId => {
-    const { useMainStore } = safeRequire('@core/store');
+    const useMainStore = getMainStore();
     const { user } = useMainStore.getState();
     if (!user) return;
     try {
       await apiRemoveFriendship(user.uid, friendId);
     } catch (error) {
-      Logger.error('Error removing friend', error);
+      log.exception(error, {
+        op: 'removeFriend',
+        action: 'delete',
+        resource: 'friendships',
+        context: { uid: user.uid, friendId },
+      });
       usePopupStore.getState().showPopup({
         title: 'Erro ao Remover',
         message: error.message,
@@ -329,13 +268,18 @@ export const useSocialStore = create((set, get) => ({
   },
 
   leaveGroup: async groupId => {
-    const { useMainStore } = safeRequire('@core/store');
+    const useMainStore = getMainStore();
     const { user } = useMainStore.getState();
     if (!user) return;
     try {
       await apiLeaveGroup(groupId, user.uid);
     } catch (error) {
-      Logger.error('Error leaving group', error);
+      log.exception(error, {
+        op: 'leaveGroup',
+        action: 'update',
+        resource: `groups/${groupId}`,
+        context: { groupId, uid: user.uid },
+      });
       usePopupStore.getState().showPopup({
         title: 'Erro ao Sair',
         message: error.message,
@@ -345,7 +289,7 @@ export const useSocialStore = create((set, get) => ({
   },
 
   clapEcho: async (targetUserId, bookId, echoId) => {
-    const { useMainStore } = safeRequire('@core/store');
+    const useMainStore = getMainStore();
     const { user } = useMainStore.getState();
     if (!user) return;
     const currentUserName =
@@ -362,7 +306,12 @@ export const useSocialStore = create((set, get) => ({
         currentUserName,
       );
     } catch (error) {
-      Logger.error('Error clapping echo', error);
+      log.exception(error, {
+        op: 'clapEcho',
+        action: 'update',
+        resource: `users/${targetUserId}/books/${bookId}/annotations/${echoId}`,
+        context: { targetUserId, bookId, echoId },
+      });
       usePopupStore.getState().showPopup({
         title: 'Erro ao Curtir',
         message: error.message,

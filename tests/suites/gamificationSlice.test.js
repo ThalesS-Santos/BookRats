@@ -140,10 +140,10 @@ describe('Gamification Slice', () => {
 
       await state.calculateInfluencerBadge('user1');
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Failed to calculate influencer badge:',
-        expect.any(Error),
-      );
+      expect(consoleSpy).toHaveBeenCalled();
+      const logged = String(consoleSpy.mock.calls[0][0]);
+      expect(logged).toContain('calculateInfluencerBadge');
+      expect(logged).toContain('Firebase error');
       expect(setMock).toHaveBeenCalledWith({ calculatingBadge: false });
 
       consoleSpy.mockRestore();

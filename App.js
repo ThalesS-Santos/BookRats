@@ -16,6 +16,10 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { COLORS } from '@constants/colors';
 import { auth } from '@core/firebase/firebase';
+import {
+  configureObservability,
+  installGlobalHandlers,
+} from '@core/observability';
 import BadgeListenerService from '@core/services/BadgeListenerService';
 import { useMainStore } from '@core/store';
 import {
@@ -63,6 +67,11 @@ export default function App() {
   }, [isDarkMode, setColorScheme]);
 
   useEffect(() => {
+    // 🛰️ Observability: tag every log with platform/env and route uncaught
+    // errors + unhandled rejections into the structured logging pipeline.
+    configureObservability({ platform: Platform.OS });
+    installGlobalHandlers();
+
     BadgeListenerService.initialize();
 
     if (Platform.OS === 'android') {
@@ -93,15 +102,13 @@ export default function App() {
       updateStatus(nextAppState === 'active');
     });
 
-    // 🌟 Start Notifications Listener
-    const unsubNotifs = useMainStore
-      .getState()
-      .startNotificationsListener(currentUid);
+    // ℹ️ Notification & social listeners are wired exactly once in
+    // authSlice.setAuthUser (and torn down on logout). Do NOT start them here
+    // too — that produced duplicate Firestore subscriptions and double popups.
 
     return () => {
       subscription.remove();
       updateStatus(false); // Offline on unmount/cleanup
-      if (unsubNotifs) unsubNotifs();
     };
   }, [user]);
 

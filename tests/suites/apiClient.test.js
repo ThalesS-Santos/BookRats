@@ -2,20 +2,12 @@ import { rest } from 'msw';
 
 import { apiClient } from '@core/api/apiClient';
 import { auth } from '@core/firebase/firebase';
-import { Logger } from '@core/services/Logger';
+import { clearRecentLogs, getRecentLogs } from '@core/observability';
 import { useMainStore } from '@core/store';
 
 import { server } from '../mocks/server';
 
-// 1. Mock Logger
-jest.mock('@core/services/Logger', () => ({
-  Logger: {
-    warn: jest.fn(),
-    error: jest.fn(),
-  },
-}));
-
-// 2. Mock Firebase Auth
+// Mock Firebase Auth
 jest.mock('@core/firebase/firebase', () => ({
   auth: {
     currentUser: null,
@@ -25,6 +17,7 @@ jest.mock('@core/firebase/firebase', () => ({
 describe('ApiClient Interceptors & Logic', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    clearRecentLogs();
     useMainStore.setState({
       signOut: jest.fn(),
     });
@@ -83,11 +76,14 @@ describe('ApiClient Interceptors & Logic', () => {
         apiClient.get('https://api.bookrats.com/500-endpoint'),
       ).rejects.toThrow('Erro interno no servidor remoto.');
 
-      expect(Logger.error).toHaveBeenCalledWith(
-        expect.stringContaining('Server Error 500'),
-        null,
-        expect.any(Object),
-      );
+      expect(
+        getRecentLogs().some(
+          r =>
+            r.message === 'Remote server error' &&
+            r.providerCode === 'HTTP_500' &&
+            r.levelName === 'ERROR',
+        ),
+      ).toBe(true);
     });
 
     it('should handle 401 Unauthorized and call global signOut ONLY ONCE (Race Condition test)', async () => {
@@ -105,10 +101,13 @@ describe('ApiClient Interceptors & Logic', () => {
         apiClient.get('https://api.bookrats.com/401-endpoint'),
       ]);
 
-      expect(Logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('401 Unauthorized'),
-        expect.any(Object),
-      );
+      expect(
+        getRecentLogs().some(
+          r =>
+            r.providerCode === 'HTTP_401' &&
+            r.message.toLowerCase().includes('unauthorized'),
+        ),
+      ).toBe(true);
 
       expect(mockSignOut).toHaveBeenCalled();
     });
@@ -152,9 +151,8 @@ describe('ApiClient Interceptors & Logic', () => {
       );
 
       await apiClient.get('https://api.bookrats.com/token-fail');
-      expect(Logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Failed to retrieve Firebase token'),
-        expect.any(Object),
+      expect(getRecentLogs().some(r => r.op === 'request.authHeader')).toBe(
+        true,
       );
     });
 
@@ -168,10 +166,13 @@ describe('ApiClient Interceptors & Logic', () => {
       await expect(
         apiClient.get('https://api.bookrats.com/network-fail'),
       ).rejects.toThrow();
-      expect(Logger.error).toHaveBeenCalledWith(
-        expect.stringContaining('Request failed'),
-        expect.any(Object),
-      );
+      // Network failures are classified as retryable (logged as WARN/ERROR),
+      // but a structured record for the failed request must exist.
+      expect(
+        getRecentLogs().some(
+          r => r.op === 'request' && r.level >= 30, // WARN or above
+        ),
+      ).toBe(true);
     });
 
     it('should work correctly with PUT and DELETE methods', async () => {

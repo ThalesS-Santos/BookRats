@@ -2,19 +2,10 @@ import React, { useEffect } from 'react';
 
 import { render, fireEvent } from '@testing-library/react-native';
 
-import { Logger } from '@core/services/Logger';
+import { clearRecentLogs, getRecentLogs } from '@core/observability';
 import { ErrorBoundary } from '@ui/components';
 
-// 1. Mock the Logger to spy on its calls
-jest.mock('@core/services/Logger', () => ({
-  Logger: {
-    error: jest.fn(),
-    warn: jest.fn(),
-    info: jest.fn(),
-  },
-}));
-
-// 2. Suppress console.error inside jest to avoid polluting test output when the boundary catches it intentionally
+// Suppress console.error inside jest to avoid polluting test output when the boundary catches it intentionally
 beforeAll(() => {
   jest.spyOn(console, 'error').mockImplementation(() => {});
 });
@@ -25,6 +16,7 @@ afterAll(() => {
 describe('ErrorBoundary Resiliency', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    clearRecentLogs();
   });
 
   const ProblematicComponent = ({ shouldCrash }) => {
@@ -63,12 +55,15 @@ describe('ErrorBoundary Resiliency', () => {
       ),
     ).toBeTruthy();
 
-    // Logger should have been called
-    expect(Logger.error).toHaveBeenCalledWith(
-      'React ErrorBoundary Caught Exception',
-      expect.any(Error),
-      expect.objectContaining({ errorInfo: expect.anything() }),
-    );
+    // A structured FATAL record should have been logged for the crash.
+    expect(
+      getRecentLogs().some(
+        r =>
+          r.logger === 'ui.ErrorBoundary' &&
+          r.levelName === 'FATAL' &&
+          r.op === 'componentDidCatch',
+      ),
+    ).toBe(true);
   });
 
   it('should reset the state when "Tentar Novamente" is pressed', () => {

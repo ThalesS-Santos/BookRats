@@ -56,6 +56,8 @@ export const useMainStore = create(
           lastReadDate: state.lastReadDate,
           maxReadingSession: state.maxReadingSession,
           totalBooksCompleted: state.totalBooksCompleted,
+          // Lifetime milestones already announced (so they never re-fire).
+          announcedMilestones: state.announcedMilestones,
 
           // --- Dados de Gamificação (gamificationSlice) ---
           totalClaps: state.totalClaps,

@@ -110,20 +110,23 @@ describe('NotificationService', () => {
       );
     });
 
-    it('should log an error if addDoc fails', async () => {
+    it('should log an error if addDoc fails (and not throw)', async () => {
       collection.mockReturnValueOnce({ id: 'ref1' });
       const error = new Error('Firestore write failed');
       addDoc.mockRejectedValueOnce(error);
 
-      await NotificationService.sendNotification('u2', {
-        type: 'CLAP_ECHO',
-        senderId: 'u1',
-      });
+      await expect(
+        NotificationService.sendNotification('u2', {
+          type: 'CLAP_ECHO',
+          senderId: 'u1',
+        }),
+      ).resolves.not.toThrow();
 
-      expect(console.error).toHaveBeenCalledWith(
-        'Error sending notification:',
-        error,
-      );
+      // The structured logger routes the failure to console.error.
+      expect(console.error).toHaveBeenCalled();
+      const logged = String(console.error.mock.calls[0][0]);
+      expect(logged).toContain('sendNotification');
+      expect(logged).toContain('Firestore write failed');
     });
   });
 
@@ -185,10 +188,10 @@ describe('NotificationService', () => {
 
       await NotificationService.markAllAsRead('u1');
 
-      expect(console.error).toHaveBeenCalledWith(
-        'Error marking all notifications as read:',
-        error,
-      );
+      expect(console.error).toHaveBeenCalled();
+      const logged = String(console.error.mock.calls[0][0]);
+      expect(logged).toContain('markAllAsRead');
+      expect(logged).toContain('Batch failed');
     });
   });
 });

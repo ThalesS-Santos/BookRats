@@ -30,14 +30,6 @@ jest.mock('../../src/store/usePopupStore', () => ({
   },
 }));
 
-jest.mock('@core/services/Logger', () => ({
-  Logger: {
-    error: jest.fn(),
-    warn: jest.fn(),
-    info: jest.fn(),
-  },
-}));
-
 describe('Library Status Transitions (Item 20)', () => {
   let state;
   let setMock;
@@ -165,12 +157,15 @@ describe('Library Status Transitions (Item 20)', () => {
       const book = { id: 'b1', status: BOOK_STATUS.READING };
       state.books = [book];
 
-      const { Logger } = require('@core/services/Logger');
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
 
       await state.updateBookStatus('b1', 'INVALID_STATUS');
 
       expect(apiUpdateBook).not.toHaveBeenCalled();
-      expect(Logger.error).toHaveBeenCalled();
+      // The structured validation record is emitted with the BR_VALIDATION code.
+      expect(errorSpy).toHaveBeenCalled();
+      expect(String(errorSpy.mock.calls[0][0])).toContain('BR_VALIDATION');
+      errorSpy.mockRestore();
 
       const updatedBook = state.books.find(b => b.id === 'b1');
       expect(updatedBook.status).toBe(BOOK_STATUS.READING); // No change

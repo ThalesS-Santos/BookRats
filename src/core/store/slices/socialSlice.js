@@ -19,9 +19,12 @@ import {
   getUsersByIds,
 } from '@core/api/social';
 import { db } from '@core/firebase/firebase';
+import { createLogger } from '@core/observability';
 
 import { usePopupStore } from '../../../store/usePopupStore';
 import { NotificationService } from '../../services/NotificationService';
+
+const log = createLogger('core.store.social');
 
 /**
  * Social Slice handles Notifications, Group Chats, and basic Social feeds.
@@ -74,7 +77,7 @@ export const createSocialSlice = (set, get) => ({
           usePopupStore.getState().showPopup({
             title: 'Nova Interação',
             message: latestNotif.message,
-            type: 'success',
+            type: 'toast',
             icon:
               latestNotif.type === 'FRIEND_ACCEPT' ? 'people' : 'notifications',
           });
@@ -144,7 +147,12 @@ export const createSocialSlice = (set, get) => ({
       );
       // Local state will update via listener
     } catch (error) {
-      console.error('Error accepting friend:', error);
+      log.exception(error, {
+        op: 'acceptFriend',
+        action: 'update',
+        resource: `friendships/${requestId}`,
+        context: { requestId },
+      });
     } finally {
       set({ socialLoading: false });
     }
@@ -155,7 +163,12 @@ export const createSocialSlice = (set, get) => ({
     try {
       await apiRejectFriendRequest(requestId);
     } catch (error) {
-      console.error('Error declining friend:', error);
+      log.exception(error, {
+        op: 'declineFriend',
+        action: 'update',
+        resource: `friendships/${requestId}`,
+        context: { requestId },
+      });
     } finally {
       set({ socialLoading: false });
     }
@@ -168,7 +181,12 @@ export const createSocialSlice = (set, get) => ({
     try {
       await apiSendFriendRequest(user.uid, targetUserId);
     } catch (error) {
-      console.error('Error sending friend request:', error);
+      log.exception(error, {
+        op: 'sendFriendRequest',
+        action: 'create',
+        resource: 'friendships',
+        context: { senderUid: user.uid, targetUserId },
+      });
     }
   },
 
@@ -217,7 +235,11 @@ export const createSocialSlice = (set, get) => ({
         hasMoreRanking: hasMore,
       });
     } catch (error) {
-      console.error('Error fetching ranking:', error);
+      log.exception(error, {
+        op: 'fetchRanking',
+        action: 'query',
+        resource: 'users',
+      });
     } finally {
       set({ rankingLoading: false });
     }
@@ -242,7 +264,11 @@ export const createSocialSlice = (set, get) => ({
         hasMoreRanking: hasMore,
       });
     } catch (error) {
-      console.error('Error fetching next ranking page:', error);
+      log.exception(error, {
+        op: 'fetchNextRankingPage',
+        action: 'query',
+        resource: 'users',
+      });
     } finally {
       set({ loadingMoreRanking: false });
     }
@@ -296,7 +322,12 @@ export const createSocialSlice = (set, get) => ({
           chatError:
             'Erro ao carregar mensagens. Verifique se você é membro deste grupo e as regras do Firestore.',
         });
-        console.error('Firestore (Group Messages):', error.message);
+        log.exception(error, {
+          op: 'subscribeToGroupMessages',
+          action: 'listen',
+          resource: `groups/${groupId}/messages`,
+          context: { groupId },
+        });
       },
     );
 
@@ -312,16 +343,19 @@ export const createSocialSlice = (set, get) => ({
       const senderName = user.displayName || user.email.split('@')[0];
 
       const isString = typeof messageData === 'string';
+      const extra = isString ? {} : messageData;
       const text = isString ? messageData : messageData.text;
       const type = isString ? 'text' : messageData.type || 'text';
 
+      // Spread any extra metadata first, then let the canonical fields win so
+      // text/type/senderId aren't written twice with conflicting values.
       await addDoc(messagesRef, {
+        ...extra,
         text,
+        type,
         senderId: user.uid,
         senderName: senderName,
         timestamp: serverTimestamp(),
-        type,
-        ...(isString ? {} : messageData),
       });
     } catch (error) {
       usePopupStore.getState().showPopup({
