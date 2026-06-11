@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -26,27 +26,31 @@ export default function CustomPopup() {
   } = usePopupStore();
   const { isDarkMode } = useThemeStore();
 
-  const slideAnim = useRef(new Animated.Value(-150)).current;
+  // Lazy state init keeps the Animated.Value stable across renders without
+  // reading a ref during render (same pattern as RankingScreen/GroupsScreen).
+  const [slideAnim] = useState(() => new Animated.Value(-150));
 
-  const hideToast = () => {
+  const hideToast = useCallback(() => {
     Animated.timing(slideAnim, {
       toValue: -150,
       duration: 250,
       useNativeDriver: true,
     }).start(() => hidePopup());
-  };
+  }, [slideAnim, hidePopup]);
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderRelease: (evt, gestureState) => {
-        // Dismiss on swipe up or swipe left/right
-        if (gestureState.dy < -20 || Math.abs(gestureState.dx) > 50) {
-          hideToast();
-        }
-      },
-    }),
-  ).current;
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onPanResponderRelease: (evt, gestureState) => {
+          // Dismiss on swipe up or swipe left/right
+          if (gestureState.dy < -20 || Math.abs(gestureState.dx) > 50) {
+            hideToast();
+          }
+        },
+      }),
+    [hideToast],
+  );
 
   useEffect(() => {
     if (visible && type === 'toast') {
@@ -61,7 +65,7 @@ export default function CustomPopup() {
       }, 4000);
       return () => clearTimeout(timer);
     }
-  }, [visible, type]);
+  }, [visible, type, slideAnim, hideToast]);
 
   if (!visible) return null;
 
