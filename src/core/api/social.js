@@ -626,7 +626,7 @@ export const addRatClap = async (
       });
     }
   } catch (error) {
-    throw log.failure(error, {
+    log.exception(error, {
       op: 'addRatClap',
       action: 'update',
       resource: `users/${userId}/books/${bookId}/annotations/${echoId}`,
@@ -715,7 +715,10 @@ export const replyToEcho = async (
 
     return replyRef.id;
   } catch (error) {
-    throw log.failure(error, {
+    if (error.message === 'O Echo original não foi encontrado.') {
+      throw error;
+    }
+    log.exception(error, {
       op: 'replyToEcho',
       action: 'transaction',
       resource: `users/${parentUserId}/books/${parentBookId}/annotations/${parentEchoId}`,

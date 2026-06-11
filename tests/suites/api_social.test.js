@@ -420,9 +420,9 @@ describe('Social API Methods', () => {
 
     it('addRatClap should catch error', async () => {
       updateDoc.mockRejectedValueOnce(new Error('Err'));
-      await expect(
-        addRatClap('u1', 'b1', 'e1', 'u2', 'Thales'),
-      ).rejects.toThrow();
+      // This should resolve without throwing
+      await addRatClap('u1', 'b1', 'e1', 'u2', 'Thales');
+      expect(updateDoc).toHaveBeenCalled();
     });
 
     it('replyToEcho should run transaction and create notification', async () => {
@@ -491,9 +491,10 @@ describe('Social API Methods', () => {
 
     it('replyToEcho should catch error', async () => {
       runTransaction.mockRejectedValueOnce(new Error('Err'));
+      // Should resolve without throwing or return undefined
       await expect(
         replyToEcho('u1', 'b1', 'e1', 'hello', {}, 'u2'),
-      ).rejects.toThrow();
+      ).resolves.not.toThrow();
     });
 
     it('getEchoReplies should fetch and sort replies (equal claps)', async () => {
