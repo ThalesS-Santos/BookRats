@@ -23,7 +23,7 @@ const PIXEL_BORDER = 3;
 
 const BookLoader = ({ isVisible = true, bookCover = null }) => {
   const { isDarkMode } = useThemeStore();
-  const [curiosity, setCuriosity] = useState('');
+  const [curiosity, setCuriosity] = useState(CURIOSITIES[0]);
   const [shouldRender, setShouldRender] = useState(isVisible);
   const [fadeAnim] = useState(() => new Animated.Value(isVisible ? 1 : 0));
 
@@ -35,15 +35,24 @@ const BookLoader = ({ isVisible = true, bookCover = null }) => {
   const TEXT_MUTED = isDarkMode ? '#94A3B8' : '#64748B';
 
   useEffect(() => {
+    if (!isVisible) return;
+    const id = setTimeout(() => setShouldRender(true), 0);
+    return () => clearTimeout(id);
+  }, [isVisible]);
+
+  useEffect(() => {
     if (isVisible) {
-      setCuriosity(CURIOSITIES[Math.floor(Math.random() * CURIOSITIES.length)]);
-      setShouldRender(true);
+      if (!shouldRender) return;
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 300,
         useNativeDriver: true,
-      }).start();
-    } else {
+      }).start(() => {
+        setCuriosity(
+          CURIOSITIES[Math.floor(Math.random() * CURIOSITIES.length)],
+        );
+      });
+    } else if (shouldRender) {
       Animated.timing(fadeAnim, {
         toValue: 0,
         duration: 300,
@@ -52,7 +61,7 @@ const BookLoader = ({ isVisible = true, bookCover = null }) => {
         setShouldRender(false);
       });
     }
-  }, [isVisible, fadeAnim]);
+  }, [isVisible, shouldRender, fadeAnim]);
 
   if (!shouldRender) return null;
 

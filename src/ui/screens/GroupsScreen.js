@@ -333,7 +333,7 @@ export default function GroupsScreen({ navigation }) {
         debouncedSearch.cancel();
       }
     },
-    [debouncedSearch, user?.uid],
+    [debouncedSearch, user],
   );
 
   const handleCreateGroup = async () => {

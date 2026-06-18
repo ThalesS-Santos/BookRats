@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 
 import { Ionicons } from '@expo/vector-icons';
 import { useRoute } from '@react-navigation/native';

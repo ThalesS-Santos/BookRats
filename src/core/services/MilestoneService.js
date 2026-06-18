@@ -197,7 +197,11 @@ export const MilestoneService = {
           0,
         ) + (result.sessionSeconds || 0);
       chatMessages.push(
-        MilestoneService.buildCompletionMessage(userName, book.title, bookSeconds),
+        MilestoneService.buildCompletionMessage(
+          userName,
+          book.title,
+          bookSeconds,
+        ),
       );
     }
 
