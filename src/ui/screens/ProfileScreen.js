@@ -8,7 +8,9 @@ import { COLORS } from '@constants/colors'; // ✅ FIX #3: import no topo, fora 
 import { BOOK_STATUS } from '@core/constants/bookStatus';
 import { UserNormalizationService } from '@core/services/UserNormalizationService';
 import { useMainStore } from '@core/store';
+import { selectUnreadCount } from '@core/store/selectors';
 import { FastAvatar } from '@ui/components';
+import { useBadgeWall } from '@ui/hooks/useBadgeWall';
 
 import { usePopupStore } from '../../store/usePopupStore';
 import { useThemeStore } from '../../store/useThemeStore';
@@ -26,7 +28,6 @@ const InfoRow = ({
   onPress,
   accentColor,
   showCompleted,
-  isDarkMode,
 }) => (
   <TouchableOpacity
     onPress={onPress}
@@ -66,19 +67,21 @@ export default function ProfileScreen({ navigation }) {
   const unlockedBadges = useMainStore(state => state.unlockedBadges) || {};
   // ✅ FIX #2: seletores individuais evitam re-render em qualquer mudança do store
   const hasInfluencerBadge = useMainStore(state => state.hasInfluencerBadge);
-  const unreadCount = useMainStore(state => state.unreadCount);
+  const unreadCount = useMainStore(selectUnreadCount);
   const totalBooksCompleted = useMainStore(state => state.totalBooksCompleted);
   const signOut = useMainStore(state => state.signOut);
   const { showPopup } = usePopupStore();
 
-  const [badgeFilter, setBadgeFilter] = useState('all'); // 'all', 'unlocked', 'locked', 'recent'
-  const [badgeLimit, setBadgeLimit] = useState(9);
   const [showTrophyWall, setShowTrophyWall] = useState(false);
 
   const accentColor = isDarkMode ? COLORS.primary.dark : COLORS.primary.light;
-  const readingBooks = books.filter(
-    b => b.status === BOOK_STATUS.READING,
-  ).length;
+  const readingBooks = useMemo(() => {
+    return (books || []).filter(b => b.status === BOOK_STATUS.READING).length;
+  }, [books]);
+
+  const completedBooksList = useMemo(() => {
+    return (books || []).filter(b => b.status === BOOK_STATUS.READ);
+  }, [books]);
 
   const userData = useMemo(
     () => ({
@@ -90,69 +93,18 @@ export default function ProfileScreen({ navigation }) {
     [streak, totalPagesRead, totalBooksCompleted, readingBooks],
   );
 
-  const totalUnlocked = useMemo(() => {
-    return ALL_BADGES.filter(badge => badge.check(userData)).length;
-  }, [userData]);
-
-  const processedBadges = useMemo(() => {
-    const badgesWithStatus = ALL_BADGES.map(badge => {
-      const isUnlocked = badge.check(userData);
-      const bId = badge.id;
-      let unlockInfo;
-      if (
-        typeof bId === 'string' &&
-        bId !== '__proto__' &&
-        bId !== 'constructor' &&
-        bId !== 'prototype'
-      ) {
-        unlockInfo = Object.prototype.hasOwnProperty.call(unlockedBadges, bId)
-          ? unlockedBadges[bId]
-          : undefined;
-      }
-      const dateUnlocked = unlockInfo?.dateUnlocked
-        ? new Date(unlockInfo.dateUnlocked).getTime()
-        : 0;
-      return { ...badge, isUnlocked, dateUnlocked };
-    });
-
-    let filtered = badgesWithStatus;
-    if (badgeFilter === 'unlocked') {
-      filtered = badgesWithStatus.filter(b => b.isUnlocked);
-    } else if (badgeFilter === 'locked') {
-      filtered = badgesWithStatus.filter(b => !b.isUnlocked);
-    } else if (badgeFilter === 'recent') {
-      filtered = badgesWithStatus.filter(b => b.isUnlocked);
-    }
-
-    if (badgeFilter === 'all') {
-      filtered.sort((a, b) => {
-        if (a.isUnlocked && !b.isUnlocked) return -1;
-        if (!a.isUnlocked && b.isUnlocked) return 1;
-        if (a.isUnlocked && b.isUnlocked) {
-          if (a.dateUnlocked > 0 && b.dateUnlocked > 0)
-            return b.dateUnlocked - a.dateUnlocked;
-          if (a.dateUnlocked > 0 && b.dateUnlocked === 0) return -1;
-          if (a.dateUnlocked === 0 && b.dateUnlocked > 0) return 1;
-          return 0;
-        }
-        return 0;
-      });
-    } else if (badgeFilter === 'recent' || badgeFilter === 'unlocked') {
-      filtered.sort((a, b) => {
-        if (a.dateUnlocked > 0 && b.dateUnlocked > 0)
-          return b.dateUnlocked - a.dateUnlocked;
-        if (a.dateUnlocked > 0) return -1;
-        if (b.dateUnlocked > 0) return 1;
-        return 0;
-      });
-    }
-
-    return filtered;
-  }, [badgeFilter, unlockedBadges, userData]);
-
-  const visibleBadges = useMemo(() => {
-    return processedBadges.slice(0, badgeLimit);
-  }, [processedBadges, badgeLimit]);
+  // 🎯 Trophy-wall derived state centralized in a hook (Etapa 14). For the
+  // current user we pass the persisted unlock map so ordering uses real dates.
+  const {
+    badgeFilter,
+    badgeLimit,
+    totalUnlocked,
+    processedBadges,
+    visibleBadges,
+    selectFilter,
+    showMore,
+    showLess,
+  } = useBadgeWall(userData, { unlockedBadges });
 
   const handleSignOut = () => {
     showPopup({
@@ -303,10 +255,9 @@ export default function ProfileScreen({ navigation }) {
                   key={tab.id}
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setBadgeFilter(tab.id);
-                    setBadgeLimit(9);
+                    selectFilter(tab.id);
                   }}
-                  className={`py-2 rounded-xl flex-1 items-center ${isActive ? 'bg-primary dark:bg-primary-dark shadow-sm' : ''}`}>
+                  className={`py-2 rounded-xl flex-1 items-center ${isActive ? 'bg-primary dark:bg-primary-dark' : ''}`}>
                   <Text
                     className={`text-[10px] font-bold ${isActive ? 'text-white font-serif' : 'text-text-muted-light dark:text-text-muted-dark'}`}>
                     {tab.label}
@@ -372,7 +323,7 @@ export default function ProfileScreen({ navigation }) {
               <TouchableOpacity
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                  setBadgeLimit(prev => prev + 9);
+                  showMore();
                 }}
                 className="flex-1 p-4 rounded-xl border border-primary/30 dark:border-primary-dark/30 bg-primary/5 dark:bg-primary-dark/5 flex-row justify-center items-center mr-1">
                 <Ionicons
@@ -390,7 +341,7 @@ export default function ProfileScreen({ navigation }) {
               <TouchableOpacity
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                  setBadgeLimit(prev => Math.max(9, prev - 9));
+                  showLess();
                 }}
                 className="flex-1 p-4 rounded-xl border border-gray-400/30 bg-gray-400/5 flex-row justify-center items-center ml-1">
                 <Ionicons
@@ -419,25 +370,22 @@ export default function ProfileScreen({ navigation }) {
           onPress={() => setShowCompleted(!showCompleted)}
           accentColor={accentColor}
           showCompleted={showCompleted}
-          isDarkMode={isDarkMode}
         />
 
         {showCompleted && (
           <View className="mb-4 bg-background-light dark:bg-background-dark p-4 rounded-2xl border border-border-light dark:border-border-dark -mt-2">
-            {books
-              .filter(b => b.status === BOOK_STATUS.READ)
-              .map((b, idx, arr) => (
-                <View
-                  key={b.id}
-                  className={`flex-row justify-between items-center py-2 ${idx !== arr.length - 1 ? 'border-b border-border-light dark:border-border-dark' : ''}`}>
-                  <Text className="text-text-light dark:text-text-dark font-bold text-sm flex-1 mr-2">
-                    {b.title}
-                  </Text>
-                  <Text className="text-text-muted-light dark:text-text-muted-dark text-xs">
-                    {b.totalPages} pág.
-                  </Text>
-                </View>
-              ))}
+            {completedBooksList.map((b, idx, arr) => (
+              <View
+                key={b.id}
+                className={`flex-row justify-between items-center py-2 ${idx !== arr.length - 1 ? 'border-b border-border-light dark:border-border-dark' : ''}`}>
+                <Text className="text-text-light dark:text-text-dark font-bold text-sm flex-1 mr-2">
+                  {b.title}
+                </Text>
+                <Text className="text-text-muted-light dark:text-text-muted-dark text-xs">
+                  {b.totalPages} pág.
+                </Text>
+              </View>
+            ))}
             {totalBooksCompleted === 0 && (
               <Text className="text-text-muted-light dark:text-text-muted-dark text-sm text-center">
                 Nenhum livro lido ainda.
@@ -452,7 +400,6 @@ export default function ProfileScreen({ navigation }) {
           icon="layers-outline"
           accentColor={accentColor}
           showCompleted={showCompleted}
-          isDarkMode={isDarkMode}
         />
       </View>
 

@@ -15,6 +15,7 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { UserNormalizationService } from '@core/services/UserNormalizationService';
 import { useMainStore } from '@core/store';
+import { buildFriendsRanking } from '@core/store/selectors';
 import { FastAvatar } from '@ui/components';
 import { Skeleton } from '@ui/components';
 
@@ -36,12 +37,12 @@ const RankingItem = React.memo(
     const { COLORS } = require('@constants/colors');
     const { isDarkMode } = useThemeStore();
 
-    // Animation Logic
-    const [fadeAnim] = useState(() => new Animated.Value(0));
-    const [slideAnim] = useState(() => new Animated.Value(20));
+    // Animation Logic - Only animate first visible items to control costs (Step 19)
+    const [fadeAnim] = useState(() => new Animated.Value(index < 6 ? 0 : 1));
+    const [slideAnim] = useState(() => new Animated.Value(index < 6 ? 20 : 0));
 
     useEffect(() => {
-      if (isFocused) {
+      if (isFocused && index < 6) {
         // Reset values before starting animation to allow re-triggering
         fadeAnim.setValue(0);
         slideAnim.setValue(20);
@@ -50,14 +51,14 @@ const RankingItem = React.memo(
           Animated.timing(fadeAnim, {
             toValue: 1,
             duration: 400,
-            delay: Math.min(index, 10) * 50, // Caps delay for long lists
+            delay: index * 50, // Staggers delay
             easing: Easing.out(Easing.quad),
             useNativeDriver: true,
           }),
           Animated.timing(slideAnim, {
             toValue: 0,
             duration: 400,
-            delay: Math.min(index, 10) * 50,
+            delay: index * 50,
             easing: Easing.out(Easing.quad),
             useNativeDriver: true,
           }),
@@ -104,11 +105,17 @@ const RankingItem = React.memo(
       );
     }
 
+    const handlePress = () => {
+      if (!item.isSkeleton && onPress) {
+        onPress(item.id);
+      }
+    };
+
     return (
       <Animated.View
         style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
         <TouchableOpacity
-          onPress={onPress}
+          onPress={handlePress}
           activeOpacity={0.7}
           className={`p-8 mb-6 rounded-[32px] border shadow-sm bg-card-light dark:bg-card-dark`}
           style={{
@@ -190,36 +197,144 @@ const RankingItem = React.memo(
 );
 RankingItem.displayName = 'RankingItem';
 
+// 🎨 Componente Header Separado e Memoizado (Etapa 20)
+const RankingHeader = React.memo(
+  ({
+    isFriendsScope,
+    loadingRanking,
+    rankingList,
+    headerFade,
+    onScopeChange,
+  }) => {
+    return (
+      <Animated.View
+        style={{
+          opacity: loadingRanking && rankingList.length === 0 ? 1 : headerFade,
+          transform: [
+            {
+              translateY:
+                loadingRanking && rankingList.length === 0
+                  ? 0
+                  : headerFade.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [20, 0],
+                    }),
+            },
+          ],
+        }}>
+        <View className="px-6 pt-10 pb-4 border-b border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark z-10 w-full relative">
+          <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-1">
+            {isFriendsScope ? 'Amigos' : 'Global'}
+          </Text>
+          <Text className="text-text-light dark:text-text-dark text-3xl font-serif font-bold mb-4">
+            Top Leitores
+          </Text>
+
+          {/* 🏷️ Scope Toggle: Global vs Amigos */}
+          <View className="flex-row bg-gray-100 dark:bg-gray-800/60 rounded-2xl p-1 border border-border-light dark:border-border-dark">
+            <TouchableOpacity
+              testID="ranking-scope-global"
+              onPress={() => onScopeChange('global')}
+              // ⚠️ Sem shadow-* condicional aqui: no NativeWind, shadow-sm define
+              // variáveis CSS; ganhar essa classe após o 1º render dispara o
+              // "upgrade warning" do css-interop, que crasha em dev (stringify
+              // recursivo atinge getters do react-navigation).
+              className={`flex-1 py-2.5 rounded-xl items-center justify-center ${
+                !isFriendsScope ? 'bg-card-light dark:bg-card-dark' : ''
+              }`}>
+              <Text
+                className={`font-bold text-sm ${
+                  !isFriendsScope
+                    ? 'text-primary dark:text-primary-dark'
+                    : 'text-text-muted-light dark:text-text-muted-dark'
+                }`}>
+                Global
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              testID="ranking-scope-amigos"
+              onPress={() => onScopeChange('amigos')}
+              className={`flex-1 py-2.5 rounded-xl items-center justify-center ${
+                isFriendsScope ? 'bg-card-light dark:bg-card-dark' : ''
+              }`}>
+              <Text
+                className={`font-bold text-sm ${
+                  isFriendsScope
+                    ? 'text-primary dark:text-primary-dark'
+                    : 'text-text-muted-light dark:text-text-muted-dark'
+                }`}>
+                Amigos
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Animated.View>
+    );
+  },
+);
+RankingHeader.displayName = 'RankingHeader';
+
 export default function RankingScreen({ navigation }) {
   const { isDarkMode } = useThemeStore();
   const isFocused = useIsFocused();
   const [isReady, setIsReady] = useState(false);
+  const [activeScope, setActiveScope] = useState('global'); // 'global' | 'amigos'
   const user = useMainStore(state => state.user);
 
   // Optimized Social Store Selectors with useShallow
   const {
     rankingList,
     loadingRanking,
+    friends,
     subscribeToRanking,
     unsubscribeFromRanking,
   } = useSocialStore(
     useShallow(state => ({
       rankingList: state.rankingList,
       loadingRanking: state.loadingRanking,
+      friends: state.friends,
       subscribeToRanking: state.subscribeToRanking,
       unsubscribeFromRanking: state.unsubscribeFromRanking,
     })),
   );
 
+  // Current user's own stats, used both to seed the friends ranking and to keep
+  // the user's row optimistically up to date in the global list.
+  const myStats = useMainStore(
+    useShallow(state => ({
+      totalPagesRead: state.totalPagesRead,
+      totalClaps: state.totalClaps,
+      maxReadingSession: state.maxReadingSession,
+      lastReadingSession: state.lastReadingSession,
+      totalBooksCompleted: state.totalBooksCompleted,
+    })),
+  );
+  const myTotalPages = myStats.totalPagesRead;
+
+  const isFriendsScope = activeScope === 'amigos';
+
+  // 🎯 Friends ranking is DERIVED here via useMemo (stable reference), never as a
+  // live store selector — that is what prevents the infinite-render crash.
+  const friendsRanking = useMemo(
+    () => buildFriendsRanking(user, friends, myStats),
+    [user, friends, myStats],
+  );
+
   const [refreshing, setRefreshing] = useState(false);
   const [headerFade] = useState(() => new Animated.Value(0));
 
-  // Use dummy skeletons during initial load OR when not "ready"
-  const listData =
-    (loadingRanking && rankingList.length === 0) || !isReady
-      ? Array(10)
-          .fill({})
-          .map((_, i) => ({ id: `skeleton-${i}`, isSkeleton: true }))
+  // Global scope shows skeletons during the initial load; friends scope is local
+  // derived data, so it renders immediately.
+  const showSkeletons =
+    !isFriendsScope &&
+    ((loadingRanking && rankingList.length === 0) || !isReady);
+
+  const listData = showSkeletons
+    ? Array(10)
+        .fill({})
+        .map((_, i) => ({ id: `skeleton-${i}`, isSkeleton: true }))
+    : isFriendsScope
+      ? friendsRanking
       : rankingList;
 
   useEffect(() => {
@@ -249,8 +364,6 @@ export default function RankingScreen({ navigation }) {
     setRefreshing(false);
   };
 
-  const myTotalPages = useMainStore(state => state.totalPagesRead);
-
   const rankingData = useMemo(() => {
     // 🚀 Optimistic Update & Local Re-sorting
     const mapped = listData.map(u => ({
@@ -270,13 +383,13 @@ export default function RankingScreen({ navigation }) {
       completedBooks: u.total_books_completed || 0,
     }));
 
-    // Re-sort only if we have real data (not skeletons)
-    if (!loadingRanking && rankingList.length > 0) {
+    // Re-sort only when showing real data (not skeleton placeholders).
+    if (!showSkeletons && mapped.length > 0) {
       return mapped.sort((a, b) => b.pages - a.pages);
     }
 
     return mapped;
-  }, [listData, user, myTotalPages, loadingRanking, rankingList.length]);
+  }, [listData, user, myTotalPages, showSkeletons]);
 
   const renderMedal = useCallback(index => {
     if (index === 0) return <Text className="text-2xl">🥇</Text>;
@@ -289,6 +402,13 @@ export default function RankingScreen({ navigation }) {
     );
   }, []);
 
+  const handlePressUser = useCallback(
+    userId => {
+      navigation.navigate('UserProfile', { userId });
+    },
+    [navigation],
+  );
+
   const renderItem = useCallback(
     ({ item, index }) => (
       <RankingItem
@@ -296,16 +416,30 @@ export default function RankingScreen({ navigation }) {
         index={index}
         isFocused={isFocused}
         renderMedal={renderMedal}
-        onPress={() =>
-          !item.isSkeleton &&
-          navigation.navigate('UserProfile', { userId: item.id })
-        }
+        onPress={handlePressUser}
       />
     ),
-    [renderMedal, navigation, isFocused],
+    [renderMedal, handlePressUser, isFocused],
   );
 
   const renderFooter = () => {
+    // Friends scope: nudge the user to add friends when it's just them.
+    if (isFriendsScope) {
+      if (friendsRanking.length <= 1) {
+        return (
+          <View className="py-10 items-center px-10">
+            <Text className="text-4xl mb-3">🤝</Text>
+            <Text className="text-center font-serif italic text-text-muted-light dark:text-text-muted-dark">
+              Você ainda não adicionou amigos. Convide outros leitores para
+              competir aqui!
+            </Text>
+          </View>
+        );
+      }
+      return null;
+    }
+
+    // Global scope: spinner while paginating/refreshing.
     if (!loadingRanking || (loadingRanking && rankingList.length === 0))
       return null;
     return (
@@ -318,33 +452,20 @@ export default function RankingScreen({ navigation }) {
     );
   };
 
+  const handleScopeChange = useCallback(scope => {
+    setActiveScope(scope);
+  }, []);
+
   return (
     <View className="flex-1 bg-background-light dark:bg-background-dark">
       {/* 🚀 Sticky Main Header */}
-      <Animated.View
-        style={{
-          opacity: loadingRanking && rankingList.length === 0 ? 1 : headerFade,
-          transform: [
-            {
-              translateY:
-                loadingRanking && rankingList.length === 0
-                  ? 0
-                  : headerFade.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [20, 0],
-                    }),
-            },
-          ],
-        }}>
-        <View className="px-6 pt-10 pb-4 border-b border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark z-10 w-full relative">
-          <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-1">
-            Global
-          </Text>
-          <Text className="text-text-light dark:text-text-dark text-3xl font-serif font-bold">
-            Top Leitores
-          </Text>
-        </View>
-      </Animated.View>
+      <RankingHeader
+        isFriendsScope={isFriendsScope}
+        loadingRanking={loadingRanking}
+        rankingList={rankingList}
+        headerFade={headerFade}
+        onScopeChange={handleScopeChange}
+      />
 
       <FlatList
         data={rankingData}

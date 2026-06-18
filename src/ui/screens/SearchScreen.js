@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -58,9 +58,12 @@ export default function SearchScreen({ navigation }) {
   const accentColor = isDarkMode ? COLORS.primary.dark : COLORS.primary.light;
   const mutedTextColor = isDarkMode ? '#94A3B8' : '#64748B';
 
-  const handleSelectBook = book => {
-    navigation.navigate('BookDetails', { book });
-  };
+  const handleSelectBook = useCallback(
+    book => {
+      navigation.navigate('BookDetails', { book });
+    },
+    [navigation],
+  );
 
   const toggleSubject = id => {
     const current = filters.subjects;
@@ -89,7 +92,7 @@ export default function SearchScreen({ navigation }) {
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setShowFilters(!showFilters)}
-            className={`px-4 py-2 rounded-full flex-row items-center ${showFilters ? 'bg-primary' : 'bg-card-light dark:bg-card-dark shadow-sm'}`}>
+            className={`px-4 py-2 rounded-full flex-row items-center ${showFilters ? 'bg-primary' : 'bg-card-light dark:bg-card-dark'}`}>
             <Ionicons
               name="options-outline"
               size={18}

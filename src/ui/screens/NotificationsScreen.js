@@ -1,5 +1,4 @@
-import React from 'react';
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -64,7 +63,7 @@ export default function NotificationsScreen() {
       }, 2000); // Wait 2s to give user time to see them
       return () => clearTimeout(timer);
     }
-  }, [user, notifications.length]);
+  }, [user, notifications, markAllAsRead]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const renderItem = ({ item }) => {
     const isUnread = !item.read;
@@ -78,7 +77,7 @@ export default function NotificationsScreen() {
     return (
       <TouchableOpacity
         onPress={() => handleNotificationPress(item)}
-        className={`flex-row p-4 mb-4 rounded-3xl border ${isUnread ? 'bg-card-light dark:bg-card-dark border-primary/30 dark:border-primary-dark/30 shadow-md' : 'bg-card-light dark:bg-card-dark border-border-light dark:border-border-dark opacity-70'}`}>
+        className={`flex-row p-4 mb-4 rounded-3xl border ${isUnread ? 'bg-card-light dark:bg-card-dark border-primary/30 dark:border-primary-dark/30' : 'bg-card-light dark:bg-card-dark border-border-light dark:border-border-dark opacity-70'}`}>
         <FastAvatar
           source={UserNormalizationService.normalizeUserAvatar({
             photoURL: item.senderAvatar,

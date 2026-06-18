@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
 import { Ionicons } from '@expo/vector-icons';
 import {
   View,
   Text,
-  FlatList,
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
@@ -21,7 +20,6 @@ import {
   updateGroupDetails,
   removeGroupMember,
   addGroupMember,
-  leaveGroup,
 } from '@core/api/social';
 import { UserNormalizationService } from '@core/services/UserNormalizationService';
 import { useMainStore } from '@core/store';
@@ -76,7 +74,7 @@ export default function GroupDetailsScreen({ route, navigation }) {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadDetails();
-  }, [groupId]);
+  }, [groupId, loadDetails]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleLeaveGroup = () => {
     showPopup({
@@ -200,7 +198,7 @@ export default function GroupDetailsScreen({ route, navigation }) {
         key={item.id}
         className={`bg-card-light dark:bg-card-dark p-4 rounded-2xl mb-2 flex-row items-center justify-between border ${
           isFirst
-            ? 'border-primary dark:border-primary-dark shadow-sm border-2'
+            ? 'border-primary dark:border-primary-dark border-2'
             : 'border-border-light dark:border-border-dark'
         }`}>
         <View className="flex-row items-center flex-1">

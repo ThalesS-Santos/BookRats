@@ -1,25 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 
 import { Ionicons } from '@expo/vector-icons';
-import { calculateStreakFromLogs } from '@utils/streak';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 
 import { ALL_BADGES } from '@constants/badges';
 import { COLORS } from '@constants/colors';
-import {
-  getUserBooks,
-  getUserAnnotations,
-  getUserReadingLogs,
-} from '@core/api/books';
-import { getUserDetails } from '@core/api/social';
 import { BOOK_STATUS } from '@core/constants/bookStatus';
-import { Logger } from '@core/services/Logger';
 import { UserNormalizationService } from '@core/services/UserNormalizationService';
-import { BookLoader } from '@ui/components';
-import { FastAvatar } from '@ui/components';
+import { BookLoader, FastAvatar } from '@ui/components';
+import { useBadgeWall } from '@ui/hooks/useBadgeWall';
+import { useUserProfile } from '@ui/hooks/useUserProfile';
 
-import { useMainStore } from '../../core/store';
 import { usePopupStore } from '../../store/usePopupStore';
 import { useSocialStore } from '../../store/useSocialStore';
 import { useThemeStore } from '../../store/useThemeStore';
@@ -39,107 +30,16 @@ export default function UserProfileScreen({ route, navigation }) {
   const { removeFriend } = useSocialStore();
   const { showPopup } = usePopupStore();
 
-  const user = useMainStore(state => state.user);
-  const myTotalPages = useMainStore(state => state.totalPagesRead);
-  const myStreak = useMainStore(state => state.streak);
+  const {
+    loading,
+    friend,
+    books,
+    notes,
+    totalPagesRead,
+    streak: currentStreak,
+    completedBooks: completedBooksCount,
+  } = useUserProfile(userId);
 
-  const [loading, setLoading] = useState(true);
-  const [friend, setFriend] = useState(null);
-  const [books, setBooks] = useState([]);
-  const [notes, setNotes] = useState([]);
-  const [logs, setLogs] = useState([]);
-
-  const loadData = useCallback(async () => {
-    try {
-      const userData = await getUserDetails(userId);
-      setFriend(userData);
-
-      const isMe = userId === user?.uid;
-
-      // 1. Fetch Books (Now public in rules)
-      try {
-        const userBooks = await getUserBooks(userId);
-        setBooks(userBooks);
-      } catch (e) {
-        Logger.warn('Could not load user books', { userId, error: e?.message });
-      }
-
-      // 2. Fetch Logs (Private - Only for Me)
-      if (isMe) {
-        try {
-          const userLogs = await getUserReadingLogs(userId);
-          setLogs(userLogs);
-        } catch (e) {
-          Logger.warn('Could not load logs', { userId, error: e?.message });
-        }
-      }
-
-      // 3. Fetch Annotations
-      try {
-        // We only fetch annotations if we have books
-        // Wait, for performance we should only do this if needed
-        if (books.length > 0 || userId) {
-          const allNotes = [];
-          // Note: This loop might be slow if many books.
-          // Usually we'd use a collectionGroup query here too, but for simplicity:
-          const targetBooks =
-            books.length > 0
-              ? books
-              : await getUserBooks(userId).catch(() => []);
-
-          for (const book of targetBooks) {
-            try {
-              const annots = await getUserAnnotations(userId, book.id, !isMe);
-              allNotes.push(
-                ...annots.map(a => ({ ...a, bookTitle: book.title })),
-              );
-            } catch (e) {
-              /* ignore */
-            }
-          }
-          allNotes.sort(
-            (a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0),
-          );
-          setNotes(allNotes);
-        }
-      } catch (noteError) {
-        Logger.warn('Could not load user notes', {
-          userId,
-          error: noteError?.message,
-        });
-      }
-    } catch (error) {
-      showPopup({
-        title: 'Erro',
-        message: 'Falha ao carregar perfil.',
-        type: 'error',
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [userId, user, books, showPopup]);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadData();
-  }, [userId, loadData]);
-
-  const totalPagesRead = useMemo(() => {
-    if (userId === user?.uid) return myTotalPages;
-    const sum = logs.reduce((acc, log) => acc + (log.pagesRead || 0), 0);
-    // Fallback to friend data if logs are empty but friend has data (legacy migration)
-    return sum || friend?.total_pages_read || 0;
-  }, [logs, friend, userId, user?.uid, myTotalPages]);
-
-  const currentStreak = useMemo(() => {
-    if (userId === user?.uid) return myStreak;
-    const streak = calculateStreakFromLogs(logs);
-    return streak || friend?.current_streak || 0;
-  }, [logs, friend, userId, user?.uid, myStreak]);
-
-  const completedBooksCount = books.filter(
-    b => b.status === BOOK_STATUS.READ,
-  ).length;
   const readingBooksCount = books.filter(
     b => b.status === BOOK_STATUS.READING,
   ).length;
@@ -147,61 +47,27 @@ export default function UserProfileScreen({ route, navigation }) {
   const userData = useMemo(
     () => ({
       streak: currentStreak,
-      totalPagesRead: totalPagesRead,
+      totalPagesRead,
       completedBooks: completedBooksCount,
       readingBooks: readingBooksCount,
     }),
     [currentStreak, totalPagesRead, completedBooksCount, readingBooksCount],
   );
 
-  const [badgeFilter, setBadgeFilter] = useState('all'); // 'all', 'unlocked', 'locked', 'recent'
-  const [badgeLimit, setBadgeLimit] = useState(9);
   const [showTrophyWall, setShowTrophyWall] = useState(false);
 
-  const totalUnlocked = useMemo(() => {
-    return ALL_BADGES.filter(badge => badge.check(userData)).length;
-  }, [userData]);
-
-  const processedBadges = useMemo(() => {
-    const badgesWithStatus = ALL_BADGES.map((badge, index) => {
-      const isUnlocked = badge.check(userData);
-      return {
-        ...badge,
-        isUnlocked,
-        dateUnlocked: isUnlocked ? index : 0,
-      };
-    });
-
-    let filtered = badgesWithStatus;
-    if (badgeFilter === 'unlocked') {
-      filtered = badgesWithStatus.filter(b => b.isUnlocked);
-    } else if (badgeFilter === 'locked') {
-      filtered = badgesWithStatus.filter(b => !b.isUnlocked);
-    } else if (badgeFilter === 'recent') {
-      filtered = badgesWithStatus.filter(b => b.isUnlocked);
-    }
-
-    if (badgeFilter === 'all') {
-      filtered.sort((a, b) => {
-        if (a.isUnlocked && !b.isUnlocked) return -1;
-        if (!a.isUnlocked && b.isUnlocked) return 1;
-
-        // If both are unlocked, sort by index desc (newer badges first)
-        if (a.isUnlocked && b.isUnlocked) {
-          return b.dateUnlocked - a.dateUnlocked;
-        }
-        return 0;
-      });
-    } else if (badgeFilter === 'recent' || badgeFilter === 'unlocked') {
-      filtered.sort((a, b) => b.dateUnlocked - a.dateUnlocked);
-    }
-
-    return filtered;
-  }, [badgeFilter, userData]);
-
-  const visibleBadges = useMemo(() => {
-    return processedBadges.slice(0, badgeLimit);
-  }, [processedBadges, badgeLimit]);
+  // 🎯 Trophy-wall derived state centralized in a hook (Etapa 14). No persisted
+  // unlock map for other users, so ordering falls back to badge index.
+  const {
+    badgeFilter,
+    badgeLimit,
+    totalUnlocked,
+    processedBadges,
+    visibleBadges,
+    selectFilter,
+    showMore,
+    showLess,
+  } = useBadgeWall(userData);
 
   const handleRemoveFriend = () => {
     showPopup({
@@ -339,10 +205,9 @@ export default function UserProfileScreen({ route, navigation }) {
                   key={tab.id}
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setBadgeFilter(tab.id);
-                    setBadgeLimit(9); // Reset to 3x3 matrix on change
+                    selectFilter(tab.id); // Resets to the 3x3 matrix on change
                   }}
-                  className={`py-2 rounded-xl flex-1 items-center ${isActive ? 'bg-primary dark:bg-primary-dark shadow-sm' : ''}`}>
+                  className={`py-2 rounded-xl flex-1 items-center ${isActive ? 'bg-primary dark:bg-primary-dark' : ''}`}>
                   <Text
                     className={`text-[10px] font-bold ${isActive ? 'text-white font-serif' : 'text-text-muted-light dark:text-text-muted-dark'}`}>
                     {tab.label}
@@ -410,7 +275,7 @@ export default function UserProfileScreen({ route, navigation }) {
               <TouchableOpacity
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                  setBadgeLimit(prev => prev + 9);
+                  showMore();
                 }}
                 className="flex-1 p-4 rounded-xl border border-primary/30 dark:border-primary-dark/30 bg-primary/5 dark:bg-primary-dark/5 flex-row justify-center items-center mr-1">
                 <Ionicons
@@ -429,7 +294,7 @@ export default function UserProfileScreen({ route, navigation }) {
               <TouchableOpacity
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                  setBadgeLimit(prev => Math.max(9, prev - 9));
+                  showLess();
                 }}
                 className="flex-1 p-4 rounded-xl border border-gray-400/30 bg-gray-400/5 flex-row justify-center items-center ml-1">
                 <Ionicons
