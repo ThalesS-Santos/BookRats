@@ -137,20 +137,20 @@ export const MilestoneService = {
   detect(ctx, announced = {}, userName = 'Leitor') {
     const values = groupValues(ctx);
     const newlyAnnounced = [];
-    const highestByGroup = {};
+    const highestByGroup = new Map();
 
     for (const m of MILESTONES) {
-      if (announced[m.id]) continue;
+      if (Object.prototype.hasOwnProperty.call(announced, m.id)) continue;
       if ((values[m.group] || 0) < m.threshold) continue;
 
       newlyAnnounced.push(m.id);
-      const current = highestByGroup[m.group];
+      const current = highestByGroup.get(m.group);
       if (!current || m.threshold > current.threshold) {
-        highestByGroup[m.group] = m;
+        highestByGroup.set(m.group, m);
       }
     }
 
-    const messages = Object.values(highestByGroup).map(m =>
+    const messages = Array.from(highestByGroup.values()).map(m =>
       m.message(userName),
     );
     return { messages, newlyAnnounced };
@@ -175,7 +175,7 @@ export const MilestoneService = {
    *   `announcedUpdate` is null when no new lifetime milestone was reached.
    */
   buildProgressAnnouncements({ result, book, announced = {}, userName }) {
-    const { messages, newlyAnnounced } = this.detect(
+    const { messages, newlyAnnounced } = MilestoneService.detect(
       {
         sessionSeconds: result.sessionSeconds,
         sessionPages: result.pagesReadToday,
@@ -197,16 +197,16 @@ export const MilestoneService = {
           0,
         ) + (result.sessionSeconds || 0);
       chatMessages.push(
-        this.buildCompletionMessage(userName, book.title, bookSeconds),
+        MilestoneService.buildCompletionMessage(userName, book.title, bookSeconds),
       );
     }
 
     let announcedUpdate = null;
     if (newlyAnnounced.length > 0) {
-      announcedUpdate = { ...announced };
-      newlyAnnounced.forEach(id => {
-        announcedUpdate[id] = true;
-      });
+      announcedUpdate = {
+        ...announced,
+        ...Object.fromEntries(newlyAnnounced.map(id => [id, true])),
+      };
     }
 
     return { messages: chatMessages, announcedUpdate };

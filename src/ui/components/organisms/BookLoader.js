@@ -36,9 +36,7 @@ const BookLoader = ({ isVisible = true, bookCover = null }) => {
 
   useEffect(() => {
     if (isVisible) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCuriosity(CURIOSITIES[Math.floor(Math.random() * CURIOSITIES.length)]);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShouldRender(true);
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -54,7 +52,7 @@ const BookLoader = ({ isVisible = true, bookCover = null }) => {
         setShouldRender(false);
       });
     }
-  }, [isVisible]);
+  }, [isVisible, fadeAnim]);
 
   if (!shouldRender) return null;
 

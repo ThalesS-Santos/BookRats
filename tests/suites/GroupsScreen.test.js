@@ -48,10 +48,12 @@ jest.mock('../../src/ui/components', () => {
 // ─── InteractionManager — fire callbacks synchronously ────────────────────────
 // GroupsScreen defers rendering via runAfterInteractions (isReady gate).
 // Firing synchronously lets tests see real content instead of skeletons.
-jest.spyOn(InteractionManager, 'runAfterInteractions').mockImplementation(cb => {
-  cb();
-  return { cancel: jest.fn() };
-});
+jest
+  .spyOn(InteractionManager, 'runAfterInteractions')
+  .mockImplementation(cb => {
+    cb();
+    return { cancel: jest.fn() };
+  });
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -146,8 +148,12 @@ describe('GroupsScreen', () => {
     InteractionManager.runAfterInteractions.mockImplementationOnce(() => ({
       cancel: jest.fn(),
     }));
-    useSocialStore.mockReturnValue(makeSocialStore({ loadingSocial: true, groups: [] }));
-    const { getAllByTestId } = render(<GroupsScreen navigation={MOCK_NAVIGATION} />);
+    useSocialStore.mockReturnValue(
+      makeSocialStore({ loadingSocial: true, groups: [] }),
+    );
+    const { getAllByTestId } = render(
+      <GroupsScreen navigation={MOCK_NAVIGATION} />,
+    );
     expect(getAllByTestId('skeleton').length).toBeGreaterThan(0);
   });
 
@@ -162,7 +168,9 @@ describe('GroupsScreen', () => {
 
   it('shows member count for each group', () => {
     useSocialStore.mockReturnValue(makeSocialStore({ groups: GROUPS }));
-    const { getAllByText } = render(<GroupsScreen navigation={MOCK_NAVIGATION} />);
+    const { getAllByText } = render(
+      <GroupsScreen navigation={MOCK_NAVIGATION} />,
+    );
     expect(getAllByText('2 membros').length).toBe(2);
   });
 
@@ -452,7 +460,9 @@ describe('GroupsScreen', () => {
 
   it('calls createGroup and navigates to GroupChat on success', async () => {
     const createGroup = jest.fn().mockResolvedValue('new-group-id');
-    useSocialStore.mockReturnValue(makeSocialStore({ friends: FRIENDS, createGroup }));
+    useSocialStore.mockReturnValue(
+      makeSocialStore({ friends: FRIENDS, createGroup }),
+    );
     const { getByText, getAllByText, getByPlaceholderText } = render(
       <GroupsScreen navigation={MOCK_NAVIGATION} />,
     );
@@ -474,7 +484,9 @@ describe('GroupsScreen', () => {
 
   it('does NOT navigate when createGroup returns null', async () => {
     const createGroup = jest.fn().mockResolvedValue(null);
-    useSocialStore.mockReturnValue(makeSocialStore({ friends: FRIENDS, createGroup }));
+    useSocialStore.mockReturnValue(
+      makeSocialStore({ friends: FRIENDS, createGroup }),
+    );
     const { getByText, getAllByText, getByPlaceholderText } = render(
       <GroupsScreen navigation={MOCK_NAVIGATION} />,
     );
@@ -492,7 +504,9 @@ describe('GroupsScreen', () => {
 
   it('passes selected friends to createGroup', async () => {
     const createGroup = jest.fn().mockResolvedValue('gid');
-    useSocialStore.mockReturnValue(makeSocialStore({ friends: FRIENDS, createGroup }));
+    useSocialStore.mockReturnValue(
+      makeSocialStore({ friends: FRIENDS, createGroup }),
+    );
     const { getByText, getAllByText, getByPlaceholderText } = render(
       <GroupsScreen navigation={MOCK_NAVIGATION} />,
     );

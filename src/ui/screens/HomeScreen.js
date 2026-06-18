@@ -124,17 +124,7 @@ const HomeHeader = React.memo(
           {FILTERS.map(filter => {
             const isActive = activeFilter === filter.id;
             const fId = filter.id;
-            let count = 0;
-            if (
-              typeof fId === 'string' &&
-              fId !== '__proto__' &&
-              fId !== 'constructor' &&
-              fId !== 'prototype'
-            ) {
-              count = Object.prototype.hasOwnProperty.call(counts, fId)
-                ? counts[fId]
-                : 0;
-            }
+            const count = counts?.[fId] || 0;
             const isEmpty = count === 0;
 
             return (
@@ -260,7 +250,6 @@ export default function HomeScreen({ navigation }) {
     user,
     streak,
     loadingBooks,
-    isReady,
     fadeAnim,
     slideAnim,
     recentNotes,
@@ -324,7 +313,7 @@ export default function HomeScreen({ navigation }) {
     [setActiveFilter],
   );
 
-  const getEmptyMessage = () => {
+  const getEmptyMessage = useCallback(() => {
     switch (activeFilter) {
       case BOOK_STATUS.READ:
         return 'Você ainda não terminou nenhum livro. Continue lendo! 🚀';
@@ -335,7 +324,7 @@ export default function HomeScreen({ navigation }) {
       default:
         return 'A estante está vazia.';
     }
-  };
+  }, [activeFilter]);
 
   const renderItem = useCallback(
     ({ item }) => (
@@ -357,7 +346,7 @@ export default function HomeScreen({ navigation }) {
     ],
   );
 
-  const renderHeader = useCallback(
+  const headerComponent = useMemo(
     () => (
       <HomeHeader
         user={user}
@@ -388,7 +377,7 @@ export default function HomeScreen({ navigation }) {
     ],
   );
 
-  const renderFooter = useCallback(
+  const footerComponent = useMemo(
     () => (
       <HomeFooter
         recentNotes={recentNotes}
@@ -400,7 +389,7 @@ export default function HomeScreen({ navigation }) {
     [recentNotes, activeFilter, fadeAnim, slideAnim],
   );
 
-  const renderEmpty = useCallback(
+  const emptyComponent = useMemo(
     () => (
       <View className="flex-1 justify-center items-center bg-card-light dark:bg-card-dark rounded-ultra p-12 border border-dashed border-border-light dark:border-border-dark mt-4">
         <Ionicons
@@ -420,7 +409,7 @@ export default function HomeScreen({ navigation }) {
         </TouchableOpacity>
       </View>
     ),
-    [isDarkMode, activeFilter, navigation], // eslint-disable-line react-hooks/exhaustive-deps
+    [isDarkMode, getEmptyMessage, navigation],
   );
 
   return (
@@ -433,10 +422,10 @@ export default function HomeScreen({ navigation }) {
         initialNumToRender={10}
         maxToRenderPerBatch={10}
         windowSize={5}
-        ListHeaderComponent={renderHeader}
+        ListHeaderComponent={headerComponent}
         renderItem={renderItem}
-        ListFooterComponent={renderFooter}
-        ListEmptyComponent={renderEmpty}
+        ListFooterComponent={footerComponent}
+        ListEmptyComponent={emptyComponent}
       />
     </View>
   );

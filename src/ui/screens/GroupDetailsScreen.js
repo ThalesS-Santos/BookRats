@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -58,7 +58,7 @@ export default function GroupDetailsScreen({ route, navigation }) {
 
   const isAdmin = group?.adminId === user?.uid;
 
-  const loadDetails = async () => {
+  const loadDetails = useCallback(async () => {
     try {
       const data = await getGroupDetails(groupId);
       setGroup(data);
@@ -69,12 +69,12 @@ export default function GroupDetailsScreen({ route, navigation }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [groupId, showPopup]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadDetails();
-  }, [groupId, loadDetails]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [loadDetails]);
 
   const handleLeaveGroup = () => {
     showPopup({
@@ -101,7 +101,7 @@ export default function GroupDetailsScreen({ route, navigation }) {
     try {
       await updateGroupDetails(groupId, editName, editDescription);
       setIsEditing(false);
-      loadDetails(); // Refresh
+      await loadDetails(); // Refresh
       showPopup({
         title: 'Sucesso',
         message: 'Grupo atualizado!',
@@ -113,16 +113,16 @@ export default function GroupDetailsScreen({ route, navigation }) {
       setUpdating(false);
     }
   };
-
   const handleRemoveMember = (memberId, memberName) => {
     showPopup({
       title: 'Remover Membro',
       message: `Tem certeza que deseja remover ${memberName} do grupo?`,
       type: 'confirm',
       onConfirm: async () => {
+        setUpdating(true);
         try {
           await removeGroupMember(groupId, memberId);
-          loadDetails(); // Refresh
+          await loadDetails(); // Refresh
           showPopup({
             title: 'Sucesso',
             message: 'Membro removido!',
@@ -130,6 +130,8 @@ export default function GroupDetailsScreen({ route, navigation }) {
           });
         } catch (error) {
           showPopup({ title: 'Erro', message: error.message, type: 'error' });
+        } finally {
+          setUpdating(false);
         }
       },
     });
@@ -166,9 +168,10 @@ export default function GroupDetailsScreen({ route, navigation }) {
   };
 
   const handleAddMember = async userId => {
+    setUpdating(true);
     try {
       await addGroupMember(groupId, userId);
-      loadDetails(); // Refresh
+      await loadDetails(); // Refresh
       showPopup({
         title: 'Sucesso',
         message: 'Membro adicionado!',
@@ -176,6 +179,8 @@ export default function GroupDetailsScreen({ route, navigation }) {
       });
     } catch (error) {
       showPopup({ title: 'Erro', message: error.message, type: 'error' });
+    } finally {
+      setUpdating(false);
     }
   };
 

@@ -320,16 +320,21 @@ export default function GroupsScreen({ navigation }) {
     return () => debouncedSearch.cancel();
   }, [debouncedSearch]);
 
-  const handleSearch = text => {
-    setSearchText(text);
-    if (text.trim().length >= 3) {
-      setIsDebouncing(true);
-      debouncedSearch(text, user.uid);
-    } else {
-      setIsDebouncing(false);
-      debouncedSearch.cancel();
-    }
-  };
+  const handleSearch = useCallback(
+    text => {
+      setSearchText(text);
+      if (text.trim().length >= 3) {
+        setIsDebouncing(true);
+        if (user?.uid) {
+          debouncedSearch(text, user.uid);
+        }
+      } else {
+        setIsDebouncing(false);
+        debouncedSearch.cancel();
+      }
+    },
+    [debouncedSearch, user?.uid],
+  );
 
   const handleCreateGroup = async () => {
     if (!newGroupName.trim()) {
@@ -398,7 +403,7 @@ export default function GroupsScreen({ navigation }) {
     [handlePressFriend, isDarkMode, isFocused],
   );
 
-  const renderFriendsHeader = useCallback(() => {
+  const friendsHeader = useMemo(() => {
     return (
       <View>
         {/* Search Bar */}
@@ -649,7 +654,7 @@ export default function GroupsScreen({ navigation }) {
           initialNumToRender={10}
           maxToRenderPerBatch={10}
           windowSize={5}
-          ListHeaderComponent={renderFriendsHeader}
+          ListHeaderComponent={friendsHeader}
           ListEmptyComponent={
             !loadingSocial ? (
               <Text className="text-text-muted-light dark:text-text-muted-dark text-sm ml-2 mt-4">
