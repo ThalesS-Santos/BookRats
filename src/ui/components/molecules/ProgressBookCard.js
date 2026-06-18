@@ -28,7 +28,7 @@ const ProgressBookCard = memo(
 
     const handlePress = () => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      onPress();
+      onPress?.(book);
     };
 
     return (
@@ -94,7 +94,7 @@ const ProgressBookCard = memo(
               testID="community-btn"
               onPress={e => {
                 e.stopPropagation();
-                onCommunityPress?.();
+                onCommunityPress?.(book);
               }}
               className="bg-primary/10 dark:bg-primary-dark/10 p-2 rounded-full">
               <Ionicons name="share-social" size={18} color={accentColor} />
@@ -104,9 +104,9 @@ const ProgressBookCard = memo(
               testID="settings-btn"
               onPress={e => {
                 e.stopPropagation();
-                onConfigPress?.();
+                onConfigPress?.(book);
               }}
-              className="bg-secondary/10 dark:bg-secondary-dark/10 p-2 rounded-full">
+              className="bg-secondary/10 dark:border-secondary-dark/10 p-2 rounded-full">
               <Ionicons name="settings-outline" size={18} color={accentColor} />
             </TouchableOpacity>
 

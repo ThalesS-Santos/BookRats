@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -9,7 +9,6 @@ import {
   Dimensions,
   StyleSheet,
   TouchableOpacity,
-  ActivityIndicator,
 } from 'react-native';
 
 import { COLORS } from '@constants/colors';
@@ -55,7 +54,7 @@ const GalleryScreen = ({ route }) => {
       }
     };
     fetchEchoes();
-  }, [bookId, userCurrentPage]);
+  }, [bookId, userCurrentPage, user?.uid]);
 
   const handleClap = async (targetUserId, bId, echoId) => {
     setEchoes(prev =>

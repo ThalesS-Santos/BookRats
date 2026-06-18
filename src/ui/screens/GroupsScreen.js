@@ -31,27 +31,28 @@ import { debounce } from '../../utils/debounce';
 const TXT_CREATE_GROUP = 'Criar Grupo';
 
 // 🎨 Memoized Animated Components for Staggered Entry
+// 🎨 Memoized Animated Components for Staggered Entry
 const AnimatedGroupItem = React.memo(
-  ({ item, index, navigation, accentColor, COLORS, isDarkMode, isFocused }) => {
-    const [fadeAnim] = useState(() => new Animated.Value(0));
-    const [slideAnim] = useState(() => new Animated.Value(20));
+  ({ item, index, onPress, accentColor, isDarkMode, isFocused }) => {
+    const [fadeAnim] = useState(() => new Animated.Value(index < 6 ? 0 : 1));
+    const [slideAnim] = useState(() => new Animated.Value(index < 6 ? 20 : 0));
 
     useEffect(() => {
-      if (isFocused && !item.isSkeleton) {
+      if (isFocused && !item.isSkeleton && index < 6) {
         fadeAnim.setValue(0);
         slideAnim.setValue(20);
         Animated.parallel([
           Animated.timing(fadeAnim, {
             toValue: 1,
             duration: 400,
-            delay: Math.min(index, 10) * 50,
+            delay: index * 50,
             easing: Easing.out(Easing.quad),
             useNativeDriver: true,
           }),
           Animated.timing(slideAnim, {
             toValue: 0,
             duration: 400,
-            delay: Math.min(index, 10) * 50,
+            delay: index * 50,
             easing: Easing.out(Easing.quad),
             useNativeDriver: true,
           }),
@@ -83,12 +84,7 @@ const AnimatedGroupItem = React.memo(
       <Animated.View
         style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
         <TouchableOpacity
-          onPress={() =>
-            navigation.navigate('GroupChat', {
-              groupId: item.id,
-              groupName: item.name,
-            })
-          }
+          onPress={() => onPress(item.id, item.name)}
           className="bg-card-light dark:bg-card-dark p-6 rounded-2xl mb-4 border border-border-light dark:border-border-dark flex-row items-center justify-between shadow-sm"
           style={{
             shadowColor: COLORS.dark_blue,
@@ -125,26 +121,26 @@ const AnimatedGroupItem = React.memo(
 AnimatedGroupItem.displayName = 'AnimatedGroupItem';
 
 const AnimatedFriendItem = React.memo(
-  ({ item, index, navigation, COLORS, isDarkMode, isFocused }) => {
-    const [fadeAnim] = useState(() => new Animated.Value(0));
-    const [slideAnim] = useState(() => new Animated.Value(20));
+  ({ item, index, onPress, isDarkMode, isFocused }) => {
+    const [fadeAnim] = useState(() => new Animated.Value(index < 6 ? 0 : 1));
+    const [slideAnim] = useState(() => new Animated.Value(index < 6 ? 20 : 0));
 
     useEffect(() => {
-      if (isFocused && !item.isSkeleton) {
+      if (isFocused && !item.isSkeleton && index < 6) {
         fadeAnim.setValue(0);
         slideAnim.setValue(20);
         Animated.parallel([
           Animated.timing(fadeAnim, {
             toValue: 1,
             duration: 400,
-            delay: Math.min(index, 10) * 50,
+            delay: index * 50,
             easing: Easing.out(Easing.quad),
             useNativeDriver: true,
           }),
           Animated.timing(slideAnim, {
             toValue: 0,
             duration: 400,
-            delay: Math.min(index, 10) * 50,
+            delay: index * 50,
             easing: Easing.out(Easing.quad),
             useNativeDriver: true,
           }),
@@ -176,9 +172,7 @@ const AnimatedFriendItem = React.memo(
       <Animated.View
         style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
         <TouchableOpacity
-          onPress={() =>
-            navigation.navigate('UserProfile', { userId: item.id })
-          }
+          onPress={() => onPress(item.id)}
           className="bg-card-light dark:bg-card-dark p-6 rounded-2xl mb-3 flex-row items-center justify-between border border-border-light dark:border-border-dark shadow-sm"
           style={{
             shadowColor: COLORS.dark_blue,
@@ -363,19 +357,32 @@ export default function GroupsScreen({ navigation }) {
     }
   };
 
+  const handlePressGroup = useCallback(
+    (id, name) => {
+      navigation.navigate('GroupChat', { groupId: id, groupName: name });
+    },
+    [navigation],
+  );
+
+  const handlePressFriend = useCallback(
+    userId => {
+      navigation.navigate('UserProfile', { userId });
+    },
+    [navigation],
+  );
+
   const renderGroupItem = useCallback(
     ({ item, index }) => (
       <AnimatedGroupItem
         item={item}
         index={index}
-        navigation={navigation}
+        onPress={handlePressGroup}
         accentColor={accentColor}
-        COLORS={COLORS}
         isDarkMode={isDarkMode}
         isFocused={isFocused}
       />
     ),
-    [navigation, accentColor, isDarkMode, isFocused],
+    [handlePressGroup, accentColor, isDarkMode, isFocused],
   );
 
   const renderFriendItem = useCallback(
@@ -383,14 +390,172 @@ export default function GroupsScreen({ navigation }) {
       <AnimatedFriendItem
         item={item}
         index={index}
-        navigation={navigation}
-        COLORS={COLORS}
+        onPress={handlePressFriend}
         isDarkMode={isDarkMode}
         isFocused={isFocused}
       />
     ),
-    [navigation, isDarkMode, isFocused],
+    [handlePressFriend, isDarkMode, isFocused],
   );
+
+  const renderFriendsHeader = useCallback(() => {
+    return (
+      <View>
+        {/* Search Bar */}
+        <View className="flex-row items-center bg-card-light dark:bg-card-dark p-3 rounded-xl border border-border-light dark:border-border-dark mb-4">
+          <Ionicons
+            name="search"
+            size={20}
+            color={isDarkMode ? '#6B7280' : '#9CA3AF'}
+            style={{ marginRight: 8 }}
+          />
+          <TextInput
+            className="flex-1 p-1 text-text-light dark:text-text-dark"
+            placeholder="Buscar por usuário..."
+            placeholderTextColor={isDarkMode ? '#6B7280' : '#9CA3AF'}
+            value={searchText}
+            onChangeText={handleSearch}
+          />
+        </View>
+
+        {/* Search Results */}
+        {searchText.trim().length > 1 && (
+          <View className="mb-6 bg-card-light dark:bg-card-dark p-4 rounded-2xl border border-border-light dark:border-border-dark">
+            <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-3">
+              Resultados
+            </Text>
+            {loadingSearch || isDebouncing ? (
+              <View
+                style={{
+                  height: 40,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}>
+                <ActivityIndicator size="small" color="#22C55E" />
+              </View>
+            ) : searchResults.length === 0 ? (
+              <Text className="text-text-muted-light dark:text-text-muted-dark text-sm">
+                Nenhum usuário encontrado.
+              </Text>
+            ) : (
+              searchResults.map(item => {
+                const isFriend = friends.some(f => f.id === item.id);
+                const isSent = sentRequests.some(r => r.receiverId === item.id);
+                return (
+                  <View
+                    key={item.id}
+                    className="flex-row items-center justify-between mb-3 border-b border-border-light/30 dark:border-border-dark/30 pb-3">
+                    <View className="flex-row items-center flex-1 pr-4">
+                      <FastAvatar
+                        source={UserNormalizationService.normalizeUserAvatar(
+                          item,
+                        )}
+                        size={30}
+                        style={{ marginRight: 12 }}
+                      />
+                      <View className="flex-1">
+                        <Text
+                          className="text-text-light dark:text-text-dark font-bold"
+                          numberOfLines={1}>
+                          {UserNormalizationService.normalizeDisplayName(item)}
+                        </Text>
+                      </View>
+                    </View>
+                    {isFriend ? (
+                      <Text className="text-[#22C55E] text-xs font-bold">
+                        Amigo
+                      </Text>
+                    ) : isSent ? (
+                      <Text className="text-yellow-500 text-xs font-bold">
+                        Pendente
+                      </Text>
+                    ) : (
+                      <TouchableOpacity
+                        onPress={() => {
+                          sendFriendRequest(user.uid, item.id);
+                          showPopup({
+                            title: 'Sucesso',
+                            message: 'Solicitação de amizade enviada!',
+                            type: 'success',
+                          });
+                        }}
+                        className="bg-primary p-2 rounded-lg">
+                        <Text className="text-white text-xs font-bold">
+                          Adicionar
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                );
+              })
+            )}
+          </View>
+        )}
+
+        {/* Pending Requests */}
+        {pendingRequests.length > 0 && (
+          <View className="mb-6">
+            <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-3 ml-2">
+              Solicitações Pendentes
+            </Text>
+            {pendingRequests.map(item => (
+              <View
+                key={item.id}
+                className="bg-card-light dark:bg-card-dark p-4 rounded-2xl mb-2 flex-row items-center justify-between border border-border-light dark:border-border-dark shadow-sm"
+                style={{
+                  shadowColor: COLORS.dark_blue,
+                  shadowOpacity: 0.05,
+                  shadowRadius: 10,
+                  shadowOffset: { width: 0, height: 4 },
+                }}>
+                <View className="flex-1 pr-4">
+                  <Text
+                    className="text-text-light dark:text-text-dark font-bold"
+                    numberOfLines={1}>
+                    {item.senderName || 'Convite'}
+                  </Text>
+                </View>
+                <View className="flex-row">
+                  <TouchableOpacity
+                    testID={`accept-request-${item.id}`}
+                    onPress={() => acceptFriendRequest(item.id)}
+                    className="bg-green-500 p-2 rounded-lg mr-2">
+                    <Ionicons name="checkmark" size={16} color="white" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    testID={`reject-request-${item.id}`}
+                    onPress={() => rejectFriendRequest(item.id)}
+                    className="bg-red-500 p-2 rounded-lg">
+                    <Ionicons name="close" size={16} color="white" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Friends List Header */}
+        <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-3 ml-2">
+          Meus Amigos ({friends.length})
+        </Text>
+      </View>
+    );
+  }, [
+    isDarkMode,
+    searchText,
+    handleSearch,
+    loadingSearch,
+    isDebouncing,
+    searchResults,
+    friends,
+    sentRequests,
+    sendFriendRequest,
+    user,
+    showPopup,
+    pendingRequests,
+    acceptFriendRequest,
+    rejectFriendRequest,
+  ]);
 
   return (
     <View className="flex-1 bg-background-light dark:bg-background-dark px-6 pt-4">
@@ -475,164 +640,24 @@ export default function GroupsScreen({ navigation }) {
 
       {/* Friends Tab */}
       {activeTab === 'friends' && (
-        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-          {/* Search Bar */}
-          <View className="flex-row items-center bg-card-light dark:bg-card-dark p-3 rounded-xl border border-border-light dark:border-border-dark mb-4">
-            <Ionicons
-              name="search"
-              size={20}
-              color={isDarkMode ? '#6B7280' : '#9CA3AF'}
-              className="mr-2"
-            />
-            <TextInput
-              className="flex-1 p-1 text-text-light dark:text-text-dark"
-              placeholder="Buscar por usuário..."
-              placeholderTextColor={isDarkMode ? '#6B7280' : '#9CA3AF'}
-              value={searchText}
-              onChangeText={handleSearch}
-            />
-          </View>
-
-          {/* Search Results */}
-          {searchText.trim().length > 1 && (
-            <View className="mb-6 bg-card-light dark:bg-card-dark p-4 rounded-2xl border border-border-light dark:border-border-dark">
-              <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-3">
-                Resultados
+        <FlatList
+          data={friendsData}
+          keyExtractor={item => item.id}
+          renderItem={renderFriendItem}
+          showsVerticalScrollIndicator={false}
+          removeClippedSubviews={true}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          ListHeaderComponent={renderFriendsHeader}
+          ListEmptyComponent={
+            !loadingSocial ? (
+              <Text className="text-text-muted-light dark:text-text-muted-dark text-sm ml-2 mt-4">
+                Você ainda não tem amigos. Comece a buscar!
               </Text>
-              {loadingSearch || isDebouncing ? (
-                <View
-                  style={{
-                    height: 40,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                  }}>
-                  <ActivityIndicator size="small" color="#22C55E" />
-                </View>
-              ) : searchResults.length === 0 ? (
-                <Text className="text-text-muted-light dark:text-text-muted-dark text-sm">
-                  Nenhum usuário encontrado.
-                </Text>
-              ) : (
-                searchResults.map(item => {
-                  const isFriend = friends.some(f => f.id === item.id);
-                  const isSent = sentRequests.some(
-                    r => r.receiverId === item.id,
-                  );
-                  return (
-                    <View
-                      key={item.id}
-                      className="flex-row items-center justify-between mb-3 border-b border-border-light/30 dark:border-border-dark/30 pb-3">
-                      <View className="flex-row items-center flex-1 pr-4">
-                        <FastAvatar
-                          source={UserNormalizationService.normalizeUserAvatar(
-                            item,
-                          )}
-                          size={30}
-                          style={{ marginRight: 12 }}
-                        />
-                        <View className="flex-1">
-                          <Text
-                            className="text-text-light dark:text-text-dark font-bold"
-                            numberOfLines={1}>
-                            {UserNormalizationService.normalizeDisplayName(
-                              item,
-                            )}
-                          </Text>
-                        </View>
-                      </View>
-                      {isFriend ? (
-                        <Text className="text-[#22C55E] text-xs font-bold">
-                          Amigo
-                        </Text>
-                      ) : isSent ? (
-                        <Text className="text-yellow-500 text-xs font-bold">
-                          Pendente
-                        </Text>
-                      ) : (
-                        <TouchableOpacity
-                          onPress={() => {
-                            sendFriendRequest(user.uid, item.id);
-                            showPopup({
-                              title: 'Sucesso',
-                              message: 'Solicitação de amizade enviada!',
-                              type: 'success',
-                            });
-                          }}
-                          className="bg-primary p-2 rounded-lg">
-                          <Text className="text-white text-xs font-bold">
-                            Adicionar
-                          </Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  );
-                })
-              )}
-            </View>
-          )}
-
-          {/* Pending Requests */}
-          {pendingRequests.length > 0 && (
-            <View className="mb-6">
-              <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-3 ml-2">
-                Solicitações Pendentes
-              </Text>
-              {pendingRequests.map(item => (
-                <View
-                  key={item.id}
-                  className="bg-card-light dark:bg-card-dark p-4 rounded-2xl mb-2 flex-row items-center justify-between border border-border-light dark:border-border-dark shadow-sm"
-                  style={{
-                    shadowColor: COLORS.dark_blue,
-                    shadowOpacity: 0.05,
-                    shadowRadius: 10,
-                    shadowOffset: { width: 0, height: 4 },
-                  }}>
-                  <View className="flex-1 pr-4">
-                    <Text
-                      className="text-text-light dark:text-text-dark font-bold"
-                      numberOfLines={1}>
-                      {item.senderName || 'Convite'}
-                    </Text>
-                  </View>
-                  <View className="flex-row">
-                    <TouchableOpacity
-                      onPress={() => acceptFriendRequest(item.id)}
-                      className="bg-green-500 p-2 rounded-lg mr-2">
-                      <Ionicons name="checkmark" size={16} color="white" />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => rejectFriendRequest(item.id)}
-                      className="bg-red-500 p-2 rounded-lg">
-                      <Ionicons name="close" size={16} color="white" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {/* Friends List */}
-          <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-3 ml-2">
-            Meus Amigos ({friends.length})
-          </Text>
-          <FlatList
-            data={friendsData}
-            keyExtractor={item => item.id}
-            renderItem={renderFriendItem}
-            scrollEnabled={false}
-            removeClippedSubviews={true}
-            initialNumToRender={10}
-            maxToRenderPerBatch={10}
-            windowSize={5}
-            ListEmptyComponent={
-              !loadingSocial ? (
-                <Text className="text-text-muted-light dark:text-text-muted-dark text-sm ml-2">
-                  Você ainda não tem amigos. Comece a buscar!
-                </Text>
-              ) : null
-            }
-          />
-        </ScrollView>
+            ) : null
+          }
+        />
       )}
 
       {/* Modal Criar Grupo */}

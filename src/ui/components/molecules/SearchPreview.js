@@ -12,7 +12,7 @@ const CARD_HEIGHT = 190;
  * 📚 BookCard Sub-component
  * Stylized card for the bookstore/gallery feel.
  */
-const BookCard = ({ book, onSelect }) => {
+const BookCard = React.memo(({ book, onSelect }) => {
   return (
     <TouchableOpacity
       testID={`search-result-${book.id}`}
@@ -58,7 +58,9 @@ const BookCard = ({ book, onSelect }) => {
       </View>
     </TouchableOpacity>
   );
-};
+});
+
+BookCard.displayName = 'BookCard';
 
 /**
  * 🔍 SearchPreview Molecule (Gallery Layout)

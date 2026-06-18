@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 import { useIsFocused } from '@react-navigation/native';
 import { Animated, Easing, InteractionManager } from 'react-native';
@@ -7,6 +7,13 @@ import { useShallow } from 'zustand/react/shallow';
 import { BOOK_STATUS } from '@core/constants/bookStatus';
 import { BookService } from '@core/services/BookService';
 import { useMainStore } from '@core/store';
+import {
+  selectWishlistBooks,
+  selectBooksByStatus,
+  selectCountsByStatus,
+} from '@core/store/selectors';
+
+const SKELETON_DATA = [{ id: 's1' }, { id: 's2' }, { id: 's3' }];
 
 /**
  * Custom Hook para gerenciar o estado e lógica da HomeScreen.
@@ -16,18 +23,37 @@ export const useHomeLogic = () => {
   const isFocused = useIsFocused();
   const [isReady, setIsReady] = useState(false);
   const [recentNotes, setRecentNotes] = useState([]);
+  const [activeFilter, setActiveFilter] = useState(BOOK_STATUS.READING);
 
-  // Store Selectors otimizados com useShallow
+  // 🎯 Assinaturas escalares + lista de livros num único seletor com useShallow.
   const { streak, books, user, loadingBooks } = useMainStore(
     useShallow(state => ({
       streak: state.streak,
-      books: state.books,
+      books: state.books || [],
       user: state.user,
       loadingBooks: state.loadingBooks,
     })),
   );
 
-  const readingBooks = books.filter(b => b.status === BOOK_STATUS.READING);
+  // ⚠️ `counts` PRECISA de sua própria assinatura com useShallow. Aninhá-lo no
+  // seletor acima quebra o useShallow (que só compara um nível): selectCountsByStatus
+  // retorna um objeto novo a cada chamada, então o snapshot externo nunca seria
+  // igual → loop infinito ("getSnapshot should be cached"). Com seu próprio
+  // useShallow, a comparação é feita sobre os VALORES (primitivos) das contagens.
+  const counts = useMainStore(useShallow(selectCountsByStatus));
+
+  const readingBooks = useMemo(() => {
+    return books.filter(b => b.status === BOOK_STATUS.READING);
+  }, [books]);
+
+  // 🎯 Dados derivados estáveis e prontos para renderizar
+  const filteredBooks = useMemo(() => {
+    if (loadingBooks || !isReady) return SKELETON_DATA;
+    if (activeFilter === 'shopping') {
+      return selectWishlistBooks({ books });
+    }
+    return selectBooksByStatus(activeFilter)({ books });
+  }, [books, activeFilter, loadingBooks, isReady]);
 
   // Valores de Animação
   const [fadeAnim] = useState(() => new Animated.Value(0));
@@ -83,23 +109,19 @@ export const useHomeLogic = () => {
     return () => {
       mounted = false;
     };
-  }, [user, books.length, loadingBooks, readingBooks[0]?.currentPage]);
-
-  // Preparação de dados finais para a UI (com placeholders de esqueleto)
-  const listData =
-    loadingBooks || !isReady
-      ? [{ id: 's1' }, { id: 's2' }, { id: 's3' }]
-      : readingBooks;
+  }, [user, loadingBooks, readingBooks]);
 
   return {
     user,
     streak,
     loadingBooks,
     isReady,
-    books, // Return raw books for dynamic filtering
-    listData,
     recentNotes,
     fadeAnim,
     slideAnim,
+    activeFilter,
+    setActiveFilter,
+    counts,
+    filteredBooks,
   };
 };

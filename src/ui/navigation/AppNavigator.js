@@ -1,12 +1,9 @@
 import React from 'react';
 
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View } from 'react-native';
 
 import { COLORS } from '@constants/colors';
 import { useMainStore } from '@core/store';
-import { BookLoader } from '@ui/components';
-import { LoadingScreen } from '@ui/components';
 import AuthScreen from '@ui/screens/AuthScreen';
 import BookDetailsScreen from '@ui/screens/BookDetailsScreen';
 import BookEditScreen from '@ui/screens/BookEditScreen';

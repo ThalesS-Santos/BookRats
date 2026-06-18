@@ -33,16 +33,9 @@ const log = createLogger('core.store.social');
  * @param {Function} get
  */
 export const createSocialSlice = (set, get) => ({
-  // Notification State
+  // Notification State. `unreadCount` is intentionally NOT stored here — it is
+  // derived from `notifications` via `selectUnreadCount` (Etapa 10).
   notifications: [],
-  unreadCount: 0,
-
-  // Ranking State
-  rankingList: [],
-  lastVisibleUser: null,
-  hasMoreRanking: true,
-  loadingMoreRanking: false,
-  rankingLoading: false,
 
   messages: [],
   chatError: null,
@@ -63,7 +56,6 @@ export const createSocialSlice = (set, get) => ({
 
     return subscribeToNotifications(uid, notifs => {
       const defensiveNotifs = notifs || [];
-      const unreadCount = defensiveNotifs.filter(n => !n.read).length;
 
       // 🔔 Real-Time UI Alert Logic
       const latestNotif = defensiveNotifs[0]; // Assuming sorted by timestamp desc
@@ -84,7 +76,7 @@ export const createSocialSlice = (set, get) => ({
         }
       }
 
-      set({ notifications: defensiveNotifs, unreadCount });
+      set({ notifications: defensiveNotifs });
 
       const { hasInfluencerBadge } = get();
       if (!hasInfluencerBadge && defensiveNotifs.length > 0) {
@@ -190,101 +182,19 @@ export const createSocialSlice = (set, get) => ({
     }
   },
 
-  /**
-   * selectFilteredRanking
-   * Returns a function that filters the ranking based on scope.
-   */
-  selectFilteredRanking: scope => state => {
-    if (scope === 'global') return state.rankingList;
-
-    // Amigos Scope: Current User + Friends
-    const { user, friends } = state;
-    if (!user) return [];
-
-    // Map current user to the same format as friends
-    const currentUserData = {
-      id: user.uid,
-      displayName: user.displayName,
-      photoURL: user.photoURL,
-      username: user.username || user.email?.split('@')[0],
-      total_pages_read: state.totalPagesRead || 0, // From librarySlice
-      total_claps_received: state.totalClaps || 0, // From gamificationSlice
-    };
-
-    const combined = [currentUserData, ...friends];
-
-    // Sort by pages read (descending)
-    return combined.sort(
-      (a, b) => (b.total_pages_read || 0) - (a.total_pages_read || 0),
-    );
-  },
-
-  // --- Ranking Logic ---
-  fetchRanking: async (pageSize = 20) => {
-    const { getPaginatedRanking } = require('@core/api/social');
-    set({ rankingLoading: true, hasMoreRanking: true, lastVisibleUser: null });
-
-    try {
-      const { users, lastDoc, hasMore } = await getPaginatedRanking(
-        null,
-        pageSize,
-      );
-      set({
-        rankingList: users,
-        lastVisibleUser: lastDoc,
-        hasMoreRanking: hasMore,
-      });
-    } catch (error) {
-      log.exception(error, {
-        op: 'fetchRanking',
-        action: 'query',
-        resource: 'users',
-      });
-    } finally {
-      set({ rankingLoading: false });
-    }
-  },
-
-  fetchNextRankingPage: async (pageSize = 20) => {
-    const { rankingList, lastVisibleUser, hasMoreRanking, loadingMoreRanking } =
-      get();
-    if (!hasMoreRanking || loadingMoreRanking || !lastVisibleUser) return;
-
-    const { getPaginatedRanking } = require('@core/api/social');
-    set({ loadingMoreRanking: true });
-
-    try {
-      const { users, lastDoc, hasMore } = await getPaginatedRanking(
-        lastVisibleUser,
-        pageSize,
-      );
-      set({
-        rankingList: [...rankingList, ...users],
-        lastVisibleUser: lastDoc,
-        hasMoreRanking: hasMore,
-      });
-    } catch (error) {
-      log.exception(error, {
-        op: 'fetchNextRankingPage',
-        action: 'query',
-        resource: 'users',
-      });
-    } finally {
-      set({ loadingMoreRanking: false });
-    }
-  },
+  // ℹ️ Ranking now lives solely in useSocialStore (real-time), consumed by
+  // RankingScreen with both Global and Amigos scopes. The previous paginated
+  // ranking + `selectFilteredRanking` were removed here: the friends-scope
+  // selector returned a fresh array on every call, which crashed the app with
+  // an infinite re-render loop (see RankingScreen / buildFriendsRanking).
 
   markAsRead: async (uid, notifId) => {
     await markNotificationAsRead(uid, notifId);
-    set(state => {
-      const updated = state.notifications.map(n =>
+    set(state => ({
+      notifications: state.notifications.map(n =>
         n.id === notifId ? { ...n, read: true } : n,
-      );
-      return {
-        notifications: updated,
-        unreadCount: updated.filter(n => !n.read).length,
-      };
-    });
+      ),
+    }));
   },
 
   markAllAsRead: async uid => {
@@ -296,7 +206,6 @@ export const createSocialSlice = (set, get) => ({
         ...n,
         read: true,
       })),
-      unreadCount: 0,
     }));
 
     await NotificationService.markAllAsRead(uid);

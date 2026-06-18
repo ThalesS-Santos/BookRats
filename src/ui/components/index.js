@@ -16,5 +16,4 @@ export { default as StatusSelector } from './molecules/StatusSelector';
 // Organisms
 export { default as EchoDeck } from './organisms/EchoDeck';
 export { default as BookLoader } from './organisms/BookLoader';
-export { default as GlobalRanking } from './organisms/GlobalRanking';
 export { default as ErrorBoundary } from './organisms/ErrorBoundary';

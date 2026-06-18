@@ -192,6 +192,7 @@ export default function TimerScreen({ route, navigation }) {
             {/* Header Navigation */}
             <View className="flex-row justify-between items-center mb-8">
               <TouchableOpacity
+                testID="back-btn"
                 onPress={() => navigation.goBack()}
                 className="p-2 -ml-2">
                 <Ionicons name="chevron-down" size={32} color={textColor} />
@@ -249,6 +250,7 @@ export default function TimerScreen({ route, navigation }) {
 
                 <View className="flex-row justify-between items-center mt-10 px-4">
                   <TouchableOpacity
+                    testID="pause-play-btn"
                     className="w-20 h-20 rounded-full items-center justify-center bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark shadow-sm"
                     onPress={() => {
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -270,6 +272,7 @@ export default function TimerScreen({ route, navigation }) {
                   </TouchableOpacity>
 
                   <TouchableOpacity
+                    testID="reset-btn"
                     className="w-20 h-20 rounded-full items-center justify-center bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark shadow-sm"
                     onPress={() => {
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

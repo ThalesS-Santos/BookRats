@@ -11,7 +11,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Keyboard,
 } from 'react-native';
 
 import { useMainStore } from '@core/store';
@@ -28,8 +27,7 @@ const AuthScreen = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  const { signIn, signUp, signInWithGoogle, loading, authError } =
-    useMainStore();
+  const { signIn, signUp, signInWithGoogle, loading } = useMainStore();
   const { isDarkMode } = useThemeStore();
   const { showPopup } = usePopupStore();
 
@@ -47,7 +45,7 @@ const AuthScreen = () => {
       const { id_token } = response.params;
       signInWithGoogle(id_token);
     }
-  }, [response]);
+  }, [response, signInWithGoogle]);
 
   const validateEmail = email => {
     return /\S+@\S+\.\S+/.test(email);

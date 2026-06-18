@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React from 'react';
 
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import {
   View,
   Text,
@@ -10,17 +9,14 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  Keyboard,
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { COLORS } from '@constants/colors';
-import { getEchoReplies, replyToEcho } from '@core/api/social';
-import { Logger } from '@core/services/Logger';
 import { UserNormalizationService } from '@core/services/UserNormalizationService';
-import { useMainStore } from '@core/store';
 import { CommunityNote, FastAvatar } from '@ui/components';
+import { useEchoDetail } from '@ui/hooks/useEchoDetail';
 
 import { useSocialStore } from '../../store/useSocialStore';
 import { useThemeStore } from '../../store/useThemeStore';
@@ -32,96 +28,19 @@ export default function EchoDetailScreen({ route, navigation }) {
   const { echoId, echo } = route.params;
   const insets = useSafeAreaInsets();
 
-  const { user } = useMainStore();
   const { clapEcho } = useSocialStore();
-  const { isDarkMode, hapticsEnabled } = useThemeStore();
+  const { isDarkMode } = useThemeStore();
   const accentColor = isDarkMode ? COLORS.primary.dark : COLORS.primary.light;
 
-  const [replies, setReplies] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [inputText, setInputText] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const flatListRef = useRef(null);
-
-  useEffect(() => {
-    let active = true;
-    const load = async () => {
-      setLoading(true);
-      const fetched = await getEchoReplies(echo.userId, echo.bookId, echoId);
-      if (active) {
-        setReplies(fetched);
-        setLoading(false);
-      }
-    };
-    load();
-    return () => {
-      active = false;
-    };
-  }, [echo.userId, echo.bookId, echoId]);
-
-  const handleSendReply = async () => {
-    if (!inputText.trim() || isSubmitting) return;
-    setIsSubmitting(true);
-    const textToSend = inputText.trim();
-    setInputText('');
-    Keyboard.dismiss();
-
-    // Optimistic Update
-    if (hapticsEnabled)
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-    const optimisticReply = {
-      id: `temp-${Date.now()}`,
-      userId: user.uid,
-      bookId: echo.bookId,
-      pageLocation: echo.pageLocation,
-      text: textToSend,
-      isPublic: true,
-      parentId: echoId,
-      replyCount: 0,
-      userMetadata: {
-        displayName: UserNormalizationService.normalizeDisplayName(user),
-        photoURL: UserNormalizationService.normalizeUserAvatar(user),
-      },
-      reactions: { claps: 0 },
-      timestamp: { seconds: Date.now() / 1000 },
-    };
-
-    setReplies(prev => [optimisticReply, ...prev]);
-
-    // Fast scroll to top to see reply
-    if (flatListRef.current && replies.length > 0) {
-      setTimeout(
-        () => flatListRef.current.scrollToOffset({ offset: 0, animated: true }),
-        100,
-      );
-    }
-
-    try {
-      await replyToEcho(
-        echo.userId,
-        echo.bookId,
-        echoId,
-        textToSend,
-        {
-          displayName: optimisticReply.userMetadata.displayName,
-          photoURL: optimisticReply.userMetadata.photoURL,
-        },
-        user.uid,
-      );
-    } catch (error) {
-      Logger.error('Failed to send reply', error, {
-        echoId,
-        bookId: echo?.bookId,
-      });
-      // Revert optimistic update on error if needed
-      setReplies(prev => prev.filter(r => r.id !== optimisticReply.id));
-      if (hapticsEnabled)
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const {
+    replies,
+    loading,
+    inputText,
+    setInputText,
+    isSubmitting,
+    flatListRef,
+    handleSendReply,
+  } = useEchoDetail(echo, echoId);
 
   const renderHeader = () => (
     <View style={{ marginBottom: 32, alignItems: 'center' }}>

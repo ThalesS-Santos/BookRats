@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { COLORS } from '@constants/colors';
 import { useMainStore } from '@core/store';
+import { selectUnreadCount } from '@core/store/selectors';
 import GroupsScreen from '@ui/screens/GroupsScreen';
 import HomeScreen from '@ui/screens/HomeScreen';
 import ProfileScreen from '@ui/screens/ProfileScreen';
@@ -25,10 +26,10 @@ const TABS = [
   { name: 'Perfil', icon: 'person', component: ProfileScreen },
 ];
 
-function CustomTabBar({ state, descriptors, navigation, isDarkMode }) {
+function CustomTabBar({ state, navigation, isDarkMode }) {
   const activeColor = isDarkMode ? COLORS.primary.dark : COLORS.primary.light;
   const inactiveColor = isDarkMode ? '#64748B' : '#94A3B8';
-  const unreadCount = useMainStore(state => state.unreadCount);
+  const unreadCount = useMainStore(selectUnreadCount);
   const insets = useSafeAreaInsets();
 
   return (
@@ -117,7 +118,7 @@ export default function TabNavigator({ navigation, route }) {
       navigation.navigate(routeName);
       navigation.setParams({ tabIndex: undefined });
     }
-  }, [route.params?.tabIndex]);
+  }, [route.params?.tabIndex, navigation]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Tab.Navigator

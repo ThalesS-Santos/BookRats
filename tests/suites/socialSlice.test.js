@@ -17,10 +17,10 @@ import {
   rejectFriendRequest,
   sendFriendRequest,
   getUsersByIds,
-  getPaginatedRanking,
 } from '@core/api/social';
 import { db } from '@core/firebase/firebase';
 import { NotificationService } from '@core/services/NotificationService';
+import { selectUnreadCount } from '@core/store/selectors';
 import { createSocialSlice } from '@core/store/slices/socialSlice';
 
 import { usePopupStore } from '../../src/store/usePopupStore';
@@ -49,7 +49,6 @@ jest.mock('@core/api/social', () => ({
   rejectFriendRequest: jest.fn(),
   sendFriendRequest: jest.fn(),
   getUsersByIds: jest.fn(),
-  getPaginatedRanking: jest.fn(),
 }));
 
 jest.mock('@core/services/NotificationService', () => ({
@@ -88,7 +87,6 @@ describe('Social Slice', () => {
     state = {
       ...slice,
       notifications: [],
-      unreadCount: 0,
       user: {
         uid: 'user1',
         displayName: 'Thales',
@@ -123,9 +121,17 @@ describe('Social Slice', () => {
       state.startNotificationsListener('user1');
 
       expect(state.calculateInfluencerBadge).toHaveBeenCalledWith('user1');
+      // unreadCount is no longer stored — only the notifications list is set,
+      // and the count is derived from it (selectUnreadCount).
       expect(setMock).toHaveBeenCalledWith(
-        expect.objectContaining({ unreadCount: 1 }),
+        expect.objectContaining({
+          notifications: [
+            { id: 'n1', read: false },
+            { id: 'n2', read: true },
+          ],
+        }),
       );
+      expect(selectUnreadCount(state)).toBe(1);
     });
 
     it('should call badge calculation again if unread > 0 and badge not held', () => {
@@ -300,120 +306,6 @@ describe('Social Slice', () => {
     });
   });
 
-  describe('selectFilteredRanking', () => {
-    it('should return rankingList for global scope', () => {
-      state.rankingList = [{ id: 'user1' }, { id: 'user2' }];
-      const result = state.selectFilteredRanking('global')(state);
-      expect(result).toEqual(state.rankingList);
-    });
-
-    it('should return empty list if friends scope and user is missing', () => {
-      state.user = null;
-      const result = state.selectFilteredRanking('friends')(state);
-      expect(result).toEqual([]);
-    });
-
-    it('should combine current user and friends, sorted by total pages read', () => {
-      state.friends = [
-        { id: 'friend1', total_pages_read: 100 },
-        { id: 'friend2', total_pages_read: 200 },
-      ];
-      const result = state.selectFilteredRanking('friends')(state);
-      expect(result.length).toBe(3);
-      // Sorted: friend2 (200), user1 (150 - totalPagesRead), friend1 (100)
-      expect(result[0].id).toBe('friend2');
-      expect(result[1].id).toBe('user1');
-      expect(result[2].id).toBe('friend1');
-    });
-  });
-
-  describe('fetchRanking', () => {
-    it('should fetch ranking and update state', async () => {
-      getPaginatedRanking.mockResolvedValueOnce({
-        users: [{ id: 'user1' }],
-        lastDoc: 'doc1',
-        hasMore: true,
-      });
-
-      await state.fetchRanking(10);
-
-      expect(setMock).toHaveBeenCalledWith({
-        rankingLoading: true,
-        hasMoreRanking: true,
-        lastVisibleUser: null,
-      });
-      expect(getPaginatedRanking).toHaveBeenCalledWith(null, 10);
-      expect(setMock).toHaveBeenCalledWith({
-        rankingList: [{ id: 'user1' }],
-        lastVisibleUser: 'doc1',
-        hasMoreRanking: true,
-      });
-      expect(setMock).toHaveBeenCalledWith({ rankingLoading: false });
-    });
-
-    it('should catch error and log it', async () => {
-      getPaginatedRanking.mockRejectedValueOnce(new Error('fail'));
-      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
-      await state.fetchRanking(10);
-      expect(errorSpy).toHaveBeenCalled();
-      errorSpy.mockRestore();
-    });
-  });
-
-  describe('fetchNextRankingPage', () => {
-    it('should do nothing if no more, loading, or no last doc', async () => {
-      state.hasMoreRanking = false;
-      await state.fetchNextRankingPage(10);
-      expect(getPaginatedRanking).not.toHaveBeenCalled();
-
-      state.hasMoreRanking = true;
-      state.loadingMoreRanking = true;
-      await state.fetchNextRankingPage(10);
-      expect(getPaginatedRanking).not.toHaveBeenCalled();
-
-      state.loadingMoreRanking = false;
-      state.lastVisibleUser = null;
-      await state.fetchNextRankingPage(10);
-      expect(getPaginatedRanking).not.toHaveBeenCalled();
-    });
-
-    it('should fetch next page and append users', async () => {
-      state.rankingList = [{ id: 'user1' }];
-      state.lastVisibleUser = 'doc1';
-      state.hasMoreRanking = true;
-      state.loadingMoreRanking = false;
-
-      getPaginatedRanking.mockResolvedValueOnce({
-        users: [{ id: 'user2' }],
-        lastDoc: 'doc2',
-        hasMore: false,
-      });
-
-      await state.fetchNextRankingPage(10);
-
-      expect(setMock).toHaveBeenCalledWith({ loadingMoreRanking: true });
-      expect(getPaginatedRanking).toHaveBeenCalledWith('doc1', 10);
-      expect(setMock).toHaveBeenCalledWith({
-        rankingList: [{ id: 'user1' }, { id: 'user2' }],
-        lastVisibleUser: 'doc2',
-        hasMoreRanking: false,
-      });
-      expect(setMock).toHaveBeenCalledWith({ loadingMoreRanking: false });
-    });
-
-    it('should catch error and log it', async () => {
-      state.lastVisibleUser = 'doc1';
-      state.hasMoreRanking = true;
-      state.loadingMoreRanking = false;
-
-      getPaginatedRanking.mockRejectedValueOnce(new Error('fail'));
-      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
-      await state.fetchNextRankingPage(10);
-      expect(errorSpy).toHaveBeenCalled();
-      errorSpy.mockRestore();
-    });
-  });
-
   describe('markAsRead', () => {
     it('should mark single notification as read', async () => {
       state.notifications = [
@@ -427,7 +319,7 @@ describe('Social Slice', () => {
       const updateFn = setMock.mock.calls[0][0];
       const newState = updateFn(state);
       expect(newState.notifications[0].read).toBe(true);
-      expect(newState.unreadCount).toBe(1);
+      expect(selectUnreadCount(newState)).toBe(1);
     });
   });
 
@@ -450,7 +342,7 @@ describe('Social Slice', () => {
 
       const updateFn = setMock.mock.calls[0][0];
       const newState = updateFn(state);
-      expect(newState.unreadCount).toBe(0);
+      expect(selectUnreadCount(newState)).toBe(0);
       expect(newState.notifications[0].read).toBe(true);
       expect(newState.notifications[1].read).toBe(true);
     });

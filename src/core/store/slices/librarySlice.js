@@ -268,46 +268,25 @@ export const createLibrarySlice = (set, get) => ({
       );
 
       // 🏆 Milestone announcements (replaces the old per-update chat spam).
-      // Only fires on real, lifetime landmarks + per-book completion.
+      // The domain service decides WHAT to announce; the slice only performs the
+      // I/O — posting to each group chat and persisting the announced map.
       try {
         const groups = useSocialStore.getState().groups || [];
         if (groups.length > 0 && get().sendMessage) {
           const userName = user.displayName || user.email.split('@')[0];
           const announced = get().announcedMilestones || {};
 
-          const { messages, newlyAnnounced } = MilestoneService.detect(
-            {
-              sessionSeconds: res.sessionSeconds,
-              sessionPages: res.pagesReadToday,
-              totalPagesRead: res.newTotalPagesRead,
-              totalBooksCompleted: res.newTotalBooksCompleted,
-              streak: res.newStreak,
-            },
-            announced,
-            userName,
-          );
+          const { messages, announcedUpdate } =
+            MilestoneService.buildProgressAnnouncements({
+              result: res,
+              book,
+              announced,
+              userName,
+            });
 
-          const chatMessages = [...messages];
-
-          // Per-book completion message (not deduped — fires each completion).
-          if (res.justCompleted) {
-            const bookSeconds =
-              (book.logs || []).reduce(
-                (sum, log) => sum + (log.timeSeconds || 0),
-                0,
-              ) + (res.sessionSeconds || 0);
-            chatMessages.push(
-              MilestoneService.buildCompletionMessage(
-                userName,
-                book.title,
-                bookSeconds,
-              ),
-            );
-          }
-
-          if (chatMessages.length > 0) {
+          if (messages.length > 0) {
             for (const group of groups) {
-              for (const text of chatMessages) {
+              for (const text of messages) {
                 await get().sendMessage(group.id, {
                   text,
                   type: 'system_notification',
@@ -317,12 +296,8 @@ export const createLibrarySlice = (set, get) => ({
           }
 
           // Persist newly-reached lifetime milestones so they never re-fire.
-          if (newlyAnnounced.length > 0) {
-            const updated = { ...announced };
-            newlyAnnounced.forEach(id => {
-              updated[id] = true;
-            });
-            set({ announcedMilestones: updated });
+          if (announcedUpdate) {
+            set({ announcedMilestones: announcedUpdate });
           }
         }
       } catch (e) {
@@ -494,22 +469,14 @@ export const createLibrarySlice = (set, get) => ({
 });
 
 /**
- * 🎯 Zustand Memoized Selectors (Etapa 2)
- * Centralizes filtering logic for performance and clean UI code.
- * 🛡️ Defensive fallbacks added to prevent undefined crashes during hydration.
+ * 🎯 Selectors moved to the centralized, pure module `@core/store/selectors`
+ * (Fase 3 — Etapa 13). Re-exported here for backward compatibility with
+ * existing import sites.
  */
-export const selectReadingBooks = state =>
-  (state.books || []).filter(b => b.status === BOOK_STATUS.READING);
-
-export const selectReadBooks = state =>
-  (state.books || []).filter(b => b.status === BOOK_STATUS.READ);
-
-export const selectWishlistBooks = state =>
-  (state.books || []).filter(
-    b =>
-      b.status === BOOK_STATUS.WANT_TO_READ ||
-      b.status === BOOK_STATUS.WISH_LIST,
-  );
-
-export const selectBooksByStatus = status => state =>
-  (state.books || []).filter(b => b.status === status);
+export {
+  selectReadingBooks,
+  selectReadBooks,
+  selectWishlistBooks,
+  selectBooksByStatus,
+  selectCountsByStatus,
+} from '../selectors';

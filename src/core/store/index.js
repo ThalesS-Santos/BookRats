@@ -14,6 +14,22 @@ import { createSocialSlice } from './slices/socialSlice';
 /**
  * Root Store (useMainStore)
  * Combines all modular slices into a single global state.
+ *
+ * 🧭 State strategy (Fase 3 — Etapa 10). Three clearly separated tiers:
+ *
+ *   1. PERSISTED (survives app restarts) — durable user data only. Whitelisted
+ *      explicitly in `partialize` below: library data (books, streak, totals,
+ *      announcedMilestones) and gamification (totalClaps, unlockedBadges).
+ *
+ *   2. SESSION (in-memory, rebuilt on launch) — everything NOT in `partialize`:
+ *      auth (user/tokens/loading), and all social/notification/chat/ranking
+ *      state. These are re-fetched from Firestore listeners on login, so
+ *      persisting them would only risk serving stale data.
+ *
+ *   3. DERIVED (never stored) — computed on read via pure selectors in
+ *      `@core/store/selectors` (e.g. selectCountsByStatus, selectUnreadCount,
+ *      book-by-status) or via `useMemo`/hooks in the UI. Storing derived values
+ *      is avoided so they can't drift out of sync with their source.
  */
 export const useMainStore = create(
   subscribeWithSelector(

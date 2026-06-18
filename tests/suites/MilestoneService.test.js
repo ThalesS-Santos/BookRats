@@ -71,6 +71,80 @@ describe('MilestoneService', () => {
     });
   });
 
+  describe('buildProgressAnnouncements', () => {
+    const result = {
+      sessionSeconds: 300,
+      pagesReadToday: 60, // crosses session_pages 50
+      newTotalPagesRead: 160,
+      newTotalBooksCompleted: 0,
+      newStreak: 1,
+      justCompleted: false,
+    };
+
+    it('returns milestone messages and an announced-map update when a landmark is reached', () => {
+      const { messages, announcedUpdate } =
+        MilestoneService.buildProgressAnnouncements({
+          result,
+          book: { title: 'Duna', logs: [] },
+          announced: {},
+          userName: 'Thales',
+        });
+
+      expect(messages).toHaveLength(1);
+      expect(messages[0]).toContain('50 páginas');
+      expect(announcedUpdate).toMatchObject({ s_pages_50: true });
+    });
+
+    it('returns no messages and a null update when nothing new is crossed', () => {
+      const { messages, announcedUpdate } =
+        MilestoneService.buildProgressAnnouncements({
+          result: {
+            sessionSeconds: 60,
+            pagesReadToday: 10,
+            newTotalPagesRead: 110,
+            newTotalBooksCompleted: 0,
+            newStreak: 1,
+            justCompleted: false,
+          },
+          book: { title: 'Duna', logs: [] },
+          announced: {},
+          userName: 'Thales',
+        });
+
+      expect(messages).toEqual([]);
+      expect(announcedUpdate).toBeNull();
+    });
+
+    it('appends a completion message (summing book logs + session) when justCompleted', () => {
+      const { messages } = MilestoneService.buildProgressAnnouncements({
+        result: { ...result, pagesReadToday: 5, justCompleted: true },
+        book: {
+          title: 'Conto',
+          logs: [{ timeSeconds: 3300 }], // 55 min + 300s session = 3600s = 1.0h
+        },
+        announced: {},
+        userName: 'Thales',
+      });
+
+      const completion = messages.find(m => m.includes('Conto'));
+      expect(completion).toBeDefined();
+      expect(completion).toContain('1.0h');
+    });
+
+    it('does not re-announce already announced milestones', () => {
+      const { messages, announcedUpdate } =
+        MilestoneService.buildProgressAnnouncements({
+          result,
+          book: { title: 'Duna', logs: [] },
+          announced: { s_pages_50: true },
+          userName: 'Thales',
+        });
+
+      expect(messages).toEqual([]);
+      expect(announcedUpdate).toBeNull();
+    });
+  });
+
   describe('buildCompletionMessage', () => {
     it('formats hours when the book took over an hour', () => {
       const msg = MilestoneService.buildCompletionMessage(
