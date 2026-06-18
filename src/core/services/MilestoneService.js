@@ -157,6 +157,62 @@ export const MilestoneService = {
   },
 
   /**
+   * Pure orchestration helper: from a `updateBookProgress` result, produces the
+   * full ordered list of chat messages to post (lifetime milestones + the
+   * per-book completion message) and the updated `announcedMilestones` map.
+   *
+   * Keeps the milestone *decision-making* in the domain service so the store
+   * slice only has to perform the I/O (sending messages, persisting the map).
+   *
+   * @param {object}   params
+   * @param {object}   params.result    Return value of `updateBookProgress`
+   *   ({ sessionSeconds, pagesReadToday, newTotalPagesRead,
+   *      newTotalBooksCompleted, newStreak, justCompleted }).
+   * @param {object}   params.book      The book being updated ({ title, logs }).
+   * @param {object}   params.announced Persisted announced-milestone map.
+   * @param {string}   params.userName  Display name for the messages.
+   * @returns {{ messages: string[], announcedUpdate: object|null }}
+   *   `announcedUpdate` is null when no new lifetime milestone was reached.
+   */
+  buildProgressAnnouncements({ result, book, announced = {}, userName }) {
+    const { messages, newlyAnnounced } = this.detect(
+      {
+        sessionSeconds: result.sessionSeconds,
+        sessionPages: result.pagesReadToday,
+        totalPagesRead: result.newTotalPagesRead,
+        totalBooksCompleted: result.newTotalBooksCompleted,
+        streak: result.newStreak,
+      },
+      announced,
+      userName,
+    );
+
+    const chatMessages = [...messages];
+
+    // Per-book completion message (not deduped — fires each completion).
+    if (result.justCompleted) {
+      const bookSeconds =
+        (book.logs || []).reduce(
+          (sum, logEntry) => sum + (logEntry.timeSeconds || 0),
+          0,
+        ) + (result.sessionSeconds || 0);
+      chatMessages.push(
+        this.buildCompletionMessage(userName, book.title, bookSeconds),
+      );
+    }
+
+    let announcedUpdate = null;
+    if (newlyAnnounced.length > 0) {
+      announcedUpdate = { ...announced };
+      newlyAnnounced.forEach(id => {
+        announcedUpdate[id] = true;
+      });
+    }
+
+    return { messages: chatMessages, announcedUpdate };
+  },
+
+  /**
    * Builds the per-book completion message (fires every time a book is
    * finished, independent of the lifetime milestone dedupe).
    *
