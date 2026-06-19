@@ -1,6 +1,7 @@
 import { PixelBook } from '@ui/assets';
 
 import { BOOK_STATUS } from '../constants/bookStatus';
+import { optimizeCoverUrl } from '../utils/imageUtils';
 
 /**
  * @typedef {Object} Book
@@ -43,7 +44,10 @@ export const BookNormalizationService = {
     // Force HTTPS to comply with mobile security policies (ATS/Network Security Config)
     const secureUrl = thumbnailUrl.replace(/^http:/, 'https:');
 
-    return { uri: secureUrl };
+    // Apply quality optimisation at normalisation time so every downstream
+    // consumer (BookCover, ImageCacheService prefetch, etc.) gets the best URL
+    // automatically, and the disk-cache key is always the optimised form.
+    return optimizeCoverUrl({ uri: secureUrl });
   },
 
   /**

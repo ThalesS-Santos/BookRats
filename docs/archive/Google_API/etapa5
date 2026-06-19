@@ -1,20 +1,163 @@
-📊 Detalhamento da Etapa 5: Analytics e Performance de Escala
-Dashboard de Estatísticas de Leitura: Criar uma nova Screen de Analytics que processe o array de livros para exibir gráficos de páginas lidas por mês, gêneros mais consumidos e tempo médio por sessão.
+# 📊 Detalhamento da Etapa 5: Analytics e Performance de Escala
 
-Criação de Helpers de Agregação de Dados: Desenvolver utilitários em src/utils/stats.js para calcular métricas complexas (como "velocidade de leitura") sem sobrecarregar a renderização da UI.
+Este documento detalha o planejamento arquitetural, as técnicas de implementação e as subetapas necessárias para o desenvolvimento dos recursos de analytics, resiliência offline e otimização de performance do BookRats.
 
-Implementação de Image Caching Avançado: Configurar uma estratégia de cache para as capas vindas da Google Books API, garantindo que as imagens não precisem ser baixadas novamente a cada abertura da LibraryScreen.
+---
 
-Auditoria de Performance do Zustand: Utilizar middleware de logging para identificar renderizações desnecessárias e otimizar os seletores dos slices para que apenas os componentes impactados sejam atualizados.
+## 1. Dashboard de Estatísticas de Leitura
 
-Refinamento do Error Boundary Global: Adicionar lógica para capturar erros específicos de rede ou de cota de API (como o erro 429 da Google) e exibir mensagens contextuais úteis para o usuário.
+**Objetivo:** Prover uma nova tela de análise visual e interativa das estatísticas de leitura acumuladas do usuário.
 
-Sistema de Feedback in-app: Implementar uma Molecule de "Rate this Book" ou "Report Issue" que envie dados estruturados para o Firebase, ajudando na melhoria contínua do produto.
+### 🛠️ Métodos e Técnicas
+* **Biblioteca Gráfica:** Utilizar `react-native-chart-kit` ou `victory-native` para renderizar gráficos de linha, barras e pizza de forma otimizada no ecossistema React Native/Expo.
+* **Ciclo de Vida & Performance:** Processar os dados brutos fora do ciclo de renderização principal (Thread de UI), usando `useMemo` com chaves de dependência estritas ou computando os dados sob demanda de forma assíncrona.
+* **Componentização:** Segmentar a tela em micro-cards memoizados (`React.memo`) para evitar repetições de renders ao navegar nos gráficos.
 
-Sincronização em Segundo Plano (Background Sync): Garantir que, caso o usuário edite uma lista offline, o app tente sincronizar os dados com o Firestore automaticamente assim que a conexão for detectada.
+### 📋 Subetapas de Desenvolvimento
+1. **Design de UI (Mockups):** Definir o layout do dashboard com cores adequadas ao tema claro/escuro.
+2. **Setup de Dependências:** Instalação e verificação de compatibilidade da biblioteca gráfica (ex: `yarn add react-native-svg react-native-chart-kit`).
+3. **Mapeamento de Dados:** Criar selectors Zustand no `librarySlice` para agrupar livros pelos estados (`READ`, `READING`, `WANT_TO_READ`).
+4. **Implementação Visual:**
+   - **Gráfico de Linha (Páginas por Mês):** Agrupamento temporal com base nos carimbos de data das sessões.
+   - **Gráfico de Pizza/Donut (Distribuição de Gêneros):** Mapeamento do array `categories` dos livros lidos.
+   - **Métricas Rápidas:** Cards de estatísticas textuais (Tempo de Sessão Médio, Velocidade, Total de Livros Concluídos).
 
-Otimização do Firebase Bundle Size: Revisar as importações do SDK do Firebase para garantir que apenas os módulos necessários (auth, firestore) sejam carregados, reduzindo o tempo de inicialização do app.
+---
 
-Relatórios de Erros em Produção: Integrar o Logger.js a uma ferramenta de monitoramento remoto (como Sentry ou Firebase Crashlytics) para monitorar falhas em dispositivos reais.
+## 2. Criação de Helpers de Agregação de Dados (`src/utils/stats.js`)
 
-Finalização do Signal de Testes (Green Build): Rodar a suíte completa de 346+ testes uma última vez, garantindo que o acréscimo de analytics e telemetria não impactou a cobertura de 100% de linhas.
+**Objetivo:** Criar um módulo especializado em matemática de agregação e métricas de desempenho de leitura.
+
+### 🛠️ Métodos e Técnicas
+* **Algoritmo de Velocidade de Leitura:**
+  $$\text{Velocidade (Páginas/Hora)} = \frac{\text{Total de Páginas Lidas}}{\sum \text{Duração das Sessões em Segundos} / 3600}$$
+* **Debounce/Throttling de Cálculo:** Processar esses dados apenas quando a tela for focada (`useIsFocused`) ou quando houver uma mutação confirmada no repositório de leituras.
+* **Fórmula de Tendência Espacial (Gêneros):** Normalização de strings para evitar duplicidade de categorias similares (ex: "Fiction", "science fiction", "Sci-Fi").
+
+### 📋 Subetapas de Desenvolvimento
+1. **Estruturação do Arquivo:** Criar [stats.js](file:///c:/GitHub/App_leitura/BookRats/src/utils/stats.js).
+2. **Implementação de Helpers Unitários:**
+   - `calculateReadingSpeed(sessions)`: Computa a média de páginas lidas por minuto ou hora.
+   - `aggregatePagesByMonth(sessions)`: Retorna um mapa formatado `{ 'Jan': 120, 'Fev': 80, ... }`.
+   - `getMostReadGenres(books, limit = 5)`: Agrupa categorias e ordena em ordem decrescente de frequência.
+3. **Escrita de Testes Unitários:** Criar `tests/suites/stats.test.js` para validar casos de borda (ex: zero sessões, sessões sem duração, livros sem categoria).
+
+---
+
+## 3. Implementação de Image Caching Avançado
+
+**Objetivo:** Mitigar consumo redundante de dados e cintilação (flicker) de imagens ao renderizar capas da Google Books API.
+
+### 🛠️ Métodos e Técnicas
+* **Solução Técnica:** Empregar o componente `Image` do pacote `expo-image`, que possui suporte nativo a cache em disco e memória com alta performance, controle de prioridade de rede e transições suaves de fade-in.
+* **Estratégia de Cache Control:** Uso da diretiva `cachePolicy: 'disk'` para garantir persistência mesmo após o fechamento do app.
+
+### 📋 Subetapas de Desenvolvimento
+1. **Instalação:** Executar `npx expo install expo-image`.
+2. **Substituição Sistêmica:** Mapear os componentes de renderização de capas (como `ProgressBookCard.js` e `BookLoader.js`) para utilizar `expo-image` em vez de `<Image />` nativo do React Native.
+3. **Configuração de Placeholders:** Adicionar imagens base de placeholder em base64 ou blur hash local enquanto a capa do livro é carregada da API.
+4. **Verificação de Rede:** Validar em modo avião (offline) se as imagens em cache continuam visíveis.
+
+---
+
+## 4. Auditoria de Performance do Zustand
+
+**Objetivo:** Eliminar re-renderizações parasitas na árvore de componentes devido a seletores ineficientes no Zustand.
+
+### 🛠️ Métodos e Técnicas
+* **Uso de `useShallow`:** Importar e envolver os seletores que retornam arrays ou objetos para comparar por valor raso (shallow) e não por referência de memória.
+* **Zustand Middleware (Logging/DevTools):** Acoplar temporariamente um logger customizado na criação do Store para monitorar quais slices estão disparando atualizações de estado.
+
+### 📋 Subetapas de Desenvolvimento
+1. **Auditoria de Telas Críticas:** Rastrear renders em `HomeScreen`, `GroupsScreen` e `RankingScreen`.
+2. **Refatoração de Seletores:** Modificar o acesso à store para ler apenas propriedades primitivas específicas em vez de objetos inteiros quando possível (ex: `state => state.user.uid` em vez de `state => state.user`).
+3. **Implementação do `useShallow`:** Adicionar a importação `import { useShallow } from 'zustand/react/shallow'` e aplicar a todos os hooks de múltiplos valores.
+
+---
+
+## 5. Refinamento do Error Boundary Global
+
+**Objetivo:** Proteger a experiência do usuário contra quebras fatais do app devido a problemas de rede ou limites de cota da API externa.
+
+### 🛠️ Métodos e Técnicas
+* **Fallback Inteligente:** Capturar erros HTTP específicos (como Status `429 Too Many Requests` ou `503 Service Unavailable`) no cliente Axios/Fetch e transformá-los em erros tipados de aplicação.
+* **Componente de UI de Recuperação:** Exibir uma tela de erro com opção de "Tentar Novamente" (`Retry`) sem forçar o fechamento do app.
+
+### 📋 Subetapas de Desenvolvimento
+1. **Mapeamento de Erros da API:** Identificar as exceções lançadas nos serviços de busca de livros.
+2. **Criação do ErrorBoundary React:** Criar um componente de classe React ou utilizar bibliotecas consolidadas como `react-error-boundary` adaptadas para o React Native.
+3. **Mecanismo de Auto-recuperação:** Implementar a lógica de reset do estado local e relançamento da requisição de rede falha.
+
+---
+
+## 6. Sistema de Feedback in-App
+
+**Objetivo:** Permitir que os usuários enviem feedback estruturado (relatórios de problemas ou avaliações do app) sem sair da interface.
+
+### 🛠️ Métodos e Técnicas
+* **Coleção no Firestore:** Enviar logs de feedback diretamente para uma coleção `feedbacks` no Firestore, estruturados com metadados do dispositivo (versão do OS, ID do usuário, data e mensagem).
+* **Feedback Hóptico:** Integrar `expo-haptics` para emitir feedbacks táteis nos botões de envio como recompensa de interação do usuário.
+
+### 📋 Subetapas de Desenvolvimento
+1. **Criação da Coleção no Firebase:** Definir regras de segurança no Firestore para permitir apenas escrita direta de usuários autenticados na coleção `feedbacks`.
+2. **Desenvolvimento da Molecule:** Criar um componente de modal ou formulário de feedback flutuante reutilizável.
+3. **Serviço de Envio:** Implementar `sendFeedback(rating, message)` no módulo de API social/Core.
+
+---
+
+## 7. Sincronização em Segundo Plano (Background Sync)
+
+**Objetivo:** Garantir a consistência dos dados do usuário (marcação de leitura, wishlists) sob conectividade instável ou inexistente.
+
+### 🛠️ Métodos e Técnicas
+* **Firestore Offline Persistence:** Ativar e configurar o cache offline nativo do Firebase Firestore (habilitado por padrão no SDK web/mobile do Firestore, mas configurável para controle de tamanho de cache).
+* **NetInfo Integration:** Utilizar `@react-native-community/netinfo` para escutar mudanças no estado da internet e notificar o usuário discretamente (ex: banner "Você está offline").
+
+### 📋 Subetapas de Desenvolvimento
+1. **Configuração do Firestore:** Garantir que o cache offline do Firestore esteja explicitamente habilitado nas opções de inicialização do SDK.
+2. **Listener de Conectividade:** Adicionar um hook global de monitoramento de rede e salvar o status de rede na store global.
+3. **Fila de Mutação (Offline Queue):** Otimizar a escrita local no Zustand para refletir instantaneamente as ações offline, deixando que o Firestore sincronize com o servidor no background assim que a conexão retornar.
+
+---
+
+## 8. Otimização do Firebase Bundle Size
+
+**Objetivo:** Diminuir o tempo de boot inicial do aplicativo diminuindo a carga de imports de dependências pesadas.
+
+### 🛠️ Métodos e Técnicas
+* **Tree Shaking:** Substituir qualquer importação monolítica de serviços (ex: `import firebase from 'firebase/app'`) pela abordagem modular do Firebase SDK v9+ (`import { initializeApp } from 'firebase/app'`).
+* **Dynamic Imports:** Avaliar o carregamento tardio de módulos que não são necessários no boot inicial (ex: carregar recursos de chat/Firebase Storage apenas quando o usuário entra na tela respectiva).
+
+### 📋 Subetapas de Desenvolvimento
+1. **Auditoria de Importações:** Revisar arquivos em `src/core/firebase/` para garantir imports individuais de submódulos.
+2. **Redução de Dependências:** Remover imports não utilizados detectados por análise estática de bundle.
+
+---
+
+## 9. Relatórios de Erros em Produção
+
+**Objetivo:** Coletar telemetria em tempo real sobre falhas e travamentos (crashes) em builds de produção.
+
+### 🛠️ Métodos e Técnicas
+* **Integração com Sentry/Crashlytics:** Configurar o Sentry React Native SDK ou Firebase Crashlytics para capturar exceções não tratadas automaticamente.
+* **Log Transport:** Canalizar mensagens de erro críticas registradas pelo seu [Logger.js](file:///c:/GitHub/App_leitura/BookRats/src/core/observability/Logger.js) para o painel do Sentry.
+
+### 📋 Subetapas de Desenvolvimento
+1. **Instalação do SDK:** Adicionar dependência do Sentry no Expo (`npx expo install @sentry/react-native`).
+2. **Inicialização do Serviço:** Configurar a inicialização do Sentry no topo do `App.js`.
+3. **Transporte de Logs:** Integrar o Logger para enviar automaticamente dados coletados de `.exception()` para o Sentry em produção.
+
+---
+
+## 10. Finalização do Signal de Testes (Green Build)
+
+**Objetivo:** Assegurar que nenhuma refatoração de escala ou otimização de performance tenha quebrado comportamentos de regras de negócio.
+
+### 🛠️ Métodos e Técnicas
+* **Integração de Cobertura:** Executar o Jest com geração de relatório de cobertura de linhas (`jest --coverage`).
+* **CI/CD Local Sandbox:** Rodar todos os testes localmente simulando o ambiente limpo de integração contínua.
+
+### 📋 Subetapas de Desenvolvimento
+1. **Sanitização de Mocks:** Ajustar mocks de rede para garantir que chamadas assíncronas do Zustand/Firebase não vazem entre execuções.
+2. **Execução Completa:** Rodar `npm test` garantindo 100% de sucesso.
+3. **Correção de Débitos Técnicos:** Consertar qualquer falha de teste unitário ou de integração que surja devido à introdução de novos hooks de performance ou componentes gráficos.

@@ -3,8 +3,6 @@ Integração do Gemini API Service: Criar um serviço centralizado em src/core/s
 
 Sistema de Embedding de Preferências: Desenvolver uma lógica para transformar o histórico de leitura e gêneros favoritos do usuário em vetores de dados (embeddings), facilitando a comparação com novos títulos da Google Books API.
 
-Resumo Automático de Echos: Implementar uma funcionalidade de IA que analisa as notas de leitura (Echos) do usuário e gera um resumo executivo dos principais aprendizados de cada livro.
-
 Módulo de Recomendações "Next Read": Criar um algoritmo que sugere o próximo livro baseado no status read e wishlist do usuário, cruzando dados de categorias e autores similares.
 
 Análise de Sentimento de Leitura: Utilizar IA para identificar o tom emocional das anotações do usuário (ex: "empolgado", "crítico", "confuso"), salvando esses metadados no socialSlice para gerar insights de perfil.

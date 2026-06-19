@@ -1,9 +1,10 @@
 import React, { memo } from 'react';
 
 import { Ionicons } from '@expo/vector-icons';
-import { View, Text, TouchableOpacity, Image } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 
 import { COLORS } from '@constants/colors';
+import BookCover from '@ui/components/atoms/BookCover';
 
 import { useThemeStore } from '../../../store/useThemeStore';
 import * as Haptics from '../../../utils/haptics';
@@ -46,11 +47,12 @@ const ProgressBookCard = memo(
             shadowOffset: { width: 0, height: 2 },
           }}>
           {/* Left: Small Cover Image */}
-          <View className="w-20 bg-border-light dark:bg-border-dark items-center justify-center">
-            <Image
+          <View className="w-20 bg-border-light dark:bg-border-dark items-center justify-center overflow-hidden">
+            <BookCover
               source={book.thumbnail}
-              className="w-full h-full"
-              resizeMode="cover"
+              recyclingKey={book.id}
+              priority="low"
+              style={{ width: '100%', height: '100%' }}
             />
           </View>
 

@@ -8,6 +8,14 @@ const log = createLogger('core.api.client');
  * Custom API Client wrapper over native fetch.
  * Centralizes network logic, authentication headers, and error handling.
  */
+// Marks an error as already-logged so the catch block skips re-logging/retrying.
+function httpError(message, code) {
+  const err = new Error(message);
+  err._isHandledHttp = true;
+  err._code = code;
+  return err;
+}
+
 class ApiClient {
   constructor(baseURL = '') {
     this.baseURL = baseURL;
@@ -74,16 +82,17 @@ class ApiClient {
             if (signOut) {
               await signOut();
             }
-            throw new Error(
+            throw httpError(
               'Sessão expirada ou acesso negado. Por favor, faça login novamente.',
+              'BR_AUTH',
             );
           }
 
-          // 2. Handle 500+ (Server Errors) - Specific Retry for 503
+          // 2. Handle 500+ (Server Errors) — retry 503 with exponential backoff
           if (status >= 500) {
             if (status === 503 && attempt < maxRetries) {
               attempt++;
-              const delay = Math.pow(2, attempt) * 500; // Exponential backoff
+              const delay = Math.pow(2, attempt) * 500;
               log.warn('Service unavailable (503) — retrying', {
                 op: 'request',
                 action: 'http',
@@ -102,10 +111,11 @@ class ApiClient {
               code: 'BR_NETWORK',
               category: 'NETWORK',
               providerCode: `HTTP_${status}`,
-              context: { url, status },
+              context: { url, status, attempts: attempt },
             });
-            throw new Error(
+            throw httpError(
               'Erro interno no servidor remoto. Tente novamente mais tarde.',
+              'BR_NETWORK',
             );
           }
 
@@ -119,17 +129,23 @@ class ApiClient {
             // Response is not JSON, fallback to standard message
           }
 
-          throw new Error(errorMessage);
+          throw httpError(errorMessage, 'BR_CLIENT');
         }
 
         // Success
         return await response.json();
       } catch (error) {
+        // HTTP errors are already logged above — skip re-logging and retrying.
+        if (error._isHandledHttp) {
+          throw error;
+        }
+        // Pure network failures (fetch threw, no response): log once, then retry.
         if (attempt >= maxRetries) {
           log.exception(error, {
             op: 'request',
             action: 'http',
             resource: url,
+            code: 'BR_NETWORK',
             context: { url, attempts: attempt },
           });
           throw error;

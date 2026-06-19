@@ -15,6 +15,7 @@ module.exports = {
     '^@ui/(.*)$': '<rootDir>/src/ui/$1',
     '^@tests/(.*)$': '<rootDir>/tests/$1',
     '^@utils/(.*)$': '<rootDir>/src/utils/$1',
+    '^@hooks/(.*)$': '<rootDir>/src/hooks/$1',
     '^@constants/(.*)$': '<rootDir>/src/ui/constants/$1',
   },
 };

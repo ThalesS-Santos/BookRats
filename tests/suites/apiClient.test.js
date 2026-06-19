@@ -257,4 +257,114 @@ describe('ApiClient Interceptors & Logic', () => {
       ).rejects.toThrow('Nested error message');
     });
   });
+
+  // ── 503 Retry & _isHandledHttp prevention of double-logging ──────────────
+  describe('503 Retry Logic & httpError sentinel', () => {
+    afterEach(() => jest.useRealTimers());
+
+    it('retries 503 exactly 3 times (1 + 2 retries) before throwing', async () => {
+      let callCount = 0;
+      server.use(
+        rest.get('https://api.bookrats.com/503-all', (req, res, ctx) => {
+          callCount++;
+          return res(ctx.status(503));
+        }),
+      );
+
+      jest.useFakeTimers();
+      // Attach .catch immediately so the rejection is never unhandled
+      const caught = apiClient.get('https://api.bookrats.com/503-all').catch(e => e);
+      await jest.runAllTimersAsync();
+      const err = await caught;
+
+      expect(err).toBeInstanceOf(Error);
+      expect(err.message).toContain('Erro interno no servidor remoto');
+      expect(callCount).toBe(3);
+    });
+
+    it('thrown error has _isHandledHttp=true to prevent double-logging', async () => {
+      server.use(
+        rest.get('https://api.bookrats.com/503-flag', (req, res, ctx) =>
+          res(ctx.status(503)),
+        ),
+      );
+
+      jest.useFakeTimers();
+      const caught = apiClient.get('https://api.bookrats.com/503-flag').catch(e => e);
+      await jest.runAllTimersAsync();
+      const err = await caught;
+
+      expect(err._isHandledHttp).toBe(true);
+      expect(err._code).toBe('BR_NETWORK');
+    });
+
+    it('succeeds on the second attempt after a 503', async () => {
+      let callCount = 0;
+      server.use(
+        rest.get('https://api.bookrats.com/503-then-ok', (req, res, ctx) => {
+          callCount++;
+          if (callCount === 1) return res(ctx.status(503));
+          return res(ctx.json({ recovered: true }));
+        }),
+      );
+
+      jest.useFakeTimers();
+      const request = apiClient.get('https://api.bookrats.com/503-then-ok');
+      await jest.runAllTimersAsync();
+
+      const result = await request;
+      expect(result.recovered).toBe(true);
+      expect(callCount).toBe(2);
+    });
+
+    it('does NOT retry a 500 (non-503) server error', async () => {
+      let callCount = 0;
+      server.use(
+        rest.get('https://api.bookrats.com/500-no-retry', (req, res, ctx) => {
+          callCount++;
+          return res(ctx.status(500));
+        }),
+      );
+
+      await expect(
+        apiClient.get('https://api.bookrats.com/500-no-retry'),
+      ).rejects.toThrow('Erro interno no servidor remoto');
+
+      // 500 is not retried — only 503 with remaining attempts is retried
+      expect(callCount).toBe(1);
+    });
+
+    it('does NOT retry a 401 error', async () => {
+      useMainStore.setState({ signOut: jest.fn() });
+      let callCount = 0;
+      server.use(
+        rest.get('https://api.bookrats.com/401-no-retry', (req, res, ctx) => {
+          callCount++;
+          return res(ctx.status(401));
+        }),
+      );
+
+      await expect(
+        apiClient.get('https://api.bookrats.com/401-no-retry'),
+      ).rejects.toThrow();
+
+      expect(callCount).toBe(1);
+    });
+
+    it('does NOT retry a 400 client error', async () => {
+      let callCount = 0;
+      server.use(
+        rest.get('https://api.bookrats.com/400-no-retry', (req, res, ctx) => {
+          callCount++;
+          return res(ctx.status(400), ctx.json({ message: 'Bad request' }));
+        }),
+      );
+
+      await expect(
+        apiClient.get('https://api.bookrats.com/400-no-retry'),
+      ).rejects.toThrow('Bad request');
+
+      expect(callCount).toBe(1);
+    });
+  });
 });

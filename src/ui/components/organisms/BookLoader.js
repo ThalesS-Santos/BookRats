@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 
-import { View, Text, StyleSheet, Animated, Image } from 'react-native';
+import { View, Text, StyleSheet, Animated } from 'react-native';
+
+import BookCover from '../atoms/BookCover';
 
 import { COLORS } from '@constants/colors';
 
@@ -78,10 +80,10 @@ const BookLoader = ({ isVisible = true, bookCover = null }) => {
         <View style={styles.pixelBookContainer}>
           {bookCover ? (
             <View style={styles.imageWrapper}>
-              <Image
+              <BookCover
                 source={bookCover}
+                priority="high"
                 style={styles.coverImage}
-                resizeMode="cover"
               />
               <View
                 style={[styles.imageBorder, { borderColor: ACCENT_COLOR }]}

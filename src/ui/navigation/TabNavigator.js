@@ -14,6 +14,7 @@ import GroupsScreen from '@ui/screens/GroupsScreen';
 import HomeScreen from '@ui/screens/HomeScreen';
 import ProfileScreen from '@ui/screens/ProfileScreen';
 import RankingScreen from '@ui/screens/RankingScreen';
+import StatsScreen from '@ui/screens/StatsScreen';
 
 import { useThemeStore } from '../../store/useThemeStore';
 
@@ -22,6 +23,7 @@ const Tab = createBottomTabNavigator();
 const TABS = [
   { name: 'Início', icon: 'book', component: HomeScreen },
   { name: 'Ranking', icon: 'trophy', component: RankingScreen },
+  { name: 'Stats', icon: 'stats-chart', component: StatsScreen },
   { name: 'Social', icon: 'chatbubbles', component: GroupsScreen },
   { name: 'Perfil', icon: 'person', component: ProfileScreen },
 ];

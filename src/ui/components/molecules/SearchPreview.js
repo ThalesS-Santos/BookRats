@@ -1,8 +1,9 @@
 import React from 'react';
 
 import { Ionicons } from '@expo/vector-icons';
-import { View, Text, TouchableOpacity, Image, FlatList } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList } from 'react-native';
 
+import BookCover from '../atoms/BookCover';
 import Skeleton from '../atoms/Skeleton';
 
 const CARD_WIDTH = 130;
@@ -21,11 +22,12 @@ const BookCard = React.memo(({ book, onSelect }) => {
       style={{ width: CARD_WIDTH, height: CARD_HEIGHT }}
       onPress={() => onSelect(book)}>
       {/* 80% Cover Art */}
-      <View style={{ height: '75%' }}>
-        <Image
+      <View style={{ height: '75%', overflow: 'hidden' }}>
+        <BookCover
           source={book.thumbnail}
-          className="w-full h-full"
-          resizeMode="cover"
+          recyclingKey={book.id}
+          priority="normal"
+          style={{ width: '100%', height: '100%' }}
         />
 
         {/* Category Badge (Step 1.8) */}

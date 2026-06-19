@@ -9,8 +9,9 @@ import {
   Dimensions,
   StyleSheet,
   TouchableOpacity,
-  Image,
 } from 'react-native';
+
+import BookCover from '../atoms/BookCover';
 
 import CommunityNote from '../molecules/CommunityNote';
 
@@ -106,10 +107,11 @@ const EchoDeck = ({ echoes, onClap, COLORS, isDarkMode, bookCover = null }) => {
       return (
         <View style={styles.emptyContainer}>
           {bookCover && (
-            <Image
+            <BookCover
               source={bookCover}
+              contentFit="contain"
+              priority="low"
               style={styles.emptyCover}
-              resizeMode="contain"
             />
           )}
           <CommunityNote
