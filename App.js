@@ -12,6 +12,7 @@ import { StatusBar } from 'expo-status-bar';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useColorScheme } from 'nativewind';
 import { Platform, AppState } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { COLORS } from '@constants/colors';
@@ -113,31 +114,33 @@ export default function App() {
   }, [user]);
 
   return (
-    <SafeAreaProvider>
-      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
-      {loading ? (
-        <LoadingScreen />
-      ) : (
-        <NavigationContainer
-          ref={navigationRef}
-          theme={isDarkMode ? BookDarkTheme : BookLightTheme}
-          onReady={() => {
-            setCurrentRouteName(
-              navigationRef.getCurrentRoute()?.name || 'unknown',
-            );
-          }}
-          onStateChange={() => {
-            setCurrentRouteName(
-              navigationRef.getCurrentRoute()?.name || 'unknown',
-            );
-          }}>
-          <ErrorBoundary screenName={currentRouteName}>
-            <AppNavigator />
-            <CustomPopup />
-            <BadgeUnlockPopup />
-          </ErrorBoundary>
-        </NavigationContainer>
-      )}
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <StatusBar style={isDarkMode ? 'light' : 'dark'} />
+        {loading ? (
+          <LoadingScreen />
+        ) : (
+          <NavigationContainer
+            ref={navigationRef}
+            theme={isDarkMode ? BookDarkTheme : BookLightTheme}
+            onReady={() => {
+              setCurrentRouteName(
+                navigationRef.getCurrentRoute()?.name || 'unknown',
+              );
+            }}
+            onStateChange={() => {
+              setCurrentRouteName(
+                navigationRef.getCurrentRoute()?.name || 'unknown',
+              );
+            }}>
+            <ErrorBoundary screenName={currentRouteName}>
+              <AppNavigator />
+              <CustomPopup />
+              <BadgeUnlockPopup />
+            </ErrorBoundary>
+          </NavigationContainer>
+        )}
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
