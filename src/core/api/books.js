@@ -22,12 +22,36 @@ import {
   where,
 } from 'firebase/firestore';
 
-import { db } from '@core/firebase/firebase';
+import { db, auth } from '@core/firebase/firebase';
 import { createLogger } from '@core/observability';
 
 import { BOOK_STATUS } from '../constants/bookStatus';
 
 const log = createLogger('core.api.books');
+
+/**
+ * 🕓 Cold-start / token-refresh guard.
+ *
+ * On launch (or after a token expiry) the Firestore channel can send the very
+ * first write before the Firebase Auth credential finishes attaching. Firestore
+ * then evaluates the rule with `request.auth == null`, so `isOwner()` is false
+ * and the write is rejected with a spurious `permission-denied` — even though
+ * the user is legitimately signed in.
+ *
+ * Awaiting `getIdToken()` forces the credential to be ready (refreshing it if
+ * needed) before we write. Mirrors the same mitigation already used by the
+ * social-summary repair in the library slice. Best-effort: if it throws we
+ * still proceed — a genuinely invalid token surfaces via the write's own catch.
+ */
+const ensureAuthReady = async () => {
+  try {
+    if (typeof auth?.currentUser?.getIdToken === 'function') {
+      await auth.currentUser.getIdToken();
+    }
+  } catch {
+    // ignore — proceed with the write regardless
+  }
+};
 
 export const deleteBook = async (uid, bookId) => {
   try {
@@ -191,6 +215,9 @@ export const updateBookProgress = async (
   else if (isRegressing) newStatus = BOOK_STATUS.READING;
 
   try {
+    // 🕓 Make sure the auth token is attached before writing (cold-start guard).
+    await ensureAuthReady();
+
     // 1. Update book progress
     const bookRef = doc(db, 'users', uid, 'books', book.id);
     await updateDoc(bookRef, {
@@ -263,6 +290,9 @@ export const updateBook = async (uid, bookId, updates) => {
   validateUpdateFields(updates, PROTECTED_BOOK_FIELDS);
 
   try {
+    // 🕓 Make sure the auth token is attached before writing (cold-start guard).
+    await ensureAuthReady();
+
     const bookRef = doc(db, 'users', uid, 'books', bookId);
     await updateDoc(bookRef, {
       ...updates,

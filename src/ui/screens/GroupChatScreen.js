@@ -112,6 +112,11 @@ export default function GroupChatScreen({ route, navigation }) {
                   inverted
                   keyExtractor={item => item.id}
                   showsVerticalScrollIndicator={false}
+                  // removeClippedSubviews omitido de propósito: causa células
+                  // em branco em FlatList `inverted` no Android.
+                  initialNumToRender={15}
+                  maxToRenderPerBatch={15}
+                  windowSize={7}
                   contentContainerStyle={{
                     flexGrow: 1,
                     justifyContent: 'flex-end',

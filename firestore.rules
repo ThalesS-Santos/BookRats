@@ -9,12 +9,18 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == userId;
     }
 
+    // Limita apenas o AUMENTO (anti-cheat de ranking). Decréscimos são livres:
+    // editar o nº de páginas para baixo ou "des-concluir" um livro (lido →
+    // lendo) reduz total_pages_read legitimamente e não infla o ranking.
     function safeIntDelta(next, prev, maxStep) {
-      return next is int && prev is int && next >= prev && (next - prev) <= maxStep;
+      return next is int && prev is int && (next - prev) <= maxStep;
     }
 
+    // Streak transitions permitidas: mantém (mesmo dia), +1 (dia consecutivo),
+    // ou reset. Ao retomar a leitura após uma falha, updateStreak() retorna 1
+    // (o usuário leu HOJE), por isso `next == 1` precisa ser aceito além de 0.
     function safeStreakDelta(next, prev) {
-      return next is int && prev is int && ((next == prev) || (next == prev + 1) || (next == 0));
+      return next is int && prev is int && ((next == prev) || (next == prev + 1) || (next == 0) || (next == 1));
     }
 
     function safeCompletedDelta(next, prev) {
@@ -93,8 +99,15 @@ service cloud.firestore {
       }
 
       match /readingLogs/{logId} {
+        // Log diário de leitura (analytics pessoais). O MESMO doc do dia é
+        // acumulado via increment() a cada sessão — então UPDATE precisa ser
+        // permitido ao dono. Antes era `false`, o que bloqueava a 2ª+ leitura
+        // do dia (setDoc merge vira update) com permission-denied.
+        // Guarda anti-tamper: pagesRead só pode crescer.
         allow read, create, delete: if isOwner(userId);
-        allow update: if false;
+        allow update: if isOwner(userId)
+          && request.resource.data.pagesRead is int
+          && request.resource.data.pagesRead >= resource.data.pagesRead;
       }
 
       match /books/{bookId} {

@@ -46,6 +46,28 @@ jest.mock('expo-keep-awake', () => ({
   useKeepAwake: jest.fn(),
 }));
 
+// Mock Expo Constants — força ambiente "standalone" (não Expo Go) para que o
+// PushNotificationService seja considerado suportado nos testes.
+jest.mock('expo-constants', () => ({
+  __esModule: true,
+  default: { executionEnvironment: 'standalone', appOwnership: 'standalone' },
+}));
+
+// Mock Expo Notifications (local notifications — no native bindings in tests)
+jest.mock('expo-notifications', () => ({
+  setNotificationHandler: jest.fn(),
+  setNotificationChannelAsync: jest.fn(() => Promise.resolve()),
+  getPermissionsAsync: jest.fn(() => Promise.resolve({ granted: true })),
+  requestPermissionsAsync: jest.fn(() => Promise.resolve({ granted: true })),
+  scheduleNotificationAsync: jest.fn(() => Promise.resolve('mock-notif-id')),
+  cancelScheduledNotificationAsync: jest.fn(() => Promise.resolve()),
+  cancelAllScheduledNotificationsAsync: jest.fn(() => Promise.resolve()),
+  AndroidImportance: { DEFAULT: 3, HIGH: 4, MAX: 5 },
+  AndroidNotificationVisibility: { PUBLIC: 1 },
+  SchedulableTriggerInputTypes: { DAILY: 'daily', DATE: 'date' },
+  IosAuthorizationStatus: { PROVISIONAL: 1, AUTHORIZED: 2 },
+}));
+
 // Mock React Native Reanimated & Worklets (Robust manual mock)
 jest.mock('react-native-worklets', () => ({
   Worklets: {

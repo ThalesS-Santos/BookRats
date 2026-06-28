@@ -11,7 +11,7 @@ import * as NavigationBar from 'expo-navigation-bar';
 import { StatusBar } from 'expo-status-bar';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useColorScheme } from 'nativewind';
-import { Platform, AppState } from 'react-native';
+import { Platform, AppState, LogBox } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -22,6 +22,7 @@ import {
   installGlobalHandlers,
 } from '@core/observability';
 import BadgeListenerService from '@core/services/BadgeListenerService';
+import PushNotificationService from '@core/services/PushNotificationService';
 import { useMainStore } from '@core/store';
 import {
   CustomPopup,
@@ -32,6 +33,11 @@ import {
 import AppNavigator from '@ui/navigation/AppNavigator';
 
 import { useThemeStore } from './src/store/useThemeStore';
+
+// 🔇 Silencia avisos de depreciação vindos de DEPENDÊNCIAS (não do nosso
+// código): algum pacote ainda importa SafeAreaView do react-native. É só ruído
+// de desenvolvimento — LogBox é no-op em produção.
+LogBox.ignoreLogs(['SafeAreaView has been deprecated']);
 
 const BookLightTheme = {
   ...DefaultTheme,
@@ -110,6 +116,41 @@ export default function App() {
     return () => {
       subscription.remove();
       updateStatus(false); // Offline on unmount/cleanup
+    };
+  }, [user]);
+
+  // 🔔 Local notifications (engajamento): pede permissão (diálogo nativo do SO)
+  // e agenda os lembretes de leitura quando o usuário loga. Re-ancora os
+  // lembretes ao voltar ao app e cancela tudo no logout. Notificações de meta
+  // (badges) e "livro concluído" são disparadas pelo BadgeListenerService /
+  // librarySlice. Tudo local — sem FCM.
+  useEffect(() => {
+    if (!user) {
+      PushNotificationService.cancelAll();
+      return;
+    }
+
+    let active = true;
+    const armReminders = () => {
+      const s = useMainStore.getState();
+      PushNotificationService.refreshReminders({
+        streak: s.streak,
+        lastReadDate: s.lastReadDate,
+      });
+    };
+
+    PushNotificationService.configure().then(granted => {
+      if (active && granted) armReminders();
+    });
+
+    // Reentrou no app → re-ancora os lembretes (ex: marca que leu hoje).
+    const sub = AppState.addEventListener('change', next => {
+      if (next === 'active') armReminders();
+    });
+
+    return () => {
+      active = false;
+      sub.remove();
     };
   }, [user]);
 

@@ -157,6 +157,10 @@ export default function NotificationsScreen() {
         data={notifications}
         keyExtractor={item => item.id}
         renderItem={renderItem}
+        removeClippedSubviews={true}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
         contentContainerStyle={{ padding: 24, paddingTop: 16 }}
         ListHeaderComponent={
           receivedRequests.length > 0 ? (
