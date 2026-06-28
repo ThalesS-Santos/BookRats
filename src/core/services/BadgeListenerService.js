@@ -1,3 +1,4 @@
+import PushNotificationService from './PushNotificationService';
 import { BOOK_STATUS } from '../constants/bookStatus';
 import { useMainStore } from '../store';
 
@@ -32,6 +33,7 @@ const BadgeListenerService = {
 
           // Event: Book just finished
           if (!wasRead && isRead) {
+            PushNotificationService.notifyBookFinished(book.title);
             useMainStore.getState().checkAndUnlockBadges();
           }
         });
@@ -46,6 +48,26 @@ const BadgeListenerService = {
         if (currentStreak > previousStreak) {
           useMainStore.getState().checkAndUnlockBadges();
         }
+      },
+    );
+
+    // Trap 3: Badge Unlocked → fire a local "meta atingida" notification.
+    // Reacts to the same queue that drives the in-app popup, so every newly
+    // unlocked achievement (streak/page/book milestones) also lands in the
+    // system tray. Kept here to keep the side-effect out of the store slice.
+    useMainStore.subscribe(
+      state => state.lastUnlockedBadges,
+      (current, previous) => {
+        if (!previous || !current) return;
+        if (current.length <= previous.length) return; // cleared or unchanged
+
+        const justUnlocked = current.slice(previous.length);
+        justUnlocked.forEach(badge => {
+          PushNotificationService.notifyGoalReached(
+            '🏆 Conquista desbloqueada!',
+            `Você ganhou: ${badge.title}`,
+          );
+        });
       },
     );
   },

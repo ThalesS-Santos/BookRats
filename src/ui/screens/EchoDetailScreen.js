@@ -127,6 +127,10 @@ export default function EchoDetailScreen({ route, navigation }) {
           ListHeaderComponent={renderHeader}
           renderItem={renderReply}
           showsVerticalScrollIndicator={false}
+          removeClippedSubviews={true}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
           ListEmptyComponent={
             !loading && (
               <Text className="text-text-muted-light dark:text-text-muted-dark text-center font-serif italic mt-4">

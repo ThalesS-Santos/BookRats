@@ -1,29 +1,28 @@
-# Backend (Serverless)
+# Arquitetura Backend e Serviços Core
 
 ## Plataforma
 
-- Firebase Authentication
-- Cloud Firestore
-- Sem API REST dedicada no momento
+- **Autenticação**: Firebase Authentication
+- **Banco de Dados**: Cloud Firestore (Real-time Sync)
+- **Persistência Local**: Firebase Local Cache (Offline capability)
+- **APIs de Terceiros**: Integração via client com Google Books API (com caching local de capas)
 
-## Modulos Principais
+## Módulos de Serviço e API Core
 
-- `src/core/api/auth.js`: login, cadastro e sessao
-- `src/core/api/books.js`: biblioteca, progresso, anotacoes
-- `src/core/api/social.js`: amizades, grupos, ranking, echoes
+- `src/core/api/auth.js`: Fluxos de login, registro, recuperação de conta e sessão.
+- `src/core/api/books.js`: Operações de biblioteca, registros de progresso e anotações.
+- `src/core/api/social.js`: Controle de relacionamentos (amizades), grupos de leitura, feeds e anotações compartilhadas (Echoes).
+- `src/core/services/MilestoneService.js`: Motor de regras de gamificação e desbloqueio assíncrono de Badges/Conquistas baseado no progresso de leitura.
+- `src/core/services/ImageCacheService.js`: Serviço de download e cache offline de capas de livros para evitar consumo excessivo de tráfego de dados e requisições repetidas de imagens.
 
-## Regras de Negocio no Client
+## Observabilidade e Diagnósticos
 
-- Validacao de status, ids e ranges
-- Sanitizacao de texto e nome antes de escrita
-- Campos sensiveis bloqueados para update direto
+O BookRats implementa uma camada centralizada de telemetria localizada em `src/core/observability/`:
+- **Logger Centralizado**: Encapsula logs formatados estruturados com diferentes níveis de depuração (`DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`).
+- **Sanitização de Log**: Máscara automática para senhas, tokens de API e informações de identificação pessoal (PII) nas mensagens de erro.
+- **Transports**: Suporta múltiplos destinos de logs (atualmente saídas console limpas e buffers locais).
 
-## Observabilidade
-
-- `Logger` padroniza logs por nivel (`info`, `warn`, `error`)
-- ErrorBoundary captura erros de render com contexto
-
-## Proximos Passos
-
-1. Definir camada opcional de Cloud Functions para operacoes criticas.
-2. Mover parte da validacao de ranking para backend dedicado quando necessario.
+## Próximos Passos de Backend (Fase de Monetização)
+1. **Cloud Functions de Pagamento**: Criação de funções serverless em Node.js para receber e assinar Webhooks do *RevenueCat* / *Stripe* para validações atômicas de status de assinantes.
+2. **Server-Side Verification (SSV)**: Habilitação de funções de validação de criptografia RSA da AdMob para credenciamento seguro de RatsCoins em vídeos premiados.
+3. **Data Lake de Métricas**: Estruturação de ingestão assíncrona de eventos via Cloud Pub/Sub para Google BigQuery visando o fornecimento de dashboards corporativos para editoras parceiras.

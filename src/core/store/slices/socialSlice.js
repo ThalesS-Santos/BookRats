@@ -3,6 +3,7 @@ import {
   onSnapshot,
   query,
   orderBy,
+  limit,
   serverTimestamp,
   addDoc,
 } from 'firebase/firestore';
@@ -25,6 +26,9 @@ import { usePopupStore } from '../../../store/usePopupStore';
 import { NotificationService } from '../../services/NotificationService';
 
 const log = createLogger('core.store.social');
+
+// Teto de mensagens carregadas no listener do chat (as mais recentes).
+const MESSAGES_PAGE_SIZE = 50;
 
 /**
  * Social Slice handles Notifications, Group Chats, and basic Social feeds.
@@ -214,7 +218,15 @@ export const createSocialSlice = (set, get) => ({
   // --- Chat & Group Logic ---
   subscribeToGroupMessages: (groupId = 'squad-geral') => {
     const messagesRef = collection(db, 'groups', groupId, 'messages');
-    const q = query(messagesRef, orderBy('timestamp', 'desc'));
+    // 📈 Escalabilidade: limita o listener às N mensagens mais recentes. Sem
+    // isso, um grupo com milhares de mensagens recarregaria TODAS a cada
+    // snapshot — custo de leitura e memória cresce sem teto. Paginação para
+    // o histórico antigo pode ser adicionada depois (startAfter).
+    const q = query(
+      messagesRef,
+      orderBy('timestamp', 'desc'),
+      limit(MESSAGES_PAGE_SIZE),
+    );
 
     set({ chatError: null });
     const unsub = onSnapshot(

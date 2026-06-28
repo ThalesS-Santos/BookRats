@@ -2,13 +2,14 @@
 
 BookRats e um app social de leitura com foco em progresso, anotacoes por pagina (Echoes), gamificacao e interacao entre leitores.
 
-## Estado Atual (2026-05-23)
+## Estado Atual (2026-06-27)
 
 - Stack principal: Expo 54, React 19, React Native 0.81, Zustand 5, Firebase.
-- Suite de testes: `56/56` suites e `456/456` testes passando em execucao completa local.
-- Seguranca: regras do Firestore atualizadas com principio de menor privilegio.
-- Qualidade: workflow de CI com quality gates criado em `.github/workflows/quality-gates.yml`.
-- Auditoria de dependencias (`npm audit --audit-level=high`): sem vulnerabilidades `high` e `critical`.
+- Suíte de testes: `69/69` suítes e `893/893` testes passando em execução completa local.
+- Segurança: regras do Firestore atualizadas com princípio de menor privilégio e segurança adicional via Cloud Functions.
+- Qualidade: pipeline de quality gates locais e CI prontos (CI desativado temporariamente para manutenção de linting).
+- Auditoria de dependências (`npm audit --audit-level=high`): sem vulnerabilidades `high` e `critical`.
+- Monetização: Planejamento detalhado e guias técnicos de engenharia criados em `docs/monetizacao/`.
 
 ## Como Rodar
 
@@ -37,3 +38,4 @@ npm run check:gate
 - Seguranca: `docs/security.md`
 - Setup local: `docs/local_setup.md`
 - Status executivo: `docs/project_status.md`
+- Monetização: `docs/monetizacao/` (Guias detalhados de 1 a 5)

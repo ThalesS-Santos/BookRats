@@ -3,6 +3,7 @@ import {
   onSnapshot,
   query,
   orderBy,
+  limit,
   serverTimestamp,
   addDoc,
 } from 'firebase/firestore';
@@ -31,6 +32,7 @@ jest.mock('firebase/firestore', () => ({
   onSnapshot: jest.fn(),
   query: jest.fn(),
   orderBy: jest.fn(),
+  limit: jest.fn(),
   serverTimestamp: jest.fn(),
   addDoc: jest.fn(),
 }));
@@ -361,6 +363,18 @@ describe('Social Slice', () => {
         messages: [{ id: 'm1', text: 'Hi' }],
         chatError: null,
       });
+    });
+
+    it('subscribeToGroupMessages should bound the listener with a limit (scalability)', () => {
+      onSnapshot.mockImplementation((q, callback) => {
+        callback({ docs: [] });
+        return jest.fn();
+      });
+
+      state.subscribeToGroupMessages('group1');
+
+      // O chat NÃO pode carregar a coleção inteira — precisa de limit().
+      expect(limit).toHaveBeenCalledWith(50);
     });
 
     it('subscribeToGroupMessages should handle error', () => {

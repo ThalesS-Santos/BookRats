@@ -18,6 +18,7 @@ import {
 } from '@core/api/books';
 import { db, auth } from '@core/firebase/firebase';
 import { createLogger } from '@core/observability';
+import PushNotificationService from '@core/services/PushNotificationService';
 
 import { usePopupStore } from '../../../store/usePopupStore';
 import { useSocialStore } from '../../../store/useSocialStore';
@@ -64,6 +65,14 @@ export const createLibrarySlice = (set, get) => ({
             lastReadingSession: data.last_reading_session || 0,
             totalBooksCompleted: data.total_books_completed || 0,
           });
+
+          // 🛰️ Não reparar com base em dados do CACHE. No cold start o primeiro
+          // snapshot vem do cache local (possivelmente zerado/desatualizado);
+          // escrever esses valores por cima dos reais do servidor é rejeitado
+          // pelas regras (safeRankingUpdate vê uma "queda") → permission-denied.
+          // A hidratação acima pode usar o cache (UI rápida); o REPARO espera o
+          // servidor confirmar.
+          if (docSnap.metadata?.fromCache) return;
 
           if (get().repairLocked) return;
 
@@ -266,6 +275,13 @@ export const createLibrarySlice = (set, get) => ({
           totalBooksCompleted: get().totalBooksCompleted,
         },
       );
+
+      // 🔔 Leu hoje → re-ancora os lembretes locais (cancela o nudge de hoje e
+      // empurra os de "volta aí"). Local, fire-and-forget.
+      PushNotificationService.refreshReminders({
+        streak: res?.newStreak ?? streak,
+        lastReadDate: getLocalDateString(),
+      });
 
       // 🏆 Milestone announcements (replaces the old per-update chat spam).
       // The domain service decides WHAT to announce; the slice only performs the
