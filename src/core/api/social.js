@@ -228,8 +228,8 @@ export const createGroup = async (name, adminId, memberIds) => {
 };
 
 // Subscriptions
-export const subscribeToSentRequests = (uid, onUpdate) => {
-  const q = query(collection(db, 'friendships'), where('senderId', '==', uid));
+function subscribeFriendshipsByField(field, uid, onUpdate, op) {
+  const q = query(collection(db, 'friendships'), where(field, '==', uid));
   return onSnapshot(
     q,
     snapshot => {
@@ -237,35 +237,30 @@ export const subscribeToSentRequests = (uid, onUpdate) => {
     },
     error => {
       log.exception(error, {
-        op: 'subscribeToSentRequests',
+        op,
         action: 'listen',
         resource: 'friendships',
         context: { uid },
       });
     },
   );
-};
+}
 
-export const subscribeToReceivedRequests = (uid, onUpdate) => {
-  const q = query(
-    collection(db, 'friendships'),
-    where('receiverId', '==', uid),
+export const subscribeToSentRequests = (uid, onUpdate) =>
+  subscribeFriendshipsByField(
+    'senderId',
+    uid,
+    onUpdate,
+    'subscribeToSentRequests',
   );
-  return onSnapshot(
-    q,
-    snapshot => {
-      onUpdate(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    },
-    error => {
-      log.exception(error, {
-        op: 'subscribeToReceivedRequests',
-        action: 'listen',
-        resource: 'friendships',
-        context: { uid },
-      });
-    },
+
+export const subscribeToReceivedRequests = (uid, onUpdate) =>
+  subscribeFriendshipsByField(
+    'receiverId',
+    uid,
+    onUpdate,
+    'subscribeToReceivedRequests',
   );
-};
 
 export const subscribeToFriends = (uid, onUpdate) => {
   const qSent = query(
