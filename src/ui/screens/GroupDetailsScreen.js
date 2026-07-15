@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 
 import { Ionicons } from '@expo/vector-icons';
+import { getGroupAdmins, isGroupAdmin } from '@utils/groupRoles';
 import {
   View,
   Text,
@@ -20,6 +21,7 @@ import {
   updateGroupDetails,
   removeGroupMember,
   addGroupMember,
+  promoteToAdmin,
 } from '@core/api/social';
 import { UserNormalizationService } from '@core/services/UserNormalizationService';
 import { useMainStore } from '@core/store';
@@ -56,7 +58,8 @@ export default function GroupDetailsScreen({ route, navigation }) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const isAdmin = group?.adminId === user?.uid;
+  const isAdmin = isGroupAdmin(group, user?.uid);
+  const adminIds = getGroupAdmins(group);
 
   const loadDetails = useCallback(async () => {
     try {
@@ -137,6 +140,30 @@ export default function GroupDetailsScreen({ route, navigation }) {
     });
   };
 
+  const handlePromoteMember = (memberId, memberName) => {
+    showPopup({
+      title: 'Promover a Admin',
+      message: `Tornar ${memberName} administrador(a) do grupo? Admins podem convidar, expulsar e promover membros.`,
+      type: 'confirm',
+      onConfirm: async () => {
+        setUpdating(true);
+        try {
+          await promoteToAdmin(groupId, memberId);
+          await loadDetails(); // Refresh
+          showPopup({
+            title: 'Sucesso',
+            message: 'Novo administrador promovido!',
+            type: 'success',
+          });
+        } catch (error) {
+          showPopup({ title: 'Erro', message: error.message, type: 'error' });
+        } finally {
+          setUpdating(false);
+        }
+      },
+    });
+  };
+
   const filteredSearchResults = useMemo(() => {
     return storeSearchResults.filter(
       u => !(group?.members || []).some(m => m.id === u.id),
@@ -198,6 +225,7 @@ export default function GroupDetailsScreen({ route, navigation }) {
   const renderMember = ({ item, index }) => {
     const isFirst = index === 0;
     const isSelf = item.id === user?.uid;
+    const memberIsAdmin = adminIds.includes(item.id);
     return (
       <View
         key={item.id}
@@ -215,9 +243,19 @@ export default function GroupDetailsScreen({ route, navigation }) {
             <Ionicons name="person" size={20} color="#22C55E" />
           </View>
           <View className="flex-1">
-            <Text className="text-text-light dark:text-text-dark font-bold">
-              {UserNormalizationService.normalizeDisplayName(item)}
-            </Text>
+            <View className="flex-row items-center">
+              <Text className="text-text-light dark:text-text-dark font-bold">
+                {UserNormalizationService.normalizeDisplayName(item)}
+              </Text>
+              {memberIsAdmin && (
+                <View className="ml-2 px-1.5 py-0.5 bg-primary/15 dark:bg-primary-dark/15 rounded-md flex-row items-center">
+                  <Ionicons name="shield-checkmark" size={10} color="#22C55E" />
+                  <Text className="text-[9px] text-primary dark:text-primary-dark font-bold ml-1">
+                    Admin
+                  </Text>
+                </View>
+              )}
+            </View>
             {isFirst && (
               <Text className="text-xs text-primary dark:text-primary-dark">
                 👑 Top Reader
@@ -226,6 +264,18 @@ export default function GroupDetailsScreen({ route, navigation }) {
           </View>
         </View>
         <View className="flex-row items-center">
+          {isAdmin && !isSelf && !memberIsAdmin && (
+            <TouchableOpacity
+              onPress={() =>
+                handlePromoteMember(
+                  item.id,
+                  UserNormalizationService.normalizeDisplayName(item),
+                )
+              }
+              className="mr-2 p-1 bg-primary/10 rounded-lg border border-primary/20">
+              <Ionicons name="shield-outline" size={16} color="#22C55E" />
+            </TouchableOpacity>
+          )}
           {isAdmin && !isSelf && (
             <TouchableOpacity
               onPress={() =>
@@ -328,16 +378,15 @@ export default function GroupDetailsScreen({ route, navigation }) {
             <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold">
               Ranking do Grupo
             </Text>
-            {isAdmin && (
-              <TouchableOpacity
-                onPress={() => setShowAddModal(true)}
-                className="flex-row items-center">
-                <Ionicons name="person-add-outline" size={16} color="#22C55E" />
-                <Text className="text-primary dark:text-primary-dark font-bold text-xs ml-1">
-                  Adicionar
-                </Text>
-              </TouchableOpacity>
-            )}
+            {/* Convidar: permitido a QUALQUER membro (admin ou comum). */}
+            <TouchableOpacity
+              onPress={() => setShowAddModal(true)}
+              className="flex-row items-center">
+              <Ionicons name="person-add-outline" size={16} color="#22C55E" />
+              <Text className="text-primary dark:text-primary-dark font-bold text-xs ml-1">
+                Convidar
+              </Text>
+            </TouchableOpacity>
           </View>
 
           <View className="mb-8">

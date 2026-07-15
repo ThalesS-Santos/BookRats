@@ -1,3 +1,4 @@
+import { getGroupAdmins, getOldestMemberId } from '@utils/groupRoles';
 import { sanitizeEchoText, sanitizeName } from '@utils/sanitize';
 import {
   validateFriendRequest,
@@ -212,7 +213,8 @@ export const createGroup = async (name, adminId, memberIds) => {
   try {
     const groupRef = await addDoc(collection(db, 'groups'), {
       name: cleanName,
-      adminId,
+      adminId, // legado: fundador (mantido para retrocompat de leitura)
+      admins: [adminId], // 👑 fonte de verdade dos admins (multi-admin)
       members: [adminId, ...memberIds],
       createdAt: serverTimestamp(),
     });
@@ -429,8 +431,41 @@ export const removeFriendship = async (uid, friendId) => {
 export const leaveGroup = async (groupId, uid) => {
   try {
     const groupRef = doc(db, 'groups', groupId);
+    const snap = await getDoc(groupRef);
+    if (!snap.exists()) return;
+    const data = snap.data();
+
+    const admins = getGroupAdmins(data);
+    const members = data.members || [];
+    const remainingMembers = members.filter(id => id !== uid);
+    const remainingAdmins = admins.filter(id => id !== uid);
+
+    // Membro comum → apenas sai.
+    if (!admins.includes(uid)) {
+      await updateDoc(groupRef, { members: arrayRemove(uid) });
+      return;
+    }
+
+    // Admin saindo, mas ainda há outro(s) admin(s) → sai de members e admins.
+    if (remainingAdmins.length >= 1) {
+      await updateDoc(groupRef, {
+        members: arrayRemove(uid),
+        admins: remainingAdmins,
+      });
+      return;
+    }
+
+    // Era o ÚLTIMO admin. Se não sobra ninguém, apaga o grupo.
+    if (remainingMembers.length === 0) {
+      await deleteDoc(groupRef);
+      return;
+    }
+
+    // 👑 Sucessão: o membro mais antigo restante vira o novo admin.
+    const successor = getOldestMemberId(members, uid);
     await updateDoc(groupRef, {
       members: arrayRemove(uid),
+      admins: [successor],
     });
   } catch (error) {
     throw log.failure(error, {
@@ -496,12 +531,50 @@ export const addGroupMember = async (groupId, userId) => {
 export const removeGroupMember = async (groupId, userId) => {
   try {
     const groupRef = doc(db, 'groups', groupId);
+    const snap = await getDoc(groupRef);
+    if (!snap.exists()) return;
+    const data = snap.data();
+
+    // Se o expulso também era admin, remove de admins (mantém a invariante
+    // "todo admin é membro" exigida pelas regras). Escreve o array explícito
+    // para também migrar grupos legados (sem campo `admins`).
+    const newAdmins = getGroupAdmins(data).filter(id => id !== userId);
+
     await updateDoc(groupRef, {
       members: arrayRemove(userId),
+      admins: newAdmins,
     });
   } catch (error) {
     throw log.failure(error, {
       op: 'removeGroupMember',
+      action: 'update',
+      resource: `groups/${groupId}`,
+      context: { groupId, userId },
+    });
+  }
+};
+
+/**
+ * 👑 Promove um membro existente a administrador do grupo (multi-admin).
+ * Só admins atuais podem chamar (garantido pelas firestore.rules).
+ */
+export const promoteToAdmin = async (groupId, userId) => {
+  try {
+    const groupRef = doc(db, 'groups', groupId);
+    const snap = await getDoc(groupRef);
+    if (!snap.exists()) return;
+    const data = snap.data();
+
+    const admins = getGroupAdmins(data);
+    if (admins.includes(userId)) return; // já é admin
+
+    // Só dá para promover quem já é membro do grupo.
+    if (!(data.members || []).includes(userId)) return;
+
+    await updateDoc(groupRef, { admins: [...admins, userId] });
+  } catch (error) {
+    throw log.failure(error, {
+      op: 'promoteToAdmin',
       action: 'update',
       resource: `groups/${groupId}`,
       context: { groupId, userId },

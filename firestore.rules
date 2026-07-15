@@ -9,6 +9,12 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == userId;
     }
 
+    // 👑 Admins do grupo. Multi-admin via array `admins`; grupos LEGADOS só têm
+    // `adminId` (admin único) — daí o fallback. Espelha src/utils/groupRoles.js.
+    function groupAdmins(data) {
+      return ('admins' in data) ? data.admins : [data.adminId];
+    }
+
     // Limita apenas o AUMENTO (anti-cheat de ranking). Decréscimos são livres:
     // editar o nº de páginas para baixo ou "des-concluir" um livro (lido →
     // lendo) reduz total_pages_read legitimamente e não infla o ranking.
@@ -153,20 +159,36 @@ service cloud.firestore {
 
     match /groups/{groupId} {
       allow read: if signedIn();
-      allow create: if signedIn() && request.auth.uid == request.resource.data.adminId;
+
+      allow create: if signedIn()
+        && request.auth.uid in groupAdmins(request.resource.data)
+        && request.auth.uid in request.resource.data.members
+        && request.resource.data.members.hasAll(groupAdmins(request.resource.data));
+
       allow update: if signedIn() && (
-        // Cenário A: O remetente é o administrador (pode alterar qualquer campo do grupo)
-        request.auth.uid == resource.data.adminId ||
-        // Cenário B: O remetente é um membro comum (APENAS pode se adicionar ou remover da lista de members)
+        // Cenário A — ADMIN: controle total (expulsar/convidar qualquer um,
+        // promover novos admins, editar nome/descrição, sair com sucessão).
+        // Invariantes: o grupo nunca fica sem admin e todo admin é membro.
         (
+          request.auth.uid in groupAdmins(resource.data) &&
+          groupAdmins(request.resource.data).size() >= 1 &&
+          request.resource.data.members.hasAll(groupAdmins(request.resource.data))
+        ) ||
+        // Cenário B — MEMBRO COMUM: só pode mexer em `members`, CONVIDANDO
+        // (adicionar outros) e SAINDO (remover APENAS a si mesmo). Nunca expulsa
+        // terceiros nem altera admins/nome/descrição. (Corrige a brecha em que
+        // um membro podia enviar members:[] e esvaziar o grupo.)
+        (
+          !(request.auth.uid in groupAdmins(resource.data)) &&
           request.auth.uid in resource.data.members &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members']) &&
-          request.resource.data.adminId == resource.data.adminId &&
-          request.resource.data.name == resource.data.name &&
-          request.resource.data.description == resource.data.description
+          resource.data.members.toSet()
+            .difference(request.resource.data.members.toSet())
+            .hasOnly([request.auth.uid])
         )
       );
-      allow delete: if signedIn() && request.auth.uid == resource.data.adminId;
+
+      allow delete: if signedIn() && request.auth.uid in groupAdmins(resource.data);
 
       match /messages/{messageId} {
         allow read, create: if signedIn() && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;

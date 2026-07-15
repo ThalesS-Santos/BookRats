@@ -39,6 +39,7 @@ import {
   updateGroupDetails,
   addGroupMember,
   removeGroupMember,
+  promoteToAdmin,
   getPublicEchoes,
   addRatClap,
   replyToEcho,
@@ -195,14 +196,65 @@ describe('Social API Methods', () => {
       await expect(createGroup('G1', 'u1', [])).rejects.toThrow();
     });
 
-    it('leaveGroup should update doc', async () => {
+    it('leaveGroup should update doc (common member leaves)', async () => {
+      getDoc.mockResolvedValueOnce({
+        exists: () => true,
+        data: () => ({ admins: ['admin1'], members: ['admin1', 'u1'] }),
+      });
       await leaveGroup('g1', 'u1');
       expect(updateDoc).toHaveBeenCalled();
+      expect(arrayRemove).toHaveBeenCalledWith('u1');
+      expect(deleteDoc).not.toHaveBeenCalled();
     });
 
     it('leaveGroup should catch error', async () => {
+      getDoc.mockResolvedValueOnce({
+        exists: () => true,
+        data: () => ({ admins: ['admin1'], members: ['admin1', 'u1'] }),
+      });
       updateDoc.mockRejectedValueOnce(new Error('Err'));
       await expect(leaveGroup('g1', 'u1')).rejects.toThrow();
+    });
+
+    it('leaveGroup promotes the oldest member when the LAST admin leaves', async () => {
+      getDoc.mockResolvedValueOnce({
+        exists: () => true,
+        data: () => ({
+          admins: ['admin1'],
+          members: ['admin1', 'm2', 'm3'],
+        }),
+      });
+      await leaveGroup('g1', 'admin1');
+      // m2 é o mais antigo restante → vira o novo admin.
+      expect(updateDoc).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ admins: ['m2'] }),
+      );
+    });
+
+    it('leaveGroup keeps the remaining admins when a co-admin leaves', async () => {
+      getDoc.mockResolvedValueOnce({
+        exists: () => true,
+        data: () => ({
+          admins: ['admin1', 'admin2'],
+          members: ['admin1', 'admin2', 'm3'],
+        }),
+      });
+      await leaveGroup('g1', 'admin1');
+      expect(updateDoc).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ admins: ['admin2'] }),
+      );
+    });
+
+    it('leaveGroup deletes the group when the sole member (admin) leaves', async () => {
+      getDoc.mockResolvedValueOnce({
+        exists: () => true,
+        data: () => ({ admins: ['admin1'], members: ['admin1'] }),
+      });
+      await leaveGroup('g1', 'admin1');
+      expect(deleteDoc).toHaveBeenCalled();
+      expect(updateDoc).not.toHaveBeenCalled();
     });
 
     it('getGroupDetails should return null if not exists', async () => {
@@ -254,14 +306,68 @@ describe('Social API Methods', () => {
       await expect(addGroupMember('g1', 'u1')).rejects.toThrow();
     });
 
-    it('removeGroupMember should update doc', async () => {
+    it('removeGroupMember should update doc and strip the user from admins', async () => {
+      getDoc.mockResolvedValueOnce({
+        exists: () => true,
+        data: () => ({
+          admins: ['admin1', 'u1'],
+          members: ['admin1', 'u1', 'm3'],
+        }),
+      });
       await removeGroupMember('g1', 'u1');
-      expect(updateDoc).toHaveBeenCalled();
+      // u1 era admin → sai de admins também (mantém invariante das regras).
+      expect(updateDoc).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ admins: ['admin1'] }),
+      );
     });
 
     it('removeGroupMember should catch error', async () => {
+      getDoc.mockResolvedValueOnce({
+        exists: () => true,
+        data: () => ({ admins: ['admin1'], members: ['admin1', 'u1'] }),
+      });
       updateDoc.mockRejectedValueOnce(new Error('Err'));
       await expect(removeGroupMember('g1', 'u1')).rejects.toThrow();
+    });
+
+    it('promoteToAdmin adds an existing member to admins', async () => {
+      getDoc.mockResolvedValueOnce({
+        exists: () => true,
+        data: () => ({ admins: ['admin1'], members: ['admin1', 'm2'] }),
+      });
+      await promoteToAdmin('g1', 'm2');
+      expect(updateDoc).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ admins: ['admin1', 'm2'] }),
+      );
+    });
+
+    it('promoteToAdmin is a no-op if the user is already an admin', async () => {
+      getDoc.mockResolvedValueOnce({
+        exists: () => true,
+        data: () => ({ admins: ['admin1', 'm2'], members: ['admin1', 'm2'] }),
+      });
+      await promoteToAdmin('g1', 'm2');
+      expect(updateDoc).not.toHaveBeenCalled();
+    });
+
+    it('promoteToAdmin is a no-op if the target is not a member', async () => {
+      getDoc.mockResolvedValueOnce({
+        exists: () => true,
+        data: () => ({ admins: ['admin1'], members: ['admin1'] }),
+      });
+      await promoteToAdmin('g1', 'stranger');
+      expect(updateDoc).not.toHaveBeenCalled();
+    });
+
+    it('promoteToAdmin catches error', async () => {
+      getDoc.mockResolvedValueOnce({
+        exists: () => true,
+        data: () => ({ admins: ['admin1'], members: ['admin1', 'm2'] }),
+      });
+      updateDoc.mockRejectedValueOnce(new Error('Err'));
+      await expect(promoteToAdmin('g1', 'm2')).rejects.toThrow();
     });
   });
 
