@@ -31,7 +31,13 @@ if (getApps().length === 0) {
   auth = initializeAuth(app, {
     persistence: getReactNativePersistence(ReactNativeAsyncStorage),
   });
-  db = initializeFirestore(app, {}); // Use initializeFirestore for the first run
+  // ⚡ React Native transport fix: o SDK JS usa WebChannel/streaming por padrão,
+  // que a stack de rede do RN não suporta bem — isso faz os listeners (onSnapshot)
+  // demorarem MUITO para disparar a primeira vez e as escritas (setDoc) custarem a
+  // propagar. Forçar long-polling usa HTTP simples e resolve a latência no RN/Expo.
+  db = initializeFirestore(app, {
+    experimentalForceLongPolling: true,
+  });
 } else {
   app = getApp();
   auth = getAuth(app);

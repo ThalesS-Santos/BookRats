@@ -48,7 +48,12 @@ export const useHomeLogic = () => {
 
   // 🎯 Dados derivados estáveis e prontos para renderizar
   const filteredBooks = useMemo(() => {
-    if (loadingBooks || !isReady) return SKELETON_DATA;
+    // Só mostra skeleton quando NÃO temos dado nenhum para exibir. Como `books` é
+    // persistido no AsyncStorage, no cold start já temos a biblioteca em cache —
+    // renderizá-la de imediato evita esconder o livro atrás do skeleton enquanto o
+    // listener do Firestore ainda não respondeu. O listener atualiza em background.
+    if (!isReady) return SKELETON_DATA;
+    if (loadingBooks && books.length === 0) return SKELETON_DATA;
     if (activeFilter === 'shopping') {
       return selectWishlistBooks({ books });
     }
