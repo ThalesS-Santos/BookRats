@@ -20,16 +20,18 @@ const CommunityNote = ({
 }) => {
   const { userMetadata, pageLocation, text, reactions, userId, bookId } = note;
   const palette = {
+    // Neutral warm palette: front card = card token, back card = background token
+    // (subtly deeper) so the deck reads as one system, never navy/slate.
     card: isDarkMode
       ? isFrontCard
-        ? '#0F172A'
-        : '#111827'
+        ? '#121212'
+        : '#000000'
       : isFrontCard
-        ? '#FFFFFF'
-        : '#F1F5F9',
-    border: isDarkMode ? 'rgba(71, 85, 105, 0.45)' : 'rgba(203, 213, 225, 0.7)',
+        ? '#F5F3E7'
+        : '#FDFCF5',
+    border: isDarkMode ? 'rgba(38, 38, 38, 0.9)' : 'rgba(229, 231, 235, 0.9)',
     chip: isDarkMode ? 'rgba(167, 201, 167, 0.12)' : 'rgba(91, 140, 90, 0.08)',
-    action: isDarkMode ? 'rgba(2, 6, 23, 0.72)' : 'rgba(253, 252, 245, 0.92)',
+    action: isDarkMode ? 'rgba(0, 0, 0, 0.72)' : 'rgba(253, 252, 245, 0.92)',
   };
 
   if (isBackgroundCard) {
@@ -39,9 +41,6 @@ const CommunityNote = ({
           styles.card,
           styles.backgroundCard,
           {
-            shadowColor: COLORS?.neon_green || '#00FF00',
-            shadowOpacity: isDarkMode ? 0.1 : 0.05,
-            shadowRadius: 10,
             backgroundColor: palette.card,
             borderColor: palette.border,
           },
@@ -55,10 +54,9 @@ const CommunityNote = ({
       style={[
         styles.card,
         {
-          shadowColor: COLORS?.neon_green || '#00FF00',
-          shadowOpacity: isFrontCard ? 0.2 : 0,
-          shadowRadius: 15,
-          elevation: isFrontCard ? 5 : 0,
+          // No elevation/shadow here: on Android an elevated view inside the
+          // deck's animated-opacity wrapper renders the shadow as a solid dark
+          // rectangle ("black box"). The 1px border already defines the card.
           backgroundColor: palette.card,
           borderColor: palette.border,
         },
@@ -84,7 +82,7 @@ const CommunityNote = ({
                 <Ionicons
                   name="star"
                   size={8}
-                  color={COLORS?.neon_green || '#00FF00'}
+                  color={COLORS?.primary?.dark || '#A7C9A7'}
                   style={{ marginLeft: 3 }}
                 />
               )}

@@ -17,6 +17,7 @@ import TimerScreen from '@ui/screens/TimerScreen';
 import UserProfileScreen from '@ui/screens/UserProfileScreen';
 
 import TabNavigator from './TabNavigator';
+import { useThemeStore } from '../../store/useThemeStore';
 
 const Stack = createNativeStackNavigator();
 
@@ -24,6 +25,7 @@ const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
   const user = useMainStore(state => state.user);
+  const isDarkMode = useThemeStore(state => state.isDarkMode);
 
   return (
     <Stack.Navigator
@@ -32,7 +34,13 @@ export default function AppNavigator() {
         animation: 'default',
         fullScreenGestureEnabled: true, // Improved swipe gesture consistency
         detachInactiveScreens: true, // Optimizes memory by detaching screens not in view
-        contentStyle: { backgroundColor: COLORS.dark_blue }, // Fixes "white flash" during transitions
+        // Theme-aware solid background: prevents "white flash" during transitions
+        // without tinting the dark theme navy (was COLORS.dark_blue #020617).
+        contentStyle: {
+          backgroundColor: isDarkMode
+            ? COLORS.background.dark
+            : COLORS.background.light,
+        },
       }}>
       {user ? (
         <>
@@ -60,6 +68,8 @@ export default function AppNavigator() {
               presentation: 'transparentModal',
               animation: 'fade',
               headerShown: false,
+              // Override the opaque screen background so the modal is truly transparent.
+              contentStyle: { backgroundColor: 'transparent' },
             }}
           />
           <Stack.Screen name="BookDetails" component={BookDetailsScreen} />

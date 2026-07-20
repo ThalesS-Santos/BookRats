@@ -209,7 +209,17 @@ export default function BookDetailsScreen() {
             styles.headerContent,
             { opacity: imageOpacity, transform: [{ scale: imageScale }] },
           ]}>
-          <View className="shadow-2xl">
+          <View
+            style={
+              Platform.OS === 'ios'
+                ? {
+                    shadowColor: '#000',
+                    shadowOpacity: 0.35,
+                    shadowRadius: 20,
+                    shadowOffset: { width: 0, height: 10 },
+                  }
+                : null
+            }>
             <Image
               source={book.thumbnail}
               style={styles.mainCover}
@@ -223,13 +233,7 @@ export default function BookDetailsScreen() {
       <View style={styles.topBar}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-          className="p-3 rounded-full bg-black/40"
-          style={{
-            shadowColor: '#000',
-            shadowOpacity: 0.2,
-            shadowRadius: 5,
-            shadowOffset: { width: 0, height: 2 },
-          }}>
+          className="p-3 rounded-full bg-black/40">
           <Ionicons name="chevron-back" size={24} color="white" />
         </TouchableOpacity>
         <Animated.Text
@@ -309,7 +313,7 @@ export default function BookDetailsScreen() {
                 <View
                   key={i}
                   className="bg-primary/10 dark:bg-primary-dark/10 px-4 py-2 rounded-full mr-2 mb-2 border border-primary/20 dark:border-primary-dark/20">
-                  <Text className="text-primary dark:text-primary-light text-xs font-bold uppercase">
+                  <Text className="text-primary dark:text-primary-dark text-xs font-bold uppercase">
                     {cat}
                   </Text>
                 </View>
@@ -370,7 +374,7 @@ export default function BookDetailsScreen() {
               <TouchableOpacity
                 onPress={() => setIsExpanded(!isExpanded)}
                 className="mt-4 flex-row items-center justify-center border-t border-border-light/30 dark:border-border-dark/30 pt-4">
-                <Text className="text-primary dark:text-primary-light font-bold mr-1">
+                <Text className="text-primary dark:text-primary-dark font-bold mr-1">
                   {isExpanded ? 'VER MENOS' : 'LER TUDO'}
                 </Text>
                 <Ionicons
@@ -391,7 +395,7 @@ export default function BookDetailsScreen() {
         <TouchableOpacity
           testID="start-reading-btn"
           onPress={handleCTA}
-          className="bg-primary dark:bg-primary-dark p-5 rounded-2xl flex-row items-center justify-center shadow-xl"
+          className="bg-primary dark:bg-primary-dark p-5 rounded-2xl flex-row items-center justify-center"
           style={{ backgroundColor: accentColor }}>
           <Ionicons
             name={isInLibrary ? 'play-circle' : 'add-circle'}

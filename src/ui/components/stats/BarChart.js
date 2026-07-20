@@ -1,6 +1,13 @@
 import React, { useEffect, useRef } from 'react';
 
-import { View, Text, StyleSheet, Animated, Easing, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Animated,
+  Easing,
+  ScrollView,
+} from 'react-native';
 
 const MAX_HEIGHT = 110;
 
@@ -28,10 +35,8 @@ function Bar({ pages, maxPages, label, isDarkMode, delay, accentColor }) {
   }, [pages, maxPages, delay, heightAnim, opacityAnim]);
 
   const isEmpty = pages === 0;
-  const barColor = isEmpty
-    ? (isDarkMode ? '#2a2a2a' : '#F3F4F6')
-    : accentColor;
-  const labelColor = isDarkMode ? '#6B7280' : '#9CA3AF';
+  const barColor = isEmpty ? (isDarkMode ? '#262626' : '#E5E7EB') : accentColor;
+  const labelColor = isDarkMode ? '#9CA3AF' : '#6B7280';
   const valueColor = isDarkMode ? '#9CA3AF' : '#6B7280';
 
   return (
@@ -45,7 +50,11 @@ function Bar({ pages, maxPages, label, isDarkMode, delay, accentColor }) {
         <Animated.View
           style={[
             styles.bar,
-            { height: heightAnim, backgroundColor: barColor, borderRadius: isEmpty ? 4 : 6 },
+            {
+              height: heightAnim,
+              backgroundColor: barColor,
+              borderRadius: isEmpty ? 4 : 6,
+            },
           ]}
         />
       </View>

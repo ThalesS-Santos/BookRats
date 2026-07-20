@@ -119,7 +119,7 @@ const BookEditScreen = ({ navigation, route }) => {
             <Ionicons
               name="close"
               size={24}
-              color={isDarkMode ? '#FFF' : '#000'}
+              color={isDarkMode ? '#E0E0E0' : '#1A1A1A'}
             />
           </TouchableOpacity>
         </View>
@@ -137,7 +137,9 @@ const BookEditScreen = ({ navigation, route }) => {
               value={tempTitle}
               onChangeText={setTempTitle}
               placeholder="Nome do livro..."
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={
+                isDarkMode ? COLORS.text.muted.dark : COLORS.text.muted.light
+              }
             />
           </View>
 
@@ -153,7 +155,9 @@ const BookEditScreen = ({ navigation, route }) => {
               onChangeText={setTempPage}
               keyboardType="numeric"
               placeholder="0"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={
+                isDarkMode ? COLORS.text.muted.dark : COLORS.text.muted.light
+              }
             />
           </View>
 
@@ -173,7 +177,7 @@ const BookEditScreen = ({ navigation, route }) => {
             <TouchableOpacity
               testID="save-book-progress-btn"
               onPress={handleSave}
-              className="bg-primary dark:bg-primary-dark p-5 rounded-2xl items-center shadow-lg"
+              className="bg-primary dark:bg-primary-dark p-5 rounded-2xl items-center"
               style={{ backgroundColor: accentColor }}>
               <Text className="text-white font-bold text-lg uppercase tracking-widest">
                 Salvar Alterações

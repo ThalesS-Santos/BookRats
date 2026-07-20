@@ -32,18 +32,23 @@ import {
   formatDate,
 } from '@core/utils/statsCompute';
 
+import { useThemeStore } from '../../store/useThemeStore';
 import BarChart from '../components/stats/BarChart';
 import GenreBreakdown from '../components/stats/GenreBreakdown';
 import HeatCalendar from '../components/stats/HeatCalendar';
 import LibrarySnapshot from '../components/stats/LibrarySnapshot';
 import SessionInsights from '../components/stats/SessionInsights';
 import StatCard from '../components/stats/StatCard';
-import { useThemeStore } from '../../store/useThemeStore';
 
 const PERIODS = [
   { key: 'semana', label: 'Semana', days: 7, chartLabel: 'Últimos 7 dias' },
   { key: 'mes', label: 'Mês', days: 30, chartLabel: 'Últimas 4 semanas' },
-  { key: 'trimestre', label: 'Trimestre', days: 90, chartLabel: 'Últimos 3 meses' },
+  {
+    key: 'trimestre',
+    label: 'Trimestre',
+    days: 90,
+    chartLabel: 'Últimos 3 meses',
+  },
   { key: 'todo', label: 'Tudo', days: 365, chartLabel: 'Últimos 12 meses' },
 ];
 
@@ -54,21 +59,23 @@ const ACCENT_DARK = '#A7C9A7';
 
 function SectionHeader({ title, subtitle, isDarkMode }) {
   const titleColor = isDarkMode ? '#E0E0E0' : '#1A1A1A';
-  const subColor = isDarkMode ? '#6B7280' : '#9CA3AF';
+  const subColor = isDarkMode ? '#9CA3AF' : '#6B7280';
   return (
     <View style={s.sectionHeader}>
       <Text style={[s.sectionTitle, { color: titleColor }]}>{title}</Text>
-      {subtitle ? <Text style={[s.sectionSub, { color: subColor }]}>{subtitle}</Text> : null}
+      {subtitle ? (
+        <Text style={[s.sectionSub, { color: subColor }]}>{subtitle}</Text>
+      ) : null}
     </View>
   );
 }
 
 function ProjectionCard({ item, accentColor, isDarkMode }) {
-  const bg = isDarkMode ? '#1a1a1a' : '#FFFFFF';
+  const bg = isDarkMode ? '#000000' : '#FDFCF5';
   const border = isDarkMode ? '#262626' : '#E5E7EB';
   const titleColor = isDarkMode ? '#E0E0E0' : '#1A1A1A';
-  const mutedColor = isDarkMode ? '#6B7280' : '#9CA3AF';
-  const trackColor = isDarkMode ? '#2a2a2a' : '#F3F4F6';
+  const mutedColor = isDarkMode ? '#9CA3AF' : '#6B7280';
+  const trackColor = isDarkMode ? '#262626' : '#E5E7EB';
   const pct = Math.min(1, item.progress);
 
   return (
@@ -99,13 +106,14 @@ function ProjectionCard({ item, accentColor, isDarkMode }) {
 }
 
 function EmptyState({ isDarkMode }) {
-  const color = isDarkMode ? '#374151' : '#9CA3AF';
+  const color = isDarkMode ? '#9CA3AF' : '#6B7280';
   return (
     <View style={s.emptyContainer}>
       <Ionicons name="library-outline" size={52} color={color} />
       <Text style={[s.emptyTitle, { color }]}>Comece a ler</Text>
       <Text style={[s.emptySub, { color }]}>
-        Adicione livros e registre sessões de leitura para ver suas estatísticas aqui.
+        Adicione livros e registre sessões de leitura para ver suas estatísticas
+        aqui.
       </Text>
     </View>
   );
@@ -130,9 +138,13 @@ export default function StatsScreen() {
     const allLogs = extractAllLogs(books || []);
     const cutoff = getPeriodCutoff(selectedPeriod);
     const periodDays = getPeriodDays(selectedPeriod);
-    const filteredLogs = allLogs.filter(l => new Date(l.date + 'T12:00:00') >= cutoff);
+    const filteredLogs = allLogs.filter(
+      l => new Date(l.date + 'T12:00:00') >= cutoff,
+    );
 
-    const readingBooks = (books || []).filter(b => b.status === BOOK_STATUS.READING);
+    const readingBooks = (books || []).filter(
+      b => b.status === BOOK_STATUS.READING,
+    );
 
     const barData =
       selectedPeriod === 'semana'
@@ -152,7 +164,10 @@ export default function StatsScreen() {
     const projections = computeProjections(readingBooks, avgPagesPerDay);
     const dowPattern = computeDayOfWeekPattern(allLogs);
 
-    const periodPages = filteredLogs.reduce((s, l) => s + (l.pagesRead || 0), 0);
+    const periodPages = filteredLogs.reduce(
+      (s, l) => s + (l.pagesRead || 0),
+      0,
+    );
 
     return {
       barData,
@@ -176,9 +191,9 @@ export default function StatsScreen() {
 
   const bg = isDarkMode ? '#000000' : '#FDFCF5';
   const textPrimary = isDarkMode ? '#E0E0E0' : '#1A1A1A';
-  const textMuted = isDarkMode ? '#6B7280' : '#9CA3AF';
-  const sectionBg = isDarkMode ? '#111111' : '#FFFFFF';
-  const sectionBorder = isDarkMode ? '#1E1E1E' : '#F1F5F9';
+  const textMuted = isDarkMode ? '#9CA3AF' : '#6B7280';
+  const sectionBg = isDarkMode ? '#121212' : '#F5F3E7';
+  const sectionBorder = isDarkMode ? '#262626' : '#E5E7EB';
 
   const activePeriod = PERIODS.find(p => p.key === selectedPeriod);
 
@@ -188,11 +203,15 @@ export default function StatsScreen() {
     <View style={[s.root, { backgroundColor: bg }]}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[s.scroll, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 24 }]}>
-
+        contentContainerStyle={[
+          s.scroll,
+          { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 24 },
+        ]}>
         {/* ── Header ────────────────────────────────────────────────── */}
         <View style={s.header}>
-          <Text style={[s.headerTitle, { color: textPrimary }]}>Estatísticas</Text>
+          <Text style={[s.headerTitle, { color: textPrimary }]}>
+            Estatísticas
+          </Text>
           <Text style={[s.headerSub, { color: textMuted }]}>
             Sua jornada de leitura em números
           </Text>
@@ -218,7 +237,9 @@ export default function StatsScreen() {
                       s.pill,
                       active
                         ? { backgroundColor: accent }
-                        : { backgroundColor: isDarkMode ? '#1E1E1E' : '#F1F5F9' },
+                        : {
+                            backgroundColor: isDarkMode ? '#121212' : '#F5F3E7',
+                          },
                     ]}>
                     <Text
                       style={[
@@ -247,7 +268,7 @@ export default function StatsScreen() {
                   icon="document-text"
                   label="Páginas Lidas"
                   rawValue={totalPagesRead || 0}
-                  accentColor="#2196F3"
+                  accentColor={accent}
                   isDarkMode={isDarkMode}
                 />
               </View>
@@ -257,7 +278,7 @@ export default function StatsScreen() {
                   label="Sequência Atual"
                   rawValue={streak || 0}
                   unit="dias"
-                  accentColor="#F59E0B"
+                  accentColor="#D97706"
                   isDarkMode={isDarkMode}
                 />
                 <View style={s.kpiGap} />
@@ -267,14 +288,18 @@ export default function StatsScreen() {
                   rawValue={stats.avgSpeed}
                   displayValue={stats.avgSpeed > 0 ? `${stats.avgSpeed}` : '—'}
                   unit={stats.avgSpeed > 0 ? 'pág/h' : undefined}
-                  accentColor="#8B5CF6"
+                  accentColor={accent}
                   isDarkMode={isDarkMode}
                 />
               </View>
             </View>
 
             {/* ── Atividade de Leitura ──────────────────────────────── */}
-            <View style={[s.section, { backgroundColor: sectionBg, borderColor: sectionBorder }]}>
+            <View
+              style={[
+                s.section,
+                { backgroundColor: sectionBg, borderColor: sectionBorder },
+              ]}>
               <SectionHeader
                 title="Atividade de Leitura"
                 subtitle={activePeriod?.chartLabel}
@@ -294,7 +319,11 @@ export default function StatsScreen() {
             </View>
 
             {/* ── Calendário de Leitura ─────────────────────────────── */}
-            <View style={[s.section, { backgroundColor: sectionBg, borderColor: sectionBorder }]}>
+            <View
+              style={[
+                s.section,
+                { backgroundColor: sectionBg, borderColor: sectionBorder },
+              ]}>
               <SectionHeader
                 title="Calendário de Leitura"
                 subtitle="Últimas 8 semanas"
@@ -305,7 +334,11 @@ export default function StatsScreen() {
 
             {/* ── Padrão Semanal ────────────────────────────────────── */}
             {stats.hasAnyLogs && (
-              <View style={[s.section, { backgroundColor: sectionBg, borderColor: sectionBorder }]}>
+              <View
+                style={[
+                  s.section,
+                  { backgroundColor: sectionBg, borderColor: sectionBorder },
+                ]}>
                 <SectionHeader
                   title="Padrão Semanal"
                   subtitle="Em qual dia você mais lê"
@@ -314,36 +347,54 @@ export default function StatsScreen() {
                 <BarChart
                   data={stats.dowPattern}
                   isDarkMode={isDarkMode}
-                  accentColor="#F59E0B"
+                  accentColor="#D97706"
                 />
               </View>
             )}
 
             {/* ── Sua Biblioteca ────────────────────────────────────── */}
-            <View style={[s.section, { backgroundColor: sectionBg, borderColor: sectionBorder }]}>
+            <View
+              style={[
+                s.section,
+                { backgroundColor: sectionBg, borderColor: sectionBorder },
+              ]}>
               <SectionHeader
                 title="Sua Biblioteca"
                 subtitle={`${stats.librarySnapshot.total} livros catalogados`}
                 isDarkMode={isDarkMode}
               />
-              <LibrarySnapshot snapshot={stats.librarySnapshot} isDarkMode={isDarkMode} />
+              <LibrarySnapshot
+                snapshot={stats.librarySnapshot}
+                isDarkMode={isDarkMode}
+              />
             </View>
 
             {/* ── Gêneros Favoritos ─────────────────────────────────── */}
             {stats.genreData.length > 0 && (
-              <View style={[s.section, { backgroundColor: sectionBg, borderColor: sectionBorder }]}>
+              <View
+                style={[
+                  s.section,
+                  { backgroundColor: sectionBg, borderColor: sectionBorder },
+                ]}>
                 <SectionHeader
                   title="Gêneros Favoritos"
                   subtitle="Baseado nos livros lidos"
                   isDarkMode={isDarkMode}
                 />
-                <GenreBreakdown data={stats.genreData} isDarkMode={isDarkMode} />
+                <GenreBreakdown
+                  data={stats.genreData}
+                  isDarkMode={isDarkMode}
+                />
               </View>
             )}
 
             {/* ── Sessões de Leitura ────────────────────────────────── */}
             {stats.sessionMetrics.totalSessions > 0 && (
-              <View style={[s.section, { backgroundColor: sectionBg, borderColor: sectionBorder }]}>
+              <View
+                style={[
+                  s.section,
+                  { backgroundColor: sectionBg, borderColor: sectionBorder },
+                ]}>
                 <SectionHeader
                   title="Sessões de Leitura"
                   subtitle={`${stats.sessionMetrics.totalSessions} sessões registradas`}
@@ -366,10 +417,10 @@ export default function StatsScreen() {
                 </View>
                 {maxReadingSession > 0 && (
                   <View style={[s.sessionExtra, { marginTop: 4 }]}>
-                    <Ionicons name="trophy-outline" size={14} color="#F59E0B" />
+                    <Ionicons name="trophy-outline" size={14} color="#D97706" />
                     <Text style={[s.sessionExtraText, { color: textMuted }]}>
                       Recorde de sessão:{' '}
-                      <Text style={{ color: '#F59E0B', fontWeight: '700' }}>
+                      <Text style={{ color: '#D97706', fontWeight: '700' }}>
                         {formatDuration(maxReadingSession)}
                       </Text>
                     </Text>
@@ -380,7 +431,11 @@ export default function StatsScreen() {
 
             {/* ── Projeção de Leitura ───────────────────────────────── */}
             {stats.readingBooks.length > 0 && (
-              <View style={[s.section, { backgroundColor: sectionBg, borderColor: sectionBorder }]}>
+              <View
+                style={[
+                  s.section,
+                  { backgroundColor: sectionBg, borderColor: sectionBorder },
+                ]}>
                 <SectionHeader
                   title="Projeção de Leitura"
                   subtitle={
@@ -402,10 +457,23 @@ export default function StatsScreen() {
                     ))}
                   </View>
                 ) : (
-                  <View style={[s.projEmpty, { backgroundColor: isDarkMode ? '#1a1a1a' : '#F9FAFB' }]}>
-                    <Ionicons name="analytics-outline" size={28} color={textMuted} />
-                    <Text style={[s.noDataNote, { color: textMuted, marginTop: 8 }]}>
-                      Continue registrando sessões para ver quando vai terminar seus livros.
+                  <View
+                    style={[
+                      s.projEmpty,
+                      { backgroundColor: isDarkMode ? '#000000' : '#FDFCF5' },
+                    ]}>
+                    <Ionicons
+                      name="analytics-outline"
+                      size={28}
+                      color={textMuted}
+                    />
+                    <Text
+                      style={[
+                        s.noDataNote,
+                        { color: textMuted, marginTop: 8 },
+                      ]}>
+                      Continue registrando sessões para ver quando vai terminar
+                      seus livros.
                     </Text>
                   </View>
                 )}

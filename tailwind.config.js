@@ -15,12 +15,12 @@ module.exports = {
           dark: '#121212',
         },
         surface: {
-          light: '#FFFFFF',
-          dark: '#0F172A',
+          light: '#F5F3E7',
+          dark: '#121212',
         },
         surfaceLayer: {
-          light: '#F1F5F9',
-          dark: '#1E293B',
+          light: '#EDEADD',
+          dark: '#262626',
         },
         primary: {
           DEFAULT: '#5B8C5A', // Sage Green
@@ -40,8 +40,8 @@ module.exports = {
           dark: '#262626',
         },
         borderGlass: {
-          light: 'rgba(203, 213, 225, 0.6)',
-          dark: 'rgba(71, 85, 105, 0.4)',
+          light: 'rgba(229, 231, 235, 0.6)',
+          dark: 'rgba(38, 38, 38, 0.6)',
         },
       },
       fontFamily: {

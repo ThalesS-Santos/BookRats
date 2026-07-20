@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 
 import BookCover from '../atoms/BookCover';
-
 import CommunityNote from '../molecules/CommunityNote';
 
 const EchoDeck = ({ echoes, onClap, COLORS, isDarkMode, bookCover = null }) => {
@@ -162,7 +161,7 @@ const EchoDeck = ({ echoes, onClap, COLORS, isDarkMode, bookCover = null }) => {
             testID="front-card"
             style={[styles.cardWrapper, cardStyle]}
             {...panResponder.panHandlers}>
-            <TouchableOpacity activeOpacity={0.9} onPress={handleTap}>
+            <TouchableOpacity activeOpacity={1} onPress={handleTap}>
               <CommunityNote
                 note={item}
                 onClap={onClap}

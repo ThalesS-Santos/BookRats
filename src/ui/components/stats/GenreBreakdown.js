@@ -1,13 +1,25 @@
 import React, { useEffect, useRef } from 'react';
 
-import { View, Text, StyleSheet, Animated, Easing, Dimensions } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Animated,
+  Easing,
+  Dimensions,
+} from 'react-native';
 
 // 80 label + 20 count + 16 gaps + 32 screen padding + 36 section padding
 const MAX_BAR_WIDTH = Dimensions.get('window').width - 184;
 
 const GENRE_COLORS = [
-  '#5B8C5A', '#2196F3', '#FF9800', '#9C27B0',
-  '#E91E63', '#00BCD4', '#795548',
+  '#5B8C5A',
+  '#2196F3',
+  '#FF9800',
+  '#9C27B0',
+  '#E91E63',
+  '#00BCD4',
+  '#795548',
 ];
 
 function GenreBar({ genre, count, maxCount, isDarkMode, index, delay }) {
@@ -34,9 +46,9 @@ function GenreBar({ genre, count, maxCount, isDarkMode, index, delay }) {
   }, [count, maxCount, delay, widthAnim, opacityAnim]);
 
   const color = GENRE_COLORS[index % GENRE_COLORS.length];
-  const labelColor = isDarkMode ? '#D1D5DB' : '#374151';
-  const countColor = isDarkMode ? '#6B7280' : '#9CA3AF';
-  const trackColor = isDarkMode ? '#1E1E1E' : '#F3F4F6';
+  const labelColor = isDarkMode ? '#E0E0E0' : '#1A1A1A';
+  const countColor = isDarkMode ? '#9CA3AF' : '#6B7280';
+  const trackColor = isDarkMode ? '#262626' : '#E5E7EB';
 
   return (
     <Animated.View style={[styles.row, { opacity: opacityAnim }]}>

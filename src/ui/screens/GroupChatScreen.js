@@ -70,7 +70,7 @@ export default function GroupChatScreen({ route, navigation }) {
                 <Ionicons
                   name="arrow-back"
                   size={20}
-                  color={isDarkMode ? '#E1E1E1' : '#1A1A1A'}
+                  color={isDarkMode ? '#E0E0E0' : '#1A1A1A'}
                 />
               </TouchableOpacity>
               <TouchableOpacity
@@ -129,7 +129,7 @@ export default function GroupChatScreen({ route, navigation }) {
                     if (isSystem) {
                       return (
                         <View className="items-center my-3 px-4">
-                          <Text className="text-[#22C55E] font-bold text-center text-sm leading-5">
+                          <Text className="text-primary dark:text-primary-dark font-bold text-center text-sm leading-5">
                             {String(item.text || '')}
                           </Text>
                         </View>
@@ -167,13 +167,13 @@ export default function GroupChatScreen({ route, navigation }) {
           <View
             className="flex-row items-center p-3 border-t border-border-light dark:border-border-dark"
             style={{
-              backgroundColor: isDarkMode ? '#020617' : '#F5F3E7',
+              backgroundColor: isDarkMode ? '#121212' : '#F5F3E7',
               paddingBottom: Platform.OS === 'ios' ? 10 : 10, // Pinned styling
             }}>
             <TextInput
               className="flex-1 p-3 text-text-light dark:text-text-dark bg-background-light dark:bg-background-dark rounded-2xl px-4 mr-3 border border-border-light dark:border-border-dark"
               placeholder="Envie uma mensagem..."
-              placeholderTextColor={isDarkMode ? '#6B7280' : '#9CA3AF'}
+              placeholderTextColor={isDarkMode ? '#9CA3AF' : '#6B7280'}
               value={messageText}
               onChangeText={setMessageText}
               onSubmitEditing={handleSendMessage}
@@ -182,7 +182,7 @@ export default function GroupChatScreen({ route, navigation }) {
             />
             <TouchableOpacity
               onPress={handleSendMessage}
-              className="p-3 bg-primary dark:bg-primary-dark rounded-full shadow-lg">
+              className="p-3 bg-primary dark:bg-primary-dark rounded-full">
               <Ionicons name="send" size={20} color="#FFF" />
             </TouchableOpacity>
           </View>

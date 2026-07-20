@@ -56,7 +56,7 @@ const StatusSelector = ({ currentStatus, onStatusChange }) => {
                   : COLORS.primary.light
                 : isDarkMode
                   ? COLORS.card.dark
-                  : COLORS.white,
+                  : COLORS.card.light,
               borderColor: isActive
                 ? isDarkMode
                   ? COLORS.primary.dark
@@ -72,7 +72,9 @@ const StatusSelector = ({ currentStatus, onStatusChange }) => {
               isActive ? styles.textActive : styles.textInactive,
               {
                 color: isActive
-                  ? '#FFFFFF'
+                  ? isDarkMode
+                    ? '#1A1A1A'
+                    : '#FFFFFF'
                   : isDarkMode
                     ? COLORS.text.muted.dark
                     : COLORS.text.muted.light,
@@ -104,11 +106,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     minWidth: '28%',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
   },
   chipActive: {
     // Cores dinâmicas via prop style

@@ -2,11 +2,10 @@ import React, { useEffect, useState } from 'react';
 
 import { View, Text, StyleSheet, Animated } from 'react-native';
 
-import BookCover from '../atoms/BookCover';
-
 import { COLORS } from '@constants/colors';
 
 import { useThemeStore } from '../../../store/useThemeStore';
+import BookCover from '../atoms/BookCover';
 
 const CURIOSITIES = [
   'O livro mais longo já escrito tem mais de 1.2 milhão de palavras.',
@@ -33,8 +32,10 @@ const BookLoader = ({ isVisible = true, bookCover = null }) => {
   const BG_COLOR = isDarkMode
     ? COLORS.background.dark
     : COLORS.background.light;
-  const ACCENT_COLOR = isDarkMode ? '#22C55E' : COLORS.primary.light;
-  const TEXT_MUTED = isDarkMode ? '#94A3B8' : '#64748B';
+  const ACCENT_COLOR = isDarkMode ? COLORS.primary.dark : COLORS.primary.light;
+  const TEXT_MUTED = isDarkMode
+    ? COLORS.text.muted.dark
+    : COLORS.text.muted.light;
 
   useEffect(() => {
     if (!isVisible) return;

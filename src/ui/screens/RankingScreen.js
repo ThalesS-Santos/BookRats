@@ -117,12 +117,11 @@ const RankingItem = React.memo(
         <TouchableOpacity
           onPress={handlePress}
           activeOpacity={0.7}
-          className={`p-8 mb-6 rounded-[32px] border shadow-sm bg-card-light dark:bg-card-dark`}
+          className={`p-8 mb-6 rounded-[32px] border bg-card-light dark:bg-card-dark`}
           style={{
-            shadowColor: item.isMe ? COLORS.neon_green : COLORS.dark_blue,
-            shadowOpacity: 0.08,
-            shadowRadius: 20,
-            shadowOffset: { width: 0, height: 4 },
+            // No shadow-sm / elevation here: on Android an elevated view inside
+            // this animated-opacity card renders the shadow as a solid dark
+            // rectangle. The border already separates the card from the bg.
             borderColor: item.isMe
               ? COLORS.neon_green
               : isDarkMode
@@ -231,7 +230,7 @@ const RankingHeader = React.memo(
           </Text>
 
           {/* 🏷️ Scope Toggle: Global vs Amigos */}
-          <View className="flex-row bg-gray-100 dark:bg-gray-800/60 rounded-2xl p-1 border border-border-light dark:border-border-dark">
+          <View className="flex-row bg-card-light dark:bg-card-dark rounded-2xl p-1 border border-border-light dark:border-border-dark">
             <TouchableOpacity
               testID="ranking-scope-global"
               onPress={() => onScopeChange('global')}
@@ -240,7 +239,7 @@ const RankingHeader = React.memo(
               // "upgrade warning" do css-interop, que crasha em dev (stringify
               // recursivo atinge getters do react-navigation).
               className={`flex-1 py-2.5 rounded-xl items-center justify-center ${
-                !isFriendsScope ? 'bg-card-light dark:bg-card-dark' : ''
+                !isFriendsScope ? 'bg-background-light dark:bg-border-dark' : ''
               }`}>
               <Text
                 className={`font-bold text-sm ${
@@ -255,7 +254,7 @@ const RankingHeader = React.memo(
               testID="ranking-scope-amigos"
               onPress={() => onScopeChange('amigos')}
               className={`flex-1 py-2.5 rounded-xl items-center justify-center ${
-                isFriendsScope ? 'bg-card-light dark:bg-card-dark' : ''
+                isFriendsScope ? 'bg-background-light dark:bg-border-dark' : ''
               }`}>
               <Text
                 className={`font-bold text-sm ${

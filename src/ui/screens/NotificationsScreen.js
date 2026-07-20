@@ -97,7 +97,7 @@ export default function NotificationsScreen() {
             <Ionicons
               name={icon}
               size={12}
-              color={COLORS.primary.light}
+              color={isDarkMode ? COLORS.primary.dark : COLORS.primary.light}
               style={{ marginRight: 4 }}
             />
             <Text className="text-[10px] font-bold text-primary dark:text-primary-dark uppercase tracking-widest">
@@ -131,11 +131,11 @@ export default function NotificationsScreen() {
         <View className="flex-row items-center">
           <TouchableOpacity
             onPress={() => navigation.goBack()}
-            className="mr-5 w-10 h-10 items-center justify-center bg-card-light dark:bg-card-dark rounded-full shadow-sm border border-border-light dark:border-border-dark">
+            className="mr-5 w-10 h-10 items-center justify-center bg-card-light dark:bg-card-dark rounded-full border border-border-light dark:border-border-dark">
             <Ionicons
               name="arrow-back"
               size={20}
-              color={isDarkMode ? 'white' : 'black'}
+              color={isDarkMode ? '#E0E0E0' : '#1A1A1A'}
             />
           </TouchableOpacity>
           <Text className="text-xl font-serif font-bold text-text-light dark:text-text-dark">
@@ -169,9 +169,9 @@ export default function NotificationsScreen() {
                 <Ionicons
                   name="people-outline"
                   size={20}
-                  color={isDarkMode ? '#94a3b8' : '#64748b'}
+                  color={isDarkMode ? '#9CA3AF' : '#6B7280'}
                 />
-                <Text className="ml-2 text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
+                <Text className="ml-2 text-sm font-bold text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest">
                   {TXT_FRIEND_REQUESTS}
                   {receivedRequests.length})
                 </Text>
@@ -188,7 +188,7 @@ export default function NotificationsScreen() {
             <Ionicons
               name="notifications-off-outline"
               size={48}
-              color={isDarkMode ? '#334155' : '#CBD5E1'}
+              color={isDarkMode ? '#262626' : '#E5E7EB'}
             />
             <Text className="text-center mt-4 font-serif italic text-text-muted-light dark:text-text-muted-dark px-10">
               {TXT_NO_NOTIFICATIONS}
@@ -208,10 +208,5 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neon_green,
     alignSelf: 'center',
     marginLeft: 12,
-    shadowColor: COLORS.neon_green,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 6,
-    elevation: 4,
   },
 });

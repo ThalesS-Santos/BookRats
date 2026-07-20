@@ -38,14 +38,7 @@ const ProgressBookCard = memo(
         activeOpacity={0.9}
         onPress={handlePress}
         className="mb-4">
-        <View
-          className="bg-card-light dark:bg-card-dark rounded-3xl border border-border-light dark:border-border-dark shadow-sm overflow-hidden h-32 flex-row"
-          style={{
-            shadowColor: '#000',
-            shadowOpacity: 0.05,
-            shadowRadius: 10,
-            shadowOffset: { width: 0, height: 2 },
-          }}>
+        <View className="bg-card-light dark:bg-card-dark rounded-3xl border border-border-light dark:border-border-dark overflow-hidden h-32 flex-row">
           {/* Left: Small Cover Image */}
           <View className="w-20 bg-border-light dark:bg-border-dark items-center justify-center overflow-hidden">
             <BookCover
@@ -108,13 +101,13 @@ const ProgressBookCard = memo(
                 e.stopPropagation();
                 onConfigPress?.(book);
               }}
-              className="bg-secondary/10 dark:border-secondary-dark/10 p-2 rounded-full">
+              className="bg-primary/10 dark:bg-primary-dark/10 p-2 rounded-full">
               <Ionicons name="settings-outline" size={18} color={accentColor} />
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={handlePress}
-              className="bg-primary dark:bg-primary-dark p-2 rounded-full shadow-sm">
+              className="bg-primary dark:bg-primary-dark p-2 rounded-full">
               <Ionicons name="play" size={18} color="white" />
             </TouchableOpacity>
           </View>

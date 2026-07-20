@@ -6,16 +6,31 @@ import { View, Text, StyleSheet } from 'react-native';
 import { formatDuration } from '@core/utils/statsCompute';
 
 const METRICS = [
-  { key: 'avgDuration', icon: 'time-outline', label: 'Sessão Média', format: formatDuration },
-  { key: 'maxDuration', icon: 'trophy-outline', label: 'Recorde', format: formatDuration },
-  { key: 'totalSessions', icon: 'book-outline', label: 'Sessões Total', format: n => String(n) },
+  {
+    key: 'avgDuration',
+    icon: 'time-outline',
+    label: 'Sessão Média',
+    format: formatDuration,
+  },
+  {
+    key: 'maxDuration',
+    icon: 'trophy-outline',
+    label: 'Recorde',
+    format: formatDuration,
+  },
+  {
+    key: 'totalSessions',
+    icon: 'book-outline',
+    label: 'Sessões Total',
+    format: n => String(n),
+  },
 ];
 
 function MetricCell({ icon, label, value, accentColor, isDarkMode }) {
-  const bg = isDarkMode ? '#1a1a1a' : '#FFFFFF';
+  const bg = isDarkMode ? '#121212' : '#F5F3E7';
   const border = isDarkMode ? '#262626' : '#E5E7EB';
   const valueColor = isDarkMode ? '#E0E0E0' : '#1A1A1A';
-  const labelColor = isDarkMode ? '#6B7280' : '#9CA3AF';
+  const labelColor = isDarkMode ? '#9CA3AF' : '#6B7280';
 
   return (
     <View style={[styles.cell, { backgroundColor: bg, borderColor: border }]}>

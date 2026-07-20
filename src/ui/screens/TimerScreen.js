@@ -228,12 +228,17 @@ export default function TimerScreen({ route, navigation }) {
                         ? accentColor
                         : isDarkMode
                           ? '#262626'
-                          : '#F3F4F6',
-                      backgroundColor: isDarkMode ? '#121212' : '#FFFFFF',
-                      shadowColor: accentColor,
-                      shadowOpacity: isActive ? 0.3 : 0,
-                      shadowRadius: 20,
-                      elevation: isActive ? 10 : 0,
+                          : '#E5E7EB',
+                      backgroundColor: isDarkMode ? '#121212' : '#F5F3E7',
+                      // iOS-only soft glow when active; no Android elevation
+                      // (it would render as a hard dark ring on the circle).
+                      ...(Platform.OS === 'ios'
+                        ? {
+                            shadowColor: accentColor,
+                            shadowOpacity: isActive ? 0.3 : 0,
+                            shadowRadius: 20,
+                          }
+                        : {}),
                     }}>
                     <Text className="text-text-light dark:text-text-dark text-7xl font-mono tracking-tighter font-black">
                       {formatTime(seconds)}
@@ -251,7 +256,7 @@ export default function TimerScreen({ route, navigation }) {
                 <View className="flex-row justify-between items-center mt-10 px-4">
                   <TouchableOpacity
                     testID="pause-play-btn"
-                    className="w-20 h-20 rounded-full items-center justify-center bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark shadow-sm"
+                    className="w-20 h-20 rounded-full items-center justify-center bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark"
                     onPress={() => {
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                       setIsActive(!isActive);
@@ -264,7 +269,7 @@ export default function TimerScreen({ route, navigation }) {
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    className="flex-1 h-20 mx-6 rounded-3xl items-center justify-center bg-primary dark:bg-primary-dark shadow-xl"
+                    className="flex-1 h-20 mx-6 rounded-3xl items-center justify-center bg-primary dark:bg-primary-dark"
                     onPress={handleFinish}>
                     <Text className="text-white font-black text-xl tracking-wider uppercase">
                       Finalizar
@@ -273,7 +278,7 @@ export default function TimerScreen({ route, navigation }) {
 
                   <TouchableOpacity
                     testID="reset-btn"
-                    className="w-20 h-20 rounded-full items-center justify-center bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark shadow-sm"
+                    className="w-20 h-20 rounded-full items-center justify-center bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark"
                     onPress={() => {
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                       showPopup({
@@ -316,7 +321,7 @@ export default function TimerScreen({ route, navigation }) {
                     <Ionicons
                       name="speedometer-outline"
                       size={24}
-                      color="#6366F1"
+                      color={accentColor}
                     />
                     <Text className="text-text-light dark:text-text-dark font-black text-xl mt-2">
                       {calculateSpeed()}
@@ -380,7 +385,7 @@ export default function TimerScreen({ route, navigation }) {
                   onPress={handlePublicToggle}
                   className="bg-card-light dark:bg-card-dark flex-row items-center p-5 rounded-[24px] border border-border-light dark:border-border-dark mb-10">
                   <View
-                    className={`w-12 h-12 rounded-2xl items-center justify-center mr-4 ${isPublic ? 'bg-primary' : 'bg-zinc-500'}`}>
+                    className={`w-12 h-12 rounded-2xl items-center justify-center mr-4 ${isPublic ? 'bg-primary' : 'bg-text-muted-light dark:bg-text-muted-dark'}`}>
                     <Ionicons
                       name={isPublic ? 'globe' : 'lock-closed'}
                       size={22}
@@ -398,7 +403,7 @@ export default function TimerScreen({ route, navigation }) {
                     </Text>
                   </View>
                   <View
-                    className={`w-6 h-6 rounded-full border-2 items-center justify-center ${isPublic ? 'border-primary' : 'border-zinc-500'}`}>
+                    className={`w-6 h-6 rounded-full border-2 items-center justify-center ${isPublic ? 'border-primary' : 'border-text-muted-light dark:border-text-muted-dark'}`}>
                     {isPublic && (
                       <View className="w-3 h-3 rounded-full bg-primary" />
                     )}
@@ -409,7 +414,7 @@ export default function TimerScreen({ route, navigation }) {
                 <View className="space-y-4">
                   <TouchableOpacity
                     testID="publish-echo-btn"
-                    className="bg-primary dark:bg-primary-dark h-20 rounded-[28px] items-center justify-center shadow-lg"
+                    className="bg-primary dark:bg-primary-dark h-20 rounded-[28px] items-center justify-center"
                     onPress={() => handleSaveProgress(false)}>
                     <Text className="text-white font-black text-xl tracking-widest uppercase">
                       Salvar Sessão
@@ -417,7 +422,7 @@ export default function TimerScreen({ route, navigation }) {
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    className="bg-amber-500 h-20 rounded-[28px] items-center justify-center shadow-xl border-b-4 border-amber-700"
+                    className="bg-amber-500 h-20 rounded-[28px] items-center justify-center border-b-4 border-amber-700"
                     onPress={() => handleSaveProgress(true)}>
                     <View className="flex-row items-center">
                       <Ionicons name="trophy" size={24} color="white" />

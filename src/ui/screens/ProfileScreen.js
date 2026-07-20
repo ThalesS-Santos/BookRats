@@ -124,11 +124,11 @@ export default function ProfileScreen({ navigation }) {
       <View className="flex-row justify-end items-center mb-2 z-10">
         <TouchableOpacity
           onPress={() => navigation.navigate('Notifications')}
-          className="p-3 bg-card-light dark:bg-card-dark rounded-full shadow-sm border border-border-light dark:border-border-dark relative">
+          className="p-3 bg-card-light dark:bg-card-dark rounded-full border border-border-light dark:border-border-dark relative">
           <Ionicons
             name="notifications-outline"
             size={24}
-            color={isDarkMode ? 'white' : 'black'}
+            color={isDarkMode ? '#E0E0E0' : '#1A1A1A'}
           />
           {unreadCount > 0 && (
             <View
@@ -173,7 +173,7 @@ export default function ProfileScreen({ navigation }) {
         <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-4 ml-2">
           Personalização
         </Text>
-        <View className="flex-row items-center justify-between p-5 bg-card-light dark:bg-card-dark rounded-2xl border border-border-light dark:border-border-dark shadow-sm">
+        <View className="flex-row items-center justify-between p-5 bg-card-light dark:bg-card-dark rounded-2xl border border-border-light dark:border-border-dark">
           <View className="flex-row items-center">
             <View className="bg-primary/10 dark:bg-primary-dark/10 p-2 rounded-lg mr-4">
               <Ionicons
@@ -189,12 +189,15 @@ export default function ProfileScreen({ navigation }) {
           <Switch
             value={isDarkMode}
             onValueChange={toggleTheme}
-            trackColor={{ false: '#CBD5E1', true: accentColor }}
+            trackColor={{
+              false: isDarkMode ? '#262626' : '#E5E7EB',
+              true: accentColor,
+            }}
             thumbColor={'#ffffff'}
           />
         </View>
 
-        <View className="flex-row items-center justify-between p-5 bg-card-light dark:bg-card-dark rounded-2xl border border-border-light dark:border-border-dark mt-4 shadow-sm">
+        <View className="flex-row items-center justify-between p-5 bg-card-light dark:bg-card-dark rounded-2xl border border-border-light dark:border-border-dark mt-4">
           <View className="flex-row items-center">
             <View className="bg-primary/10 dark:bg-primary-dark/10 p-2 rounded-lg mr-4">
               <Ionicons name="pulse-outline" size={22} color={accentColor} />
@@ -206,7 +209,10 @@ export default function ProfileScreen({ navigation }) {
           <Switch
             value={hapticsEnabled}
             onValueChange={setHapticsEnabled}
-            trackColor={{ false: '#CBD5E1', true: accentColor }}
+            trackColor={{
+              false: isDarkMode ? '#262626' : '#E5E7EB',
+              true: accentColor,
+            }}
             thumbColor={'#ffffff'}
           />
         </View>

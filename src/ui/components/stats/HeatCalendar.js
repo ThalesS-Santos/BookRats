@@ -9,7 +9,7 @@ const GAP = 3;
 const WEEKS = 8;
 
 function getHeatColor(intensity, isDarkMode) {
-  if (intensity === 0) return isDarkMode ? '#1E1E1E' : '#F3F4F6';
+  if (intensity === 0) return isDarkMode ? '#262626' : '#E5E7EB';
   if (intensity < 0.2) return isDarkMode ? '#1a3520' : '#D1FAE5';
   if (intensity < 0.45) return isDarkMode ? '#1f5c2e' : '#6EE7B7';
   if (intensity < 0.72) return isDarkMode ? '#2d7a3c' : '#10B981';
@@ -44,7 +44,7 @@ function HeatCalendar({ data, isDarkMode }) {
     return { weeks: rows, maxPages: max };
   }, [data]);
 
-  const labelColor = isDarkMode ? '#4B5563' : '#9CA3AF';
+  const labelColor = isDarkMode ? '#9CA3AF' : '#6B7280';
 
   return (
     <View style={styles.container}>
@@ -72,7 +72,10 @@ function HeatCalendar({ data, isDarkMode }) {
         {[0, 0.15, 0.4, 0.7, 1].map(v => (
           <View
             key={v}
-            style={[styles.legendCell, { backgroundColor: getHeatColor(v, isDarkMode) }]}
+            style={[
+              styles.legendCell,
+              { backgroundColor: getHeatColor(v, isDarkMode) },
+            ]}
           />
         ))}
         <Text style={[styles.legendLabel, { color: labelColor }]}>Mais</Text>

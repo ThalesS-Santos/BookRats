@@ -37,6 +37,8 @@ const TXT_LEAVE_GROUP = 'Sair do Grupo';
 export default function GroupDetailsScreen({ route, navigation }) {
   const { groupId } = route.params;
   const { isDarkMode } = useThemeStore();
+  const accentColor = isDarkMode ? '#A7C9A7' : '#5B8C5A';
+  const mutedColor = isDarkMode ? '#9CA3AF' : '#6B7280';
   const {
     leaveGroup,
     searchUsers,
@@ -240,7 +242,7 @@ export default function GroupDetailsScreen({ route, navigation }) {
             #{index + 1}
           </Text>
           <View className="w-10 h-10 bg-primary/20 rounded-full items-center justify-center mr-3">
-            <Ionicons name="person" size={20} color="#22C55E" />
+            <Ionicons name="person" size={20} color={accentColor} />
           </View>
           <View className="flex-1">
             <View className="flex-row items-center">
@@ -249,7 +251,11 @@ export default function GroupDetailsScreen({ route, navigation }) {
               </Text>
               {memberIsAdmin && (
                 <View className="ml-2 px-1.5 py-0.5 bg-primary/15 dark:bg-primary-dark/15 rounded-md flex-row items-center">
-                  <Ionicons name="shield-checkmark" size={10} color="#22C55E" />
+                  <Ionicons
+                    name="shield-checkmark"
+                    size={10}
+                    color={accentColor}
+                  />
                   <Text className="text-[9px] text-primary dark:text-primary-dark font-bold ml-1">
                     Admin
                   </Text>
@@ -273,7 +279,7 @@ export default function GroupDetailsScreen({ route, navigation }) {
                 )
               }
               className="mr-2 p-1 bg-primary/10 rounded-lg border border-primary/20">
-              <Ionicons name="shield-outline" size={16} color="#22C55E" />
+              <Ionicons name="shield-outline" size={16} color={accentColor} />
             </TouchableOpacity>
           )}
           {isAdmin && !isSelf && (
@@ -320,12 +326,12 @@ export default function GroupDetailsScreen({ route, navigation }) {
                 disabled={updating}
                 className="p-2 bg-card-light dark:bg-card-dark rounded-xl border border-border-light dark:border-border-dark">
                 {updating ? (
-                  <ActivityIndicator size="small" color="#22C55E" />
+                  <ActivityIndicator size="small" color={accentColor} />
                 ) : (
                   <Ionicons
                     name={isEditing ? 'checkmark' : 'create-outline'}
                     size={22}
-                    color="#22C55E"
+                    color={accentColor}
                   />
                 )}
               </TouchableOpacity>
@@ -334,7 +340,7 @@ export default function GroupDetailsScreen({ route, navigation }) {
 
           <View className="items-center mb-8">
             <View className="w-20 h-20 bg-primary/10 rounded-full items-center justify-center mb-3">
-              <Ionicons name="chatbubbles" size={40} color="#22C55E" />
+              <Ionicons name="chatbubbles" size={40} color={accentColor} />
             </View>
             {isEditing ? (
               <RNTextInput
@@ -342,7 +348,7 @@ export default function GroupDetailsScreen({ route, navigation }) {
                 value={editName}
                 onChangeText={setEditName}
                 placeholder="Nome do Grupo"
-                placeholderTextColor="#6B7280"
+                placeholderTextColor={mutedColor}
               />
             ) : (
               <Text className="text-text-light dark:text-text-dark text-3xl font-serif font-bold">
@@ -364,7 +370,7 @@ export default function GroupDetailsScreen({ route, navigation }) {
                 value={editDescription}
                 onChangeText={setEditDescription}
                 placeholder="Adicione uma descrição..."
-                placeholderTextColor="#6B7280"
+                placeholderTextColor={mutedColor}
                 multiline
               />
             ) : (
@@ -382,7 +388,11 @@ export default function GroupDetailsScreen({ route, navigation }) {
             <TouchableOpacity
               onPress={() => setShowAddModal(true)}
               className="flex-row items-center">
-              <Ionicons name="person-add-outline" size={16} color="#22C55E" />
+              <Ionicons
+                name="person-add-outline"
+                size={16}
+                color={accentColor}
+              />
               <Text className="text-primary dark:text-primary-dark font-bold text-xs ml-1">
                 Convidar
               </Text>
@@ -427,7 +437,7 @@ export default function GroupDetailsScreen({ route, navigation }) {
                   <Ionicons
                     name="close"
                     size={24}
-                    color={isDarkMode ? '#FFF' : '#000'}
+                    color={isDarkMode ? '#E0E0E0' : '#1A1A1A'}
                   />
                 </TouchableOpacity>
               </View>
@@ -436,13 +446,13 @@ export default function GroupDetailsScreen({ route, navigation }) {
                 <Ionicons
                   name="search"
                   size={20}
-                  color="#6B7280"
+                  color={mutedColor}
                   style={{ marginRight: 8 }}
                 />
                 <RNTextInput
                   className="flex-1 text-text-light dark:text-text-dark"
                   placeholder="Buscar usuário..."
-                  placeholderTextColor="#6B7280"
+                  placeholderTextColor={mutedColor}
                   value={searchQuery}
                   onChangeText={handleSearchUsers}
                 />
@@ -455,7 +465,7 @@ export default function GroupDetailsScreen({ route, navigation }) {
                     justifyContent: 'center',
                     alignItems: 'center',
                   }}>
-                  <ActivityIndicator size="small" color="#22C55E" />
+                  <ActivityIndicator size="small" color={accentColor} />
                 </View>
               ) : (
                 <ScrollView showsVerticalScrollIndicator={false}>
@@ -473,7 +483,7 @@ export default function GroupDetailsScreen({ route, navigation }) {
                       <Ionicons
                         name="add-circle-outline"
                         size={24}
-                        color="#22C55E"
+                        color={accentColor}
                       />
                     </TouchableOpacity>
                   ))}

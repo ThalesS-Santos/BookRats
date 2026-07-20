@@ -18,7 +18,7 @@ const BookCard = React.memo(({ book, onSelect }) => {
     <TouchableOpacity
       testID={`search-result-${book.id}`}
       activeOpacity={0.7}
-      className="bg-card-light dark:bg-card-dark rounded-xl shadow-lg overflow-hidden mr-4 border border-border-light/50 dark:border-border-dark/50"
+      className="bg-card-light dark:bg-card-dark rounded-xl overflow-hidden mr-4 border border-border-light/50 dark:border-border-dark/50"
       style={{ width: CARD_WIDTH, height: CARD_HEIGHT }}
       onPress={() => onSelect(book)}>
       {/* 80% Cover Art */}
@@ -32,7 +32,7 @@ const BookCard = React.memo(({ book, onSelect }) => {
 
         {/* Category Badge (Step 1.8) */}
         {book.categories?.[0] && (
-          <View className="absolute top-2 left-2 bg-primary/90 dark:bg-primary-dark/90 px-2 py-0.5 rounded-md shadow-sm">
+          <View className="absolute top-2 left-2 bg-primary/90 dark:bg-primary-dark/90 px-2 py-0.5 rounded-md">
             <Text className="text-white text-[8px] font-bold uppercase tracking-tighter">
               {book.categories[0].substring(0, 12)}
             </Text>
@@ -41,7 +41,7 @@ const BookCard = React.memo(({ book, onSelect }) => {
       </View>
 
       {/* Stylized Footer Overlay */}
-      <View className="absolute bottom-0 left-0 right-0 bg-white/90 dark:bg-black/80 p-2 border-t border-border-light/20 dark:border-border-dark/20">
+      <View className="absolute bottom-0 left-0 right-0 bg-card-light/90 dark:bg-black/80 p-2 border-t border-border-light/20 dark:border-border-dark/20">
         <Text
           className="text-text-light dark:text-text-dark font-bold text-[10px]"
           numberOfLines={1}>
@@ -90,7 +90,7 @@ const SearchPreview = ({ results, onSelect, loading, query }) => {
   if (query.length > 2 && results.length === 0) {
     return (
       <View className="p-8 items-center bg-card-light dark:bg-card-dark rounded-2xl border border-dashed border-border-light dark:border-border-dark mt-2">
-        <Ionicons name="book-outline" size={40} color="#94A3B8" />
+        <Ionicons name="book-outline" size={40} color="#9CA3AF" />
         <Text className="text-text-muted-light dark:text-text-muted-dark mt-3 font-serif italic text-center">
           {`Nenhum título encontrado para "${query}"`}
         </Text>
@@ -106,8 +106,8 @@ const SearchPreview = ({ results, onSelect, loading, query }) => {
         <Text className="text-text-muted-light dark:text-text-muted-dark font-bold text-xs uppercase tracking-widest">
           {'Sugestões da Nuvem'}
         </Text>
-        <View className="bg-primary/10 dark:bg-primary/20 px-2 py-1 rounded-md">
-          <Text className="text-primary dark:text-primary-light text-[9px] font-bold">
+        <View className="bg-primary/10 dark:bg-primary-dark/20 px-2 py-1 rounded-md">
+          <Text className="text-primary dark:text-primary-dark text-[9px] font-bold">
             {`${results.length} ENCONTRADOS`}
           </Text>
         </View>

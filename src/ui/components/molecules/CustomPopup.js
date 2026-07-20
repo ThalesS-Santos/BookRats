@@ -127,7 +127,7 @@ export default function CustomPopup() {
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View className="flex-1 justify-center items-center bg-black/70 px-6">
-        <View className="bg-card-light dark:bg-card-dark w-full rounded-3xl p-6 border border-border-light dark:border-border-dark shadow-2xl">
+        <View className="bg-card-light dark:bg-card-dark w-full rounded-3xl p-6 border border-border-light dark:border-border-dark">
           <View className="items-center mb-4">
             <View
               className={`p-3 rounded-full ${isDarkMode ? 'bg-primary-dark/10' : 'bg-primary/10'} mb-3`}>
@@ -146,7 +146,7 @@ export default function CustomPopup() {
             {type === 'confirm' && (
               <TouchableOpacity
                 onPress={handleCancel}
-                className="flex-1 bg-gray-100 dark:bg-gray-800 p-3 rounded-xl items-center border border-border-light dark:border-border-dark">
+                className="flex-1 bg-background-light dark:bg-border-dark p-3 rounded-xl items-center border border-border-light dark:border-border-dark">
                 <Text className="text-text-muted-light dark:text-text-muted-dark font-bold">
                   Cancelar
                 </Text>

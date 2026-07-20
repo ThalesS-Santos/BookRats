@@ -75,14 +75,7 @@ const HomeHeader = React.memo(
           </TouchableOpacity>
         </View>
 
-        <View
-          className="mb-8 mt-4 items-center bg-card-light dark:bg-card-dark p-8 rounded-ultra border border-border-light dark:border-border-dark shadow-sm"
-          style={{
-            shadowColor: COLORS.dark_blue,
-            shadowOpacity: 0.05,
-            shadowRadius: 15,
-            shadowOffset: { width: 0, height: 4 },
-          }}>
+        <View className="mb-8 mt-4 items-center bg-card-light dark:bg-card-dark p-8 rounded-ultra border border-border-light dark:border-border-dark">
           {loadingBooks ? (
             <>
               <Skeleton width={120} height={60} style={{ marginBottom: 16 }} />
@@ -111,7 +104,7 @@ const HomeHeader = React.memo(
           <TouchableOpacity
             testID="add-book-trigger"
             onPress={onAddPress}
-            className="bg-primary dark:bg-primary-dark w-10 h-10 rounded-full items-center justify-center shadow-lg">
+            className="bg-primary dark:bg-primary-dark w-10 h-10 rounded-full items-center justify-center">
             <Ionicons name="add" size={24} color="white" />
           </TouchableOpacity>
         </View>
@@ -187,7 +180,7 @@ const HomeFooter = React.memo(
           {recentNotes.map((note, idx) => (
             <View
               key={idx}
-              className="bg-card-light dark:bg-card-dark p-6 rounded-3xl border border-primary/20 dark:border-primary-dark/20 mb-4 shadow-sm">
+              className="bg-card-light dark:bg-card-dark p-6 rounded-3xl border border-primary/20 dark:border-primary-dark/20 mb-4">
               <View className="flex-row justify-between mb-2">
                 <Text
                   className="text-primary dark:text-primary-dark font-bold text-xs"

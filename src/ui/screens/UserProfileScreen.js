@@ -125,7 +125,7 @@ export default function UserProfileScreen({ route, navigation }) {
       {/* Stats Cards Row 1 */}
       <View className="flex-row justify-between mb-4">
         <View className="bg-card-light dark:bg-card-dark p-4 rounded-xl border border-border-light dark:border-border-dark flex-1 mr-2 items-center">
-          <Text className="text-primary font-bold text-2xl">
+          <Text className="text-primary dark:text-primary-dark font-bold text-2xl">
             {totalPagesRead}
           </Text>
           <Text className="text-text-muted-light dark:text-text-muted-dark text-[10px] uppercase">
@@ -219,7 +219,7 @@ export default function UserProfileScreen({ route, navigation }) {
                 {book.currentPage} / {book.totalPages} pág.
               </Text>
             </View>
-            <View className="bg-primary/20 p-2 rounded-lg">
+            <View className="bg-primary/20 dark:bg-primary-dark/20 p-2 rounded-lg">
               <Text className="text-primary dark:text-primary-dark font-bold text-xs">
                 {book.totalPages
                   ? Math.round((book.currentPage / book.totalPages) * 100)
@@ -235,7 +235,7 @@ export default function UserProfileScreen({ route, navigation }) {
       {notes.map((note, idx) => (
         <View
           key={idx}
-          className="bg-card-light/40 dark:bg-card-dark/40 p-4 rounded-2xl border border-primary/20 dark:border-primary-dark/20 mb-3 shadow-sm">
+          className="bg-card-light dark:bg-card-dark p-4 rounded-2xl border border-primary/20 dark:border-primary-dark/20 mb-3">
           <View className="flex-row justify-between mb-2">
             <Text
               className="text-primary dark:text-primary-dark font-bold text-xs"
@@ -250,7 +250,11 @@ export default function UserProfileScreen({ route, navigation }) {
             &quot;{note.text}&quot;
           </Text>
           <View className="flex-row items-center mt-2">
-            <Ionicons name="globe-outline" size={12} color="#6B7280" />
+            <Ionicons
+              name="globe-outline"
+              size={12}
+              color={isDarkMode ? '#9CA3AF' : '#6B7280'}
+            />
             <Text className="text-text-muted-light dark:text-text-muted-dark text-[9px] ml-1">
               {'Público'}
             </Text>

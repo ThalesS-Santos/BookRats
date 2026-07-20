@@ -85,12 +85,12 @@ const AuthScreen = () => {
   const primaryColorHex = isDarkMode ? '#A7C9A7' : '#5B8C5A';
   const primaryColorClass = isDarkMode ? 'text-primary-dark' : 'text-primary';
 
-  const inputBgColor = isDarkMode ? 'bg-card-dark' : 'bg-white';
+  const inputBgColor = isDarkMode ? 'bg-card-dark' : 'bg-card-light';
   const inputBorderColor = isDarkMode
     ? 'border-border-dark'
     : 'border-border-light';
   const iconColor = isDarkMode ? '#9CA3AF' : '#6B7280';
-  const placeholderColor = isDarkMode ? '#4B5563' : '#9CA3AF';
+  const placeholderColor = isDarkMode ? '#6B7280' : '#9CA3AF';
 
   return (
     <KeyboardAvoidingView
@@ -244,8 +244,7 @@ const AuthScreen = () => {
         </View>
 
         {!isLogin && (
-          <Text
-            className={`text-center text-xs mt-8 px-4 ${isDarkMode ? 'text-[#71717A]' : 'text-[#A1A1AA]'}`}>
+          <Text className="text-center text-xs mt-8 px-4 text-text-muted-light dark:text-text-muted-dark">
             Ao criar uma conta, você concorda em manter seu hábito de leitura
             sempre ativo! 📚☕
           </Text>

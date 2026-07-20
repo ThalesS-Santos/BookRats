@@ -17,7 +17,6 @@ import {
 } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
-import { COLORS } from '@constants/colors';
 import { UserNormalizationService } from '@core/services/UserNormalizationService';
 import { useMainStore } from '@core/store';
 import { FastAvatar } from '@ui/components';
@@ -62,7 +61,7 @@ const AnimatedGroupItem = React.memo(
 
     if (item.isSkeleton) {
       return (
-        <View className="bg-card-light dark:bg-card-dark p-6 rounded-2xl mb-4 border border-border-light dark:border-border-dark flex-row items-center justify-between shadow-sm">
+        <View className="bg-card-light dark:bg-card-dark p-6 rounded-2xl mb-4 border border-border-light dark:border-border-dark flex-row items-center justify-between">
           <View className="flex-row items-center flex-1 pr-4">
             <Skeleton
               width={56}
@@ -85,13 +84,7 @@ const AnimatedGroupItem = React.memo(
         style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
         <TouchableOpacity
           onPress={() => onPress(item.id, item.name)}
-          className="bg-card-light dark:bg-card-dark p-6 rounded-2xl mb-4 border border-border-light dark:border-border-dark flex-row items-center justify-between shadow-sm"
-          style={{
-            shadowColor: COLORS.dark_blue,
-            shadowOpacity: 0.05,
-            shadowRadius: 10,
-            shadowOffset: { width: 0, height: 4 },
-          }}>
+          className="bg-card-light dark:bg-card-dark p-6 rounded-2xl mb-4 border border-border-light dark:border-border-dark flex-row items-center justify-between">
           <View className="flex-row items-center flex-1 pr-4">
             <View className="w-14 h-14 bg-primary/10 dark:bg-primary-dark/10 rounded-full items-center justify-center mr-4">
               <Ionicons name="chatbubbles" size={28} color={accentColor} />
@@ -110,7 +103,7 @@ const AnimatedGroupItem = React.memo(
           <Ionicons
             name="chevron-forward"
             size={20}
-            color={isDarkMode ? '#6B7280' : '#9CA3AF'}
+            color={isDarkMode ? '#9CA3AF' : '#6B7280'}
           />
         </TouchableOpacity>
       </Animated.View>
@@ -150,7 +143,7 @@ const AnimatedFriendItem = React.memo(
 
     if (item.isSkeleton) {
       return (
-        <View className="bg-card-light dark:bg-card-dark p-6 rounded-2xl mb-3 flex-row items-center justify-between border border-border-light dark:border-border-dark shadow-sm">
+        <View className="bg-card-light dark:bg-card-dark p-6 rounded-2xl mb-3 flex-row items-center justify-between border border-border-light dark:border-border-dark">
           <View className="flex-row items-center flex-1 pr-4">
             <Skeleton
               width={48}
@@ -173,13 +166,7 @@ const AnimatedFriendItem = React.memo(
         style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
         <TouchableOpacity
           onPress={() => onPress(item.id)}
-          className="bg-card-light dark:bg-card-dark p-6 rounded-2xl mb-3 flex-row items-center justify-between border border-border-light dark:border-border-dark shadow-sm"
-          style={{
-            shadowColor: COLORS.dark_blue,
-            shadowOpacity: 0.05,
-            shadowRadius: 10,
-            shadowOffset: { width: 0, height: 4 },
-          }}>
+          className="bg-card-light dark:bg-card-dark p-6 rounded-2xl mb-3 flex-row items-center justify-between border border-border-light dark:border-border-dark">
           <View className="flex-row items-center flex-1 pr-4">
             <FastAvatar
               source={UserNormalizationService.normalizeUserAvatar(item)}
@@ -200,7 +187,7 @@ const AnimatedFriendItem = React.memo(
           <Ionicons
             name="chevron-forward"
             size={20}
-            color={isDarkMode ? '#6B7280' : '#9CA3AF'}
+            color={isDarkMode ? '#9CA3AF' : '#6B7280'}
           />
         </TouchableOpacity>
       </Animated.View>
@@ -411,13 +398,13 @@ export default function GroupsScreen({ navigation }) {
           <Ionicons
             name="search"
             size={20}
-            color={isDarkMode ? '#6B7280' : '#9CA3AF'}
+            color={isDarkMode ? '#9CA3AF' : '#6B7280'}
             style={{ marginRight: 8 }}
           />
           <TextInput
             className="flex-1 p-1 text-text-light dark:text-text-dark"
             placeholder="Buscar por usuário..."
-            placeholderTextColor={isDarkMode ? '#6B7280' : '#9CA3AF'}
+            placeholderTextColor={isDarkMode ? '#9CA3AF' : '#6B7280'}
             value={searchText}
             onChangeText={handleSearch}
           />
@@ -436,7 +423,7 @@ export default function GroupsScreen({ navigation }) {
                   justifyContent: 'center',
                   alignItems: 'center',
                 }}>
-                <ActivityIndicator size="small" color="#22C55E" />
+                <ActivityIndicator size="small" color={accentColor} />
               </View>
             ) : searchResults.length === 0 ? (
               <Text className="text-text-muted-light dark:text-text-muted-dark text-sm">
@@ -467,7 +454,7 @@ export default function GroupsScreen({ navigation }) {
                       </View>
                     </View>
                     {isFriend ? (
-                      <Text className="text-[#22C55E] text-xs font-bold">
+                      <Text className="text-primary dark:text-primary-dark text-xs font-bold">
                         Amigo
                       </Text>
                     ) : isSent ? (
@@ -506,13 +493,7 @@ export default function GroupsScreen({ navigation }) {
             {pendingRequests.map(item => (
               <View
                 key={item.id}
-                className="bg-card-light dark:bg-card-dark p-4 rounded-2xl mb-2 flex-row items-center justify-between border border-border-light dark:border-border-dark shadow-sm"
-                style={{
-                  shadowColor: COLORS.dark_blue,
-                  shadowOpacity: 0.05,
-                  shadowRadius: 10,
-                  shadowOffset: { width: 0, height: 4 },
-                }}>
+                className="bg-card-light dark:bg-card-dark p-4 rounded-2xl mb-2 flex-row items-center justify-between border border-border-light dark:border-border-dark">
                 <View className="flex-1 pr-4">
                   <Text
                     className="text-text-light dark:text-text-dark font-bold"
@@ -547,6 +528,7 @@ export default function GroupsScreen({ navigation }) {
     );
   }, [
     isDarkMode,
+    accentColor,
     searchText,
     handleSearch,
     loadingSearch,
@@ -677,7 +659,7 @@ export default function GroupsScreen({ navigation }) {
                 <Ionicons
                   name="close"
                   size={24}
-                  color={isDarkMode ? '#FFF' : '#000'}
+                  color={isDarkMode ? '#E0E0E0' : '#1A1A1A'}
                 />
               </TouchableOpacity>
             </View>
@@ -688,7 +670,7 @@ export default function GroupsScreen({ navigation }) {
             <TextInput
               className="bg-card-light dark:bg-card-dark p-4 rounded-xl border border-border-light dark:border-border-dark text-text-light dark:text-text-dark mb-6"
               placeholder="Ex: Clube do Livro de Terror"
-              placeholderTextColor={isDarkMode ? '#6B7280' : '#9CA3AF'}
+              placeholderTextColor={isDarkMode ? '#9CA3AF' : '#6B7280'}
               value={newGroupName}
               onChangeText={setNewGroupName}
             />
@@ -733,7 +715,7 @@ export default function GroupsScreen({ navigation }) {
             <TouchableOpacity
               onPress={handleCreateGroup}
               disabled={friends.length === 0}
-              className={`p-4 rounded-2xl items-center ${friends.length === 0 ? 'bg-gray-400' : 'bg-primary dark:bg-primary-dark'}`}>
+              className={`p-4 rounded-2xl items-center ${friends.length === 0 ? 'bg-border-light dark:bg-border-dark' : 'bg-primary dark:bg-primary-dark'}`}>
               <Text className="text-white font-bold text-lg">
                 {TXT_CREATE_GROUP}
               </Text>

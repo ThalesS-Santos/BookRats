@@ -65,7 +65,7 @@ export default class ErrorBoundary extends React.Component {
           <TouchableOpacity
             onPress={this.handleReset}
             className="bg-primary dark:bg-primary-dark w-full p-4 rounded-hero items-center">
-            <Text className="text-white font-bold text-lg">
+            <Text className="text-white dark:text-background-dark font-bold text-lg">
               {TXT_ERROR_BUTTON}
             </Text>
           </TouchableOpacity>

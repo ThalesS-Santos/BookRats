@@ -35,7 +35,7 @@ export default function FastAvatar({
       />
       {isOnline && (
         <View
-          className="absolute bottom-0.5 right-0.5 bg-green-500 border-2 border-white dark:border-surface-dark"
+          className="absolute bottom-0.5 right-0.5 bg-green-500 border-2 border-card-light dark:border-card-dark"
           style={{ width: size / 4, height: size / 4, borderRadius: size / 8 }}
         />
       )}

@@ -23,8 +23,8 @@ export const COLORS = {
     light: '#E5E7EB',
     dark: '#262626',
   },
-  loading: '#0F172A',
+  loading: '#000000',
   streak: '#D97706',
-  dark_blue: '#020617', // Solid background for transitions
+  dark_blue: '#000000', // Neutral solid background for transitions (was slate #020617)
   neon_green: '#5B8C5A', // Consistent with primary but optimized for indicator
 };

@@ -46,7 +46,7 @@ function LibrarySnapshot({ snapshot, isDarkMode }) {
   const active = SEGMENTS.filter(s => (snapshot[s.key] || 0) > 0);
   const total = active.reduce((sum, s) => sum + snapshot[s.key], 0);
   const textColor = isDarkMode ? '#E0E0E0' : '#1A1A1A';
-  const mutedColor = isDarkMode ? '#6B7280' : '#9CA3AF';
+  const mutedColor = isDarkMode ? '#9CA3AF' : '#6B7280';
 
   if (total === 0) {
     return (
@@ -74,12 +74,18 @@ function LibrarySnapshot({ snapshot, isDarkMode }) {
         {active.map(seg => (
           <View key={seg.key} style={styles.legendItem}>
             <View style={[styles.dot, { backgroundColor: seg.color }]} />
-            <Text style={[styles.legendCount, { color: textColor }]}>{snapshot[seg.key]}</Text>
-            <Text style={[styles.legendLabel, { color: mutedColor }]}>{seg.label}</Text>
+            <Text style={[styles.legendCount, { color: textColor }]}>
+              {snapshot[seg.key]}
+            </Text>
+            <Text style={[styles.legendLabel, { color: mutedColor }]}>
+              {seg.label}
+            </Text>
           </View>
         ))}
       </View>
-      <Text style={[styles.total, { color: mutedColor }]}>{total} livros na biblioteca</Text>
+      <Text style={[styles.total, { color: mutedColor }]}>
+        {total} livros na biblioteca
+      </Text>
     </View>
   );
 }

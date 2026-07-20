@@ -55,7 +55,11 @@ export default function EchoDetailScreen({ route, navigation }) {
       </View>
       <View
         className="w-10 h-1 rounded-full mt-6"
-        style={{ backgroundColor: isDarkMode ? '#334155' : '#E2E8F0' }}
+        style={{
+          backgroundColor: isDarkMode
+            ? COLORS.border.dark
+            : COLORS.border.light,
+        }}
       />
     </View>
   );
@@ -63,7 +67,9 @@ export default function EchoDetailScreen({ route, navigation }) {
   const renderReply = ({ item }) => (
     <View
       className="mb-6 pl-4 border-l-[3px]"
-      style={{ borderColor: isDarkMode ? '#334155' : '#E2E8F0' }}>
+      style={{
+        borderColor: isDarkMode ? COLORS.border.dark : COLORS.border.light,
+      }}>
       <View className="flex-row items-center mb-2">
         <FastAvatar
           source={UserNormalizationService.normalizeUserAvatar(
@@ -104,7 +110,7 @@ export default function EchoDetailScreen({ route, navigation }) {
         className="flex-row items-center border-b border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark z-10">
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-          className="mr-5 w-10 h-10 items-center justify-center bg-card-light dark:bg-card-dark rounded-full shadow-sm border border-border-light dark:border-border-dark">
+          className="mr-5 w-10 h-10 items-center justify-center bg-card-light dark:bg-card-dark rounded-full border border-border-light dark:border-border-dark">
           <Ionicons
             name="arrow-back"
             size={20}
@@ -145,18 +151,20 @@ export default function EchoDetailScreen({ route, navigation }) {
           className="absolute bottom-0 w-full p-4 border-t"
           style={{
             backgroundColor: isDarkMode
-              ? 'rgba(15, 23, 42, 0.95)'
-              : 'rgba(255, 255, 255, 0.95)',
+              ? 'rgba(18, 18, 18, 0.95)'
+              : 'rgba(245, 243, 231, 0.95)',
             borderColor: isDarkMode
-              ? 'rgba(71, 85, 105, 0.2)'
-              : 'rgba(203, 213, 225, 0.5)',
+              ? 'rgba(38, 38, 38, 0.9)'
+              : 'rgba(229, 231, 235, 0.9)',
             paddingBottom: insets.bottom + 16,
           }}>
           <View className="flex-row items-center">
             <TextInput
               className="flex-1 h-12 bg-card-light dark:bg-card-dark text-text-light dark:text-text-dark px-5 rounded-full border border-border-light dark:border-border-dark mr-3"
               placeholder="Adicionar um comentário..."
-              placeholderTextColor={isDarkMode ? '#94A3B8' : '#64748B'}
+              placeholderTextColor={
+                isDarkMode ? COLORS.text.muted.dark : COLORS.text.muted.light
+              }
               value={inputText}
               onChangeText={setInputText}
               maxLength={150}
@@ -164,13 +172,13 @@ export default function EchoDetailScreen({ route, navigation }) {
             <TouchableOpacity
               onPress={handleSendReply}
               disabled={!inputText.trim() || isSubmitting}
-              className="w-12 h-12 rounded-full items-center justify-center shadow-sm"
+              className="w-12 h-12 rounded-full items-center justify-center"
               style={{
                 backgroundColor: inputText.trim()
                   ? accentColor
                   : isDarkMode
-                    ? '#334155'
-                    : '#E2E8F0',
+                    ? COLORS.border.dark
+                    : COLORS.border.light,
               }}>
               {isSubmitting ? (
                 <ActivityIndicator color="white" size="small" />
@@ -182,8 +190,8 @@ export default function EchoDetailScreen({ route, navigation }) {
                     inputText.trim()
                       ? 'white'
                       : isDarkMode
-                        ? '#64748B'
-                        : '#94A3B8'
+                        ? COLORS.text.muted.dark
+                        : COLORS.text.muted.light
                   }
                 />
               )}

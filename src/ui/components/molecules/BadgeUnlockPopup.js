@@ -1,7 +1,13 @@
 import React, { useEffect, useCallback, useRef } from 'react';
 
 import { Ionicons } from '@expo/vector-icons';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Dimensions,
+} from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -15,6 +21,8 @@ import Animated, {
 
 import { COLORS } from '@constants/colors';
 import { useMainStore } from '@core/store';
+
+import { useThemeStore } from '../../../store/useThemeStore';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -35,14 +43,22 @@ const PARTICLE_COUNT = 22;
 const CONFETTI_PARTICLES = Array.from({ length: PARTICLE_COUNT }, (_, i) => ({
   startX: (SCREEN_WIDTH / PARTICLE_COUNT) * i + (i % 4) * 12,
   color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
-  duration: 1000 + (i * 55) % 700,
+  duration: 1000 + ((i * 55) % 700),
   delay: (i * 40) % 500,
   driftX: ((i % 9) - 4) * 22,
   size: 7 + (i % 5) * 2,
   isSquare: i % 3 !== 1,
 }));
 
-function ConfettiParticle({ startX, color, duration, delay, driftX, size, isSquare }) {
+function ConfettiParticle({
+  startX,
+  color,
+  duration,
+  delay,
+  driftX,
+  size,
+  isSquare,
+}) {
   const translateY = useSharedValue(-size);
   const translateX = useSharedValue(0);
   const opacity = useSharedValue(0);
@@ -100,6 +116,7 @@ function ConfettiParticle({ startX, color, duration, delay, driftX, size, isSqua
 export default function BadgeUnlockPopup() {
   const lastUnlockedBadges = useMainStore(state => state.lastUnlockedBadges);
   const clearUnlockedBadges = useMainStore(state => state.clearUnlockedBadges);
+  const isDarkMode = useThemeStore(state => state.isDarkMode);
 
   const currentBadge =
     lastUnlockedBadges.length > 0 ? lastUnlockedBadges[0] : null;
@@ -147,7 +164,7 @@ export default function BadgeUnlockPopup() {
       </View>
       <Animated.View
         style={[styles.container, animatedStyle]}
-        className="bg-white dark:bg-card-dark shadow-2xl rounded-3xl border border-border-light dark:border-border-dark">
+        className="bg-card-light dark:bg-card-dark rounded-3xl border border-border-light dark:border-border-dark">
         <View style={styles.content}>
           <View
             style={styles.iconContainer}
@@ -155,7 +172,7 @@ export default function BadgeUnlockPopup() {
             <Ionicons
               name={currentBadge.icon}
               size={32}
-              color={COLORS.primary.light}
+              color={isDarkMode ? COLORS.primary.dark : COLORS.primary.light}
             />
           </View>
 
@@ -163,10 +180,10 @@ export default function BadgeUnlockPopup() {
             <Text className="text-primary-light dark:text-primary-dark font-bold text-xs tracking-widest uppercase mb-1">
               {TXT_NEW_ACHIEVEMENT}
             </Text>
-            <Text className="text-gray-900 dark:text-white font-bold text-lg">
+            <Text className="text-text-light dark:text-text-dark font-bold text-lg">
               {currentBadge.title}
             </Text>
-            <Text className="text-gray-500 dark:text-gray-400 text-sm">
+            <Text className="text-text-muted-light dark:text-text-muted-dark text-sm">
               {TXT_CONGRATS_BADGE}
             </Text>
           </View>
@@ -175,7 +192,13 @@ export default function BadgeUnlockPopup() {
             testID="close-btn"
             onPress={hidePopup}
             style={styles.closeButton}>
-            <Ionicons name="close" size={20} color="#999" />
+            <Ionicons
+              name="close"
+              size={20}
+              color={
+                isDarkMode ? COLORS.text.muted.dark : COLORS.text.muted.light
+              }
+            />
           </TouchableOpacity>
         </View>
       </Animated.View>

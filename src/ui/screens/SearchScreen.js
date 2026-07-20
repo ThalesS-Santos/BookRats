@@ -56,7 +56,9 @@ export default function SearchScreen({ navigation }) {
   const [showFilters, setShowFilters] = useState(false);
 
   const accentColor = isDarkMode ? COLORS.primary.dark : COLORS.primary.light;
-  const mutedTextColor = isDarkMode ? '#94A3B8' : '#64748B';
+  const mutedTextColor = isDarkMode
+    ? COLORS.text.muted.dark
+    : COLORS.text.muted.light;
 
   const handleSelectBook = useCallback(
     book => {
@@ -125,7 +127,7 @@ export default function SearchScreen({ navigation }) {
               </Text>
               {filters.author.length > 0 && (
                 <TouchableOpacity onPress={() => updateFilters({ author: '' })}>
-                  <Text className="text-primary text-[10px] font-bold">
+                  <Text className="text-primary dark:text-primary-dark text-[10px] font-bold">
                     LIMPAR
                   </Text>
                 </TouchableOpacity>
@@ -201,7 +203,7 @@ export default function SearchScreen({ navigation }) {
               {filters.subjects.length > 0 && (
                 <TouchableOpacity
                   onPress={() => updateFilters({ subjects: [] })}>
-                  <Text className="text-primary text-[10px] font-bold">
+                  <Text className="text-primary dark:text-primary-dark text-[10px] font-bold">
                     LIMPAR TUDO
                   </Text>
                 </TouchableOpacity>
@@ -218,7 +220,7 @@ export default function SearchScreen({ navigation }) {
                   <TouchableOpacity
                     key={s.id}
                     onPress={() => toggleSubject(s.id)}
-                    className={`flex-row items-center px-4 py-3 rounded-2xl mr-2 border shadow-sm ${isActive ? 'bg-primary border-primary' : 'bg-background-light dark:bg-background-dark border-border-light/50 dark:border-border-dark/50'}`}>
+                    className={`flex-row items-center px-4 py-3 rounded-2xl mr-2 border ${isActive ? 'bg-primary border-primary' : 'bg-background-light dark:bg-background-dark border-border-light/50 dark:border-border-dark/50'}`}>
                     <Ionicons
                       name={s.icon}
                       size={16}

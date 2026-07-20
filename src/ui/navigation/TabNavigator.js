@@ -202,7 +202,9 @@ function SwipePager({ state, descriptors, navigation }) {
 // ---------------------------------------------------------------------------
 function CustomTabBar({ state, navigation, isDarkMode }) {
   const activeColor = isDarkMode ? COLORS.primary.dark : COLORS.primary.light;
-  const inactiveColor = isDarkMode ? '#64748B' : '#94A3B8';
+  const inactiveColor = isDarkMode
+    ? COLORS.text.muted.dark
+    : COLORS.text.muted.light;
   const unreadCount = useMainStore(selectUnreadCount);
   const insets = useSafeAreaInsets();
 
@@ -214,7 +216,7 @@ function CustomTabBar({ state, navigation, isDarkMode }) {
           backgroundColor: isDarkMode
             ? COLORS.background.dark
             : COLORS.background.light,
-          borderTopColor: isDarkMode ? COLORS.border.dark : '#F1F1E6',
+          borderTopColor: isDarkMode ? COLORS.border.dark : COLORS.border.light,
         },
       ]}>
       <View
@@ -250,23 +252,14 @@ function CustomTabBar({ state, navigation, isDarkMode }) {
                 <Ionicons name={tabConfig.icon} size={24} color={color} />
                 {tabConfig.name === 'Perfil' && unreadCount > 0 && (
                   <View
-                    style={[
-                      styles.badge,
-                      {
-                        backgroundColor: COLORS.neon_green,
-                        shadowColor: COLORS.neon_green,
-                      },
-                    ]}
+                    style={[styles.badge, { backgroundColor: activeColor }]}
                   />
                 )}
               </View>
               <Text style={[styles.tabLabel, { color }]}>{tabConfig.name}</Text>
               {isFocused && (
                 <View
-                  style={[
-                    styles.indicator,
-                    { backgroundColor: COLORS.neon_green },
-                  ]}
+                  style={[styles.indicator, { backgroundColor: activeColor }]}
                 />
               )}
             </TouchableOpacity>
@@ -293,10 +286,19 @@ function SwipeTabNavigator({
       screenOptions,
       initialRouteName,
     });
+  const isDarkMode = useThemeStore(stateStore => stateStore.isDarkMode);
 
   return (
     <NavigationContent>
-      <View style={styles.container}>
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: isDarkMode
+              ? COLORS.background.dark
+              : COLORS.background.light,
+          },
+        ]}>
         <SwipePager
           state={state}
           descriptors={descriptors}
@@ -347,7 +349,8 @@ export default function TabNavigator({ navigation, route }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.dark_blue,
+    // backgroundColor é aplicado inline (theme-aware) no SwipeTabNavigator para
+    // não tingir de escuro o rubber-band do swipe no tema claro.
     // Clipa as páginas que ficam fora da tela (à direita) durante o deslize.
     overflow: 'hidden',
   },
@@ -388,9 +391,5 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    elevation: 3,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.8,
-    shadowRadius: 4,
   },
 });

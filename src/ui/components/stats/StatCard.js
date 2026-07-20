@@ -5,7 +5,15 @@ import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
 
 import { formatNumber } from '@core/utils/statsCompute';
 
-function StatCard({ icon, label, rawValue, displayValue, unit, accentColor, isDarkMode }) {
+function StatCard({
+  icon,
+  label,
+  rawValue,
+  displayValue,
+  unit,
+  accentColor,
+  isDarkMode,
+}) {
   const [counted, setCounted] = useState(0);
   const scaleAnim = useRef(new Animated.Value(0.85)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -13,8 +21,17 @@ function StatCard({ icon, label, rawValue, displayValue, unit, accentColor, isDa
 
   useEffect(() => {
     Animated.parallel([
-      Animated.spring(scaleAnim, { toValue: 1, friction: 6, useNativeDriver: true }),
-      Animated.timing(opacityAnim, { toValue: 1, duration: 350, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 6,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 350,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
     ]).start();
   }, [opacityAnim, scaleAnim]);
 
@@ -37,19 +54,21 @@ function StatCard({ icon, label, rawValue, displayValue, unit, accentColor, isDa
     };
   }, [rawValue]);
 
-  const cardBg = isDarkMode ? '#1a1a1a' : '#FFFFFF';
+  const cardBg = isDarkMode ? '#121212' : '#F5F3E7';
   const labelColor = isDarkMode ? '#9CA3AF' : '#6B7280';
   const valueColor = isDarkMode ? '#E0E0E0' : '#1A1A1A';
 
-  const resolvedDisplay = displayValue !== undefined
-    ? displayValue
-    : formatNumber(counted);
+  const resolvedDisplay =
+    displayValue !== undefined ? displayValue : formatNumber(counted);
 
   return (
     <Animated.View
       style={[
         styles.card,
-        { backgroundColor: cardBg, borderColor: isDarkMode ? '#262626' : '#E5E7EB' },
+        {
+          backgroundColor: cardBg,
+          borderColor: isDarkMode ? '#262626' : '#E5E7EB',
+        },
         { transform: [{ scale: scaleAnim }], opacity: opacityAnim },
       ]}>
       <View style={[styles.iconWrap, { backgroundColor: `${accentColor}1A` }]}>
@@ -58,7 +77,9 @@ function StatCard({ icon, label, rawValue, displayValue, unit, accentColor, isDa
       <Text style={[styles.value, { color: valueColor }]}>
         {resolvedDisplay}
       </Text>
-      {unit ? <Text style={[styles.unit, { color: accentColor }]}>{unit}</Text> : null}
+      {unit ? (
+        <Text style={[styles.unit, { color: accentColor }]}>{unit}</Text>
+      ) : null}
       <Text style={[styles.label, { color: labelColor }]}>{label}</Text>
     </Animated.View>
   );

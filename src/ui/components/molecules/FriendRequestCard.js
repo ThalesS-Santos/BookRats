@@ -49,7 +49,7 @@ export default function FriendRequestCard({ request }) {
   };
 
   return (
-    <View className="flex-row items-center justify-between bg-white dark:bg-card-dark p-4 rounded-3xl mb-3 border border-border-light dark:border-border-dark shadow-sm">
+    <View className="flex-row items-center justify-between bg-card-light dark:bg-card-dark p-4 rounded-3xl mb-3 border border-border-light dark:border-border-dark">
       {/* User Info */}
       <View className="flex-row items-center flex-1 mr-2">
         <FastAvatar
@@ -58,12 +58,12 @@ export default function FriendRequestCard({ request }) {
         />
         <View className="ml-3 flex-1">
           <Text
-            className="text-gray-900 dark:text-white font-bold text-base"
+            className="text-text-light dark:text-text-dark font-bold text-base"
             numberOfLines={1}>
             {UserNormalizationService.normalizeDisplayName(sender)}
           </Text>
           <Text
-            className="text-gray-500 dark:text-gray-400 text-xs"
+            className="text-text-muted-light dark:text-text-muted-dark text-xs"
             numberOfLines={1}>
             @
             {sender.username ||
@@ -80,11 +80,11 @@ export default function FriendRequestCard({ request }) {
           testID="decline-btn"
           onPress={handleDecline}
           disabled={loadingAction !== null}
-          className="w-10 h-10 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 mr-2">
+          className="w-10 h-10 items-center justify-center rounded-full bg-background-light dark:bg-border-dark mr-2">
           {loadingAction === 'decline' ? (
-            <ActivityIndicator size="small" color="#999" />
+            <ActivityIndicator size="small" color="#9CA3AF" />
           ) : (
-            <Ionicons name="close-outline" size={20} color="#666" />
+            <Ionicons name="close-outline" size={20} color="#9CA3AF" />
           )}
         </TouchableOpacity>
 
