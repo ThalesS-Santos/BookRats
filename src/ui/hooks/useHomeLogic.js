@@ -13,7 +13,15 @@ import {
   selectCountsByStatus,
 } from '@core/store/selectors';
 
-const SKELETON_DATA = [{ id: 's1' }, { id: 's2' }, { id: 's3' }];
+// ⚠️ Cada placeholder carrega uma flag explícita `isSkeleton`. NÃO detectar
+// skeleton por prefixo de id (ex.: id.startsWith('s')) — IDs reais do Google Books
+// / Firestore podem começar com 's', o que renderizaria um livro legítimo como
+// skeleton permanente. A flag é a fonte de verdade (mesmo padrão do GroupsScreen).
+const SKELETON_DATA = [
+  { id: 's1', isSkeleton: true },
+  { id: 's2', isSkeleton: true },
+  { id: 's3', isSkeleton: true },
+];
 
 /**
  * Custom Hook para gerenciar o estado e lógica da HomeScreen.

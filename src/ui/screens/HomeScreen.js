@@ -206,7 +206,7 @@ HomeFooter.displayName = 'HomeFooter';
 // 🎨 Item de Lista Memoizado e sem arrow functions anônimas inline
 const BookListItem = React.memo(
   ({ item, fadeAnim, slideAnim, onPress, onConfigPress, onCommunityPress }) => {
-    if (item.id.startsWith('s')) {
+    if (item.isSkeleton) {
       return (
         <View className="bg-card-light dark:bg-card-dark p-4 rounded-3xl mb-4 border border-border-light dark:border-border-dark shadow-sm flex-row h-32 items-center">
           <Skeleton width={60} height={90} borderRadius={8} />
