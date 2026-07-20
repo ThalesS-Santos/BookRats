@@ -39,5 +39,6 @@
 - Echo publico sem edicao arbitraria por terceiro: implementado.
 - Aceite de friend request por destinatario: implementado nas regras e validacao client.
 - Ranking sem escrita livre em campos sensiveis: implementado.
+- Atualizacao de progresso de leitura (livro + stats do usuario + reading log) em `writeBatch` atomica: implementado (`updateBookWithStats`, `core/api/books.js`).
 
 Referencia oficial: `firestore.rules`.

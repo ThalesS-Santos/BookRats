@@ -13,6 +13,7 @@ import {
 import {
   addBook,
   updateBookProgress,
+  updateBookWithStats,
   markAsDNF,
   getUserBooks,
   addAnnotation,
@@ -21,6 +22,12 @@ import {
 
 import { BOOK_STATUS } from '../../src/core/constants/bookStatus';
 
+const mockBatch = {
+  update: jest.fn(),
+  set: jest.fn(),
+  commit: jest.fn().mockResolvedValue(),
+};
+
 jest.mock('firebase/firestore', () => ({
   doc: jest.fn(),
   collection: jest.fn(),
@@ -28,6 +35,7 @@ jest.mock('firebase/firestore', () => ({
   updateDoc: jest.fn(),
   addDoc: jest.fn(),
   getDocs: jest.fn(),
+  writeBatch: jest.fn(() => mockBatch),
   increment: jest.fn().mockImplementation(val => val),
   arrayUnion: jest.fn().mockImplementation(val => val),
   serverTimestamp: jest.fn().mockReturnValue('mock-timestamp'),
@@ -225,6 +233,62 @@ describe('Books API Methods', () => {
       await expect(
         updateBookProgress('u1', defaultBook, 70, 120, defaultStreak),
       ).rejects.toThrow('Ocorreu um erro inesperado. Tente novamente.');
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('updateBookWithStats', () => {
+    beforeEach(() => {
+      mockBatch.update.mockClear();
+      mockBatch.set.mockClear();
+      mockBatch.commit.mockClear();
+      mockBatch.commit.mockResolvedValue();
+    });
+
+    it('should throw if bookId is invalid, without opening a batch', async () => {
+      const { writeBatch } = require('firebase/firestore');
+      await expect(
+        updateBookWithStats('u1', '', { currentPage: 10 }),
+      ).rejects.toThrow();
+      expect(writeBatch).not.toHaveBeenCalled();
+    });
+
+    it('should bundle book, stats and reading log into a single batch commit', async () => {
+      doc.mockImplementation((...args) => args.join('/'));
+
+      await updateBookWithStats(
+        'u1',
+        'book-1',
+        { currentPage: 80 },
+        { total_pages_read: 30 },
+        30,
+      );
+
+      // Uma única writeBatch — livro, stats e reading log só se tornam
+      // visíveis juntos, atomicamente, no commit.
+      expect(mockBatch.update).toHaveBeenCalledTimes(2); // livro + user stats
+      expect(mockBatch.set).toHaveBeenCalledTimes(1); // reading log
+      expect(mockBatch.commit).toHaveBeenCalledTimes(1);
+    });
+
+    it('should skip the stats write when statsUpdates is null', async () => {
+      doc.mockImplementation((...args) => args.join('/'));
+
+      await updateBookWithStats('u1', 'book-1', { currentPage: 10 });
+
+      expect(mockBatch.update).toHaveBeenCalledTimes(1); // só o livro
+      expect(mockBatch.set).not.toHaveBeenCalled(); // sem delta, sem log
+      expect(mockBatch.commit).toHaveBeenCalledTimes(1);
+    });
+
+    it('should map error and throw if the batch commit fails', async () => {
+      doc.mockImplementation((...args) => args.join('/'));
+      mockBatch.commit.mockRejectedValueOnce(new Error('Firebase error'));
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      await expect(
+        updateBookWithStats('u1', 'book-1', { currentPage: 10 }),
+      ).rejects.toThrow();
       consoleSpy.mockRestore();
     });
   });

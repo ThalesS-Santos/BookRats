@@ -20,6 +20,7 @@ import {
   query,
   orderBy,
   where,
+  writeBatch,
 } from 'firebase/firestore';
 
 import { db, auth } from '@core/firebase/firebase';
@@ -304,6 +305,66 @@ export const updateBook = async (uid, bookId, updates) => {
       action: 'update',
       resource: `users/${uid}/books/${bookId}`,
       context: { uid, bookId, fields: Object.keys(updates || {}) },
+    });
+  }
+};
+
+/**
+ * Atualiza o livro e (opcionalmente) as estatísticas do usuário + reading log
+ * do dia numa única `writeBatch` — atômico: ou tudo é aplicado, ou nada é.
+ * Substitui o padrão anterior de `updateBook` + `updateDoc(userRef)` +
+ * `addReadingLog` como 3 escritas independentes (não atômicas).
+ */
+export const updateBookWithStats = async (
+  uid,
+  bookId,
+  bookUpdates,
+  statsUpdates = null,
+  readingLogDelta = 0,
+) => {
+  // 🛡️ Validation Guard (mesmas regras do updateBook)
+  validateDocumentId(bookId, 'livro');
+  validateUpdateFields(bookUpdates, PROTECTED_BOOK_FIELDS);
+
+  try {
+    // 🕓 Make sure the auth token is attached before writing (cold-start guard).
+    await ensureAuthReady();
+
+    const batch = writeBatch(db);
+
+    const bookRef = doc(db, 'users', uid, 'books', bookId);
+    batch.update(bookRef, {
+      ...bookUpdates,
+      updatedAt: serverTimestamp(),
+    });
+
+    if (statsUpdates) {
+      const userRef = doc(db, 'users', uid);
+      batch.update(userRef, statsUpdates);
+    }
+
+    if (readingLogDelta > 0) {
+      const todayStr = getLocalDateString();
+      const logRef = doc(db, 'users', uid, 'readingLogs', todayStr);
+      batch.set(
+        logRef,
+        {
+          pagesRead: increment(readingLogDelta),
+          lastBookId: bookId,
+          date: todayStr,
+          timestamp: serverTimestamp(),
+        },
+        { merge: true },
+      );
+    }
+
+    await batch.commit();
+  } catch (error) {
+    throw log.failure(error, {
+      op: 'updateBookWithStats',
+      action: 'update',
+      resource: `users/${uid}/books/${bookId}`,
+      context: { uid, bookId, fields: Object.keys(bookUpdates || {}) },
     });
   }
 };

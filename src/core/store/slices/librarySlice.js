@@ -4,7 +4,6 @@ import {
   collection,
   onSnapshot,
   updateDoc,
-  serverTimestamp,
   increment,
 } from 'firebase/firestore';
 
@@ -12,8 +11,7 @@ import {
   addBook as apiAddBook,
   updateBookProgress,
   markAsDNF as apiMarkAsDNF,
-  updateBook as apiUpdateBook,
-  addReadingLog,
+  updateBookWithStats,
   deleteBook,
 } from '@core/api/books';
 import { db, auth } from '@core/firebase/firebase';
@@ -412,34 +410,32 @@ export const createLibrarySlice = (set, get) => ({
     // 1. Optimistic Update (UI reacts instantly)
     set({ books: updatedBooks });
 
-    // 2. Background Sync
+    // 2. Background Sync — livro + stats do usuário + reading log em uma única
+    // writeBatch atômica (ou tudo aplica, ou nada aplica; evita estado parcial
+    // se a conexão cair no meio das escritas).
     try {
-      await apiUpdateBook(user.uid, bookId, {
-        ...finalUpdates,
-        updatedAt: serverTimestamp(),
-      });
-
-      // 📈 Update User Stats if pages changed (handled in background)
+      let statsUpdates = null;
       if (pageDelta !== 0 || finalUpdates.status !== undefined) {
-        const userRef = doc(db, 'users', user.uid);
-
         const wasRead = book.status === BOOK_STATUS.READ;
         const isRead = finalUpdates.status === BOOK_STATUS.READ;
         const completedIncrement =
           isRead && !wasRead ? 1 : !isRead && wasRead ? -1 : 0;
 
-        await updateDoc(userRef, {
+        statsUpdates = {
           total_pages_read: increment(pageDelta),
           total_books_completed: increment(completedIncrement),
           'socialSummary.totalPagesRead': increment(pageDelta),
           'socialSummary.lastActive': getLocalDateString(),
-        });
-
-        // 🌟 Add Global Reading Log if progress increased
-        if (pageDelta > 0) {
-          await addReadingLog(user.uid, bookId, pageDelta);
-        }
+        };
       }
+
+      await updateBookWithStats(
+        user.uid,
+        bookId,
+        finalUpdates,
+        statsUpdates,
+        pageDelta > 0 ? pageDelta : 0,
+      );
     } catch (error) {
       // 3. Rollback Mechanism on failure
       log.exception(error, {

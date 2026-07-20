@@ -28,9 +28,8 @@ jest.mock('@core/api/books', () => ({
   addBook: jest.fn(),
   updateBookProgress: jest.fn(),
   markAsDNF: jest.fn(),
-  updateBook: jest.fn(),
+  updateBookWithStats: jest.fn(),
   deleteBook: jest.fn(),
-  addReadingLog: jest.fn(),
 }));
 
 jest.mock('../../src/store/usePopupStore', () => ({
@@ -589,13 +588,40 @@ describe('Library Slice', () => {
       };
       state.books = [book];
       const api = require('@core/api/books');
-      api.updateBook.mockResolvedValueOnce();
+      api.updateBookWithStats.mockResolvedValueOnce();
 
       await state.updateBook('b1', { currentPage: 100 });
 
       const updatedBook = getMock().books.find(b => b.id === 'b1');
       expect(updatedBook.status).toBe(BOOK_STATUS.READ);
       expect(updatedBook.currentPage).toBe(100);
+    });
+
+    it('bundles the book update, user stats, and reading log into a single atomic call', async () => {
+      const book = {
+        id: 'b1',
+        title: 'B1',
+        currentPage: 50,
+        totalPages: 100,
+        status: BOOK_STATUS.READING,
+      };
+      state.books = [book];
+      const api = require('@core/api/books');
+      api.updateBookWithStats.mockResolvedValueOnce();
+
+      await state.updateBook('b1', { currentPage: 100 });
+
+      // Uma única chamada — o livro, as stats do usuário e o reading log viajam
+      // juntos numa writeBatch atômica, em vez de 3 escritas independentes.
+      expect(api.updateBookWithStats).toHaveBeenCalledTimes(1);
+      const [uid, bookId, bookUpdates, statsUpdates, readingLogDelta] =
+        api.updateBookWithStats.mock.calls[0];
+      expect(uid).toBe('user1');
+      expect(bookId).toBe('b1');
+      expect(bookUpdates.currentPage).toBe(100);
+      expect(bookUpdates.status).toBe(BOOK_STATUS.READ);
+      expect(statsUpdates).not.toBeNull();
+      expect(readingLogDelta).toBe(50);
     });
 
     it('should revert status to reading if progress is rolled back from 100%', async () => {
