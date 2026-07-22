@@ -1,4 +1,5 @@
 import { BOOK_STATUS } from '@core/constants/bookStatus';
+
 import {
   DAYS_PT,
   dateKey,
@@ -59,7 +60,11 @@ describe('statsCompute Helpers', () => {
       const logs = extractAllLogs(books);
       expect(logs).toHaveLength(2);
       expect(logs[0]).toEqual(
-        expect.objectContaining({ bookId: 'b1', bookTitle: 'Book 1', pagesRead: 10 }),
+        expect.objectContaining({
+          bookId: 'b1',
+          bookTitle: 'Book 1',
+          pagesRead: 10,
+        }),
       );
     });
   });
@@ -246,7 +251,9 @@ describe('statsCompute — date-sensitive functions', () => {
     });
 
     it('shortLabel is a single character', () => {
-      computeDailyPages([], 7).forEach(d => expect(d.shortLabel).toHaveLength(1));
+      computeDailyPages([], 7).forEach(d =>
+        expect(d.shortLabel).toHaveLength(1),
+      );
     });
 
     it('sums multiple logs on the same day', () => {
@@ -291,7 +298,9 @@ describe('statsCompute — date-sensitive functions', () => {
     });
 
     it('each entry has a non-empty string label', () => {
-      computeWeeklyPages([], 2).forEach(w => expect(w.label.length).toBeGreaterThan(0));
+      computeWeeklyPages([], 2).forEach(w =>
+        expect(w.label.length).toBeGreaterThan(0),
+      );
     });
   });
 
@@ -346,7 +355,9 @@ describe('statsCompute — date-sensitive functions', () => {
 
     it('ignores logs outside the window', () => {
       const logs = [{ date: '2020-01-01', pagesRead: 999, timeSeconds: 3600 }];
-      expect(Object.values(computeHeatMap(logs, 7)).every(v => v === 0)).toBe(true);
+      expect(Object.values(computeHeatMap(logs, 7)).every(v => v === 0)).toBe(
+        true,
+      );
     });
 
     it('initialises all keys at 0', () => {
@@ -400,20 +411,30 @@ describe('statsCompute — date-sensitive functions', () => {
     });
 
     it('ignores books without categories', () => {
-      expect(computeGenreDistribution([readBook(undefined), readBook([])])).toEqual([]);
+      expect(
+        computeGenreDistribution([readBook(undefined), readBook([])]),
+      ).toEqual([]);
     });
   });
 
   // ── computeProjections — extended ─────────────────────────────────────
   describe('computeProjections — extended', () => {
     it('skips books where remaining pages = 0', () => {
-      const done = { id: 'b1', title: 'Done', totalPages: 100, currentPage: 100 };
+      const done = {
+        id: 'b1',
+        title: 'Done',
+        totalPages: 100,
+        currentPage: 100,
+      };
       expect(computeProjections([done], 10)).toEqual([]);
     });
 
     it('caps output at 3 items', () => {
       const books = Array.from({ length: 5 }, (_, i) => ({
-        id: `b${i}`, title: `Book${i}`, totalPages: 200, currentPage: i * 10,
+        id: `b${i}`,
+        title: `Book${i}`,
+        totalPages: 200,
+        currentPage: i * 10,
       }));
       expect(computeProjections(books, 10)).toHaveLength(3);
     });
@@ -451,7 +472,7 @@ describe('statsCompute — date-sensitive functions', () => {
   describe('computeAverageSpeed — extended', () => {
     it('ignores sessions under 60 s', () => {
       const logs = [
-        { pagesRead: 10, timeSeconds: 30 },  // too short → excluded
+        { pagesRead: 10, timeSeconds: 30 }, // too short → excluded
         { pagesRead: 60, timeSeconds: 3600 }, // valid: 60/h
       ];
       expect(computeAverageSpeed(logs)).toBe(60);

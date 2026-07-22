@@ -1,7 +1,3 @@
-import { rest } from 'msw';
-
-import { server } from '../mocks/server';
-
 describe('MSW Handlers Verification', () => {
   it('should hit the echoes handler', async () => {
     const response = await fetch('https://api.bookrats.com/v1/echoes');

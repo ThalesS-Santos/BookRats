@@ -7,7 +7,6 @@
  * so the tests stay deterministic regardless of when they run.
  */
 
-import { BOOK_STATUS } from '@core/constants/bookStatus';
 import {
   GENRE_ALIAS_MAP,
   aggregatePagesByMonth,
@@ -36,6 +35,8 @@ import {
   stddev,
 } from '@utils/stats';
 
+import { BOOK_STATUS } from '@core/constants/bookStatus';
+
 // ── clock fixture ─────────────────────────────────────────────────────────────
 // 2026-06-18 noon UTC = Thursday (getDay()=4)
 const FIXED = new Date('2026-06-18T12:00:00.000Z');
@@ -56,7 +57,13 @@ const LOG = (date, pagesRead, timeSeconds = 1800) => ({
   pagesPerHour: Math.round((pagesRead / timeSeconds) * 3600),
 });
 
-const BOOK = (status, categories = [], totalPages = 300, currentPage = 0, finishDate = null) => ({
+const BOOK = (
+  status,
+  categories = [],
+  totalPages = 300,
+  currentPage = 0,
+  finishDate = null,
+) => ({
   id: `b-${Math.random()}`,
   title: 'Test Book',
   status,
@@ -74,9 +81,7 @@ describe('GENRE_ALIAS_MAP', () => {
   });
 
   it('all keys are lowercase', () => {
-    Object.keys(GENRE_ALIAS_MAP).forEach(k =>
-      expect(k).toBe(k.toLowerCase()),
-    );
+    Object.keys(GENRE_ALIAS_MAP).forEach(k => expect(k).toBe(k.toLowerCase()));
   });
 
   it('all values are title-cased strings (not empty)', () => {
@@ -198,7 +203,8 @@ describe('mean', () => {
 describe('stddev', () => {
   it('returns 0 for empty array', () => expect(stddev([])).toBe(0));
   it('returns 0 for single element', () => expect(stddev([5])).toBe(0));
-  it('returns 0 when all values are equal', () => expect(stddev([4, 4, 4])).toBe(0));
+  it('returns 0 when all values are equal', () =>
+    expect(stddev([4, 4, 4])).toBe(0));
   it('[2,4,4,4,5,5,7,9] → population stddev ≈ 2', () => {
     expect(stddev([2, 4, 4, 4, 5, 5, 7, 9])).toBeCloseTo(2, 0);
   });
@@ -216,10 +222,10 @@ describe('computeSMA', () => {
 
   it('window=3 on [1,2,3,4,5]', () => {
     const result = computeSMA([1, 2, 3, 4, 5], 3);
-    expect(result[0]).toBeCloseTo(1);       // only 1 element
-    expect(result[1]).toBeCloseTo(1.5);     // 2 elements
-    expect(result[2]).toBeCloseTo(2);       // [1,2,3]
-    expect(result[4]).toBeCloseTo(4);       // [3,4,5]
+    expect(result[0]).toBeCloseTo(1); // only 1 element
+    expect(result[1]).toBeCloseTo(1.5); // 2 elements
+    expect(result[2]).toBeCloseTo(2); // [1,2,3]
+    expect(result[4]).toBeCloseTo(4); // [3,4,5]
   });
 
   it('output length equals input length', () => {
@@ -370,7 +376,9 @@ describe('computeStreakStats', () => {
   it('calculates longest, average, and total streaks', () => {
     const logs = [
       // streak 1: 3 days
-      LOG('2026-06-01', 10), LOG('2026-06-02', 10), LOG('2026-06-03', 10),
+      LOG('2026-06-01', 10),
+      LOG('2026-06-02', 10),
+      LOG('2026-06-03', 10),
       // gap
       // streak 2: 1 day
       LOG('2026-06-10', 10),
@@ -468,7 +476,7 @@ describe('computeZScores', () => {
     const zScores = computeZScores(values);
     // Mean ≈ 5; stddev ≈ 2
     expect(zScores[0]).toBeCloseTo(-1.5, 0); // value=2 is below mean
-    expect(zScores[7]).toBeCloseTo(2, 0);    // value=9 is above mean
+    expect(zScores[7]).toBeCloseTo(2, 0); // value=9 is above mean
   });
 
   it('output length equals input length', () => {
@@ -485,18 +493,26 @@ describe('detectOutlierSessions', () => {
 
   it('returns empty when all sessions are similar', () => {
     const logs = [
-      LOG('2026-06-01', 10), LOG('2026-06-02', 11), LOG('2026-06-03', 10),
-      LOG('2026-06-04', 10), LOG('2026-06-05', 9),
+      LOG('2026-06-01', 10),
+      LOG('2026-06-02', 11),
+      LOG('2026-06-03', 10),
+      LOG('2026-06-04', 10),
+      LOG('2026-06-05', 9),
     ];
     expect(detectOutlierSessions(logs, 2.5)).toEqual([]);
   });
 
   it('flags an extreme session as an outlier', () => {
     const logs = [
-      LOG('2026-06-01', 10), LOG('2026-06-02', 10), LOG('2026-06-03', 10),
-      LOG('2026-06-04', 10), LOG('2026-06-05', 10),
-      LOG('2026-06-06', 10), LOG('2026-06-07', 10),
-      LOG('2026-06-08', 10), LOG('2026-06-09', 500), // extreme outlier
+      LOG('2026-06-01', 10),
+      LOG('2026-06-02', 10),
+      LOG('2026-06-03', 10),
+      LOG('2026-06-04', 10),
+      LOG('2026-06-05', 10),
+      LOG('2026-06-06', 10),
+      LOG('2026-06-07', 10),
+      LOG('2026-06-08', 10),
+      LOG('2026-06-09', 500), // extreme outlier
     ];
     const outliers = detectOutlierSessions(logs, 2.0);
     expect(outliers.length).toBeGreaterThan(0);
@@ -528,7 +544,7 @@ describe('comparePeriods', () => {
     // Current period: last 7 days; today = June 18 → window June 12–18
     const logs = [
       LOG('2026-06-17', 100), // current period
-      LOG('2026-06-15', 20),  // current period
+      LOG('2026-06-15', 20), // current period
       // previous period = June 5–11
       LOG('2026-06-08', 10),
     ];
@@ -540,7 +556,7 @@ describe('comparePeriods', () => {
   it('detects downward trend when current < previous', () => {
     const logs = [
       LOG('2026-06-08', 200), // previous period
-      LOG('2026-06-17', 10),  // current period (less)
+      LOG('2026-06-17', 10), // current period (less)
     ];
     const r = comparePeriods(logs, 7);
     expect(r.trend).toBe('down');
@@ -634,8 +650,16 @@ describe('computeGoalProgress', () => {
 
   it('returns all expected keys', () => {
     const r = computeGoalProgress(12, 6, FIXED);
-    ['yearlyGoal','completedBooks','expectedAtPace','onPace',
-      'deficit','surplus','projectedYearEnd','percentComplete','dayOfYear',
+    [
+      'yearlyGoal',
+      'completedBooks',
+      'expectedAtPace',
+      'onPace',
+      'deficit',
+      'surplus',
+      'projectedYearEnd',
+      'percentComplete',
+      'dayOfYear',
     ].forEach(k => expect(r).toHaveProperty(k));
   });
 });
@@ -721,12 +745,24 @@ describe('computeGenreEvolution', () => {
 
   it('places recent books in recent bucket and older ones in older bucket', () => {
     // recent = last 6 months (Jan–Jun 2026); older = Jul–Dec 2025
-    const recentBook = BOOK(BOOK_STATUS.READ, ['Fantasy'], 300, 300, '2026-05-01');
-    const olderBook  = BOOK(BOOK_STATUS.READ, ['Horror'],  300, 300, '2025-10-01');
+    const recentBook = BOOK(
+      BOOK_STATUS.READ,
+      ['Fantasy'],
+      300,
+      300,
+      '2026-05-01',
+    );
+    const olderBook = BOOK(
+      BOOK_STATUS.READ,
+      ['Horror'],
+      300,
+      300,
+      '2025-10-01',
+    );
 
     const evolution = computeGenreEvolution([recentBook, olderBook], 6);
     const fantasy = evolution.find(e => e.genre === 'Fantasy');
-    const horror  = evolution.find(e => e.genre === 'Horror');
+    const horror = evolution.find(e => e.genre === 'Horror');
 
     expect(fantasy?.recent).toBe(1);
     expect(fantasy?.older).toBe(0);
@@ -735,8 +771,20 @@ describe('computeGenreEvolution', () => {
   });
 
   it('computes delta = recent - older', () => {
-    const recentBook = BOOK(BOOK_STATUS.READ, ['Fiction'], 300, 300, '2026-05-01');
-    const olderBook  = BOOK(BOOK_STATUS.READ, ['Fiction'], 300, 300, '2025-10-01');
+    const recentBook = BOOK(
+      BOOK_STATUS.READ,
+      ['Fiction'],
+      300,
+      300,
+      '2026-05-01',
+    );
+    const olderBook = BOOK(
+      BOOK_STATUS.READ,
+      ['Fiction'],
+      300,
+      300,
+      '2025-10-01',
+    );
     const evolution = computeGenreEvolution([recentBook, olderBook], 6);
     const fiction = evolution.find(e => e.genre === 'Fiction');
     expect(fiction?.delta).toBe(0); // 1 recent - 1 older = 0
@@ -756,8 +804,8 @@ describe('getMostReadGenresNormalized', () => {
 
   it('merges fuzzy-matched genre variants into one bucket', () => {
     const books = [
-      BOOK(BOOK_STATUS.READ, ['sci-fi']),   // → Science Fiction
-      BOOK(BOOK_STATUS.READ, ['Sci-Fi']),   // → Science Fiction (same)
+      BOOK(BOOK_STATUS.READ, ['sci-fi']), // → Science Fiction
+      BOOK(BOOK_STATUS.READ, ['Sci-Fi']), // → Science Fiction (same)
       BOOK(BOOK_STATUS.READ, ['Fantasy']),
     ];
     const result = getMostReadGenresNormalized(books);
@@ -795,11 +843,15 @@ describe('calculateReadingSpeed', () => {
   });
 
   it('returns 0 for sessions with 0 pages', () => {
-    expect(calculateReadingSpeed([{ pagesRead: 0, timeSeconds: 3600 }])).toBe(0);
+    expect(calculateReadingSpeed([{ pagesRead: 0, timeSeconds: 3600 }])).toBe(
+      0,
+    );
   });
 
   it('60 pages in 1 hour = 60 pág/h', () => {
-    expect(calculateReadingSpeed([{ pagesRead: 60, timeSeconds: 3600 }])).toBe(60);
+    expect(calculateReadingSpeed([{ pagesRead: 60, timeSeconds: 3600 }])).toBe(
+      60,
+    );
   });
 
   it('averages across multiple valid sessions', () => {
@@ -813,7 +865,7 @@ describe('calculateReadingSpeed', () => {
 
   it('ignores short sessions when averaging', () => {
     const sessions = [
-      { pagesRead: 10, timeSeconds: 30 },   // too short
+      { pagesRead: 10, timeSeconds: 30 }, // too short
       { pagesRead: 60, timeSeconds: 3600 }, // valid → 60/h
     ];
     expect(calculateReadingSpeed(sessions)).toBe(60);
@@ -851,10 +903,18 @@ describe('aggregatePagesByMonth', () => {
 
   it('uses PT-BR month abbreviations', () => {
     const months = [
-      ['2026-01-01', 'Jan'], ['2026-02-01', 'Fev'], ['2026-03-01', 'Mar'],
-      ['2026-04-01', 'Abr'], ['2026-05-01', 'Mai'], ['2026-06-01', 'Jun'],
-      ['2026-07-01', 'Jul'], ['2026-08-01', 'Ago'], ['2026-09-01', 'Set'],
-      ['2026-10-01', 'Out'], ['2026-11-01', 'Nov'], ['2026-12-01', 'Dez'],
+      ['2026-01-01', 'Jan'],
+      ['2026-02-01', 'Fev'],
+      ['2026-03-01', 'Mar'],
+      ['2026-04-01', 'Abr'],
+      ['2026-05-01', 'Mai'],
+      ['2026-06-01', 'Jun'],
+      ['2026-07-01', 'Jul'],
+      ['2026-08-01', 'Ago'],
+      ['2026-09-01', 'Set'],
+      ['2026-10-01', 'Out'],
+      ['2026-11-01', 'Nov'],
+      ['2026-12-01', 'Dez'],
     ];
     const sessions = months.map(([date]) => ({ date, pagesRead: 1 }));
     const result = aggregatePagesByMonth(sessions);

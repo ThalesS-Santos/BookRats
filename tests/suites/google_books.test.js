@@ -1,5 +1,5 @@
 import { apiClient } from '@core/api/apiClient';
-import { searchBooks, getBookByIsbn } from '@core/api/googleBooks';
+import { searchBooks } from '@core/api/googleBooks';
 import { clearRecentLogs, getRecentLogs } from '@core/observability';
 import { PixelBook } from '@ui/assets';
 

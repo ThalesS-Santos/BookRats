@@ -69,7 +69,7 @@ describe('ErrorBoundary Resiliency', () => {
   it('should reset the state when "Tentar Novamente" is pressed', () => {
     const mockOnReset = jest.fn();
 
-    const { getByText, queryByText } = render(
+    const { getByText } = render(
       <ErrorBoundary onReset={mockOnReset}>
         <ProblematicComponent shouldCrash={true} />
       </ErrorBoundary>,

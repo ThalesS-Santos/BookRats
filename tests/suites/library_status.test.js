@@ -1,6 +1,4 @@
-import { serverTimestamp } from 'firebase/firestore';
-
-import { updateBook as apiUpdateBook } from '@core/api/books';
+import { updateBookWithStats as apiUpdateBookWithStats } from '@core/api/books';
 import { createLibrarySlice } from '@core/store/slices/librarySlice';
 
 import { BOOK_STATUS } from '../../src/core/constants/bookStatus';
@@ -18,7 +16,7 @@ jest.mock('@core/firebase/firebase', () => ({
 }));
 
 jest.mock('@core/api/books', () => ({
-  updateBook: jest.fn(),
+  updateBookWithStats: jest.fn(),
   addReadingLog: jest.fn(),
 }));
 
@@ -70,7 +68,7 @@ describe('Library Status Transitions (Item 20)', () => {
       };
       state.books = [book];
 
-      apiUpdateBook.mockResolvedValueOnce();
+      apiUpdateBookWithStats.mockResolvedValueOnce();
 
       await state.updateBook('b1', { currentPage: 100 });
 
@@ -79,14 +77,15 @@ describe('Library Status Transitions (Item 20)', () => {
       expect(updatedBook.currentPage).toBe(100);
       expect(updatedBook.completedAt).toBeDefined(); // Should record completion time
 
-      expect(apiUpdateBook).toHaveBeenCalledWith(
+      expect(apiUpdateBookWithStats).toHaveBeenCalledWith(
         'user1',
         'b1',
         expect.objectContaining({
           status: BOOK_STATUS.READ,
           currentPage: 100,
-          updatedAt: 'mock-timestamp',
         }),
+        expect.anything(),
+        expect.any(Number),
       );
     });
 
@@ -161,7 +160,7 @@ describe('Library Status Transitions (Item 20)', () => {
 
       await state.updateBookStatus('b1', 'INVALID_STATUS');
 
-      expect(apiUpdateBook).not.toHaveBeenCalled();
+      expect(apiUpdateBookWithStats).not.toHaveBeenCalled();
       // The structured validation record is emitted with the BR_VALIDATION code.
       expect(errorSpy).toHaveBeenCalled();
       expect(String(errorSpy.mock.calls[0][0])).toContain('BR_VALIDATION');

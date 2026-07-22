@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
 
@@ -12,7 +12,7 @@ const SEGMENTS = [
 ];
 
 function AnimatedSegment({ flex, color, delay, isFirst, isLast }) {
-  const scaleAnim = useRef(new Animated.Value(0)).current;
+  const [scaleAnim] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     Animated.timing(scaleAnim, {

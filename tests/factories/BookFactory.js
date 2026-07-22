@@ -4,12 +4,6 @@ import { BOOK_STATUS } from '../../src/core/constants/bookStatus';
  * @typedef {import('@core/types').Book} Book
  */
 
-const STATUSES = [
-  BOOK_STATUS.READING,
-  BOOK_STATUS.READ,
-  BOOK_STATUS.WANT_TO_READ,
-];
-
 export const BookFactory = {
   /**
    * Generates a realistic mock Book object based on JSDoc types.

@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { render, fireEvent, act, waitFor } from '@testing-library/react-native';
+import { render, fireEvent, act } from '@testing-library/react-native';
 
 import { addAnnotation } from '../../src/core/api/books';
 import { BOOK_STATUS } from '../../src/core/constants/bookStatus';

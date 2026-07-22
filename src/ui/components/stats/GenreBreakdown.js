@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import {
   View,
@@ -23,8 +23,8 @@ const GENRE_COLORS = [
 ];
 
 function GenreBar({ genre, count, maxCount, isDarkMode, index, delay }) {
-  const widthAnim = useRef(new Animated.Value(0)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
+  const [widthAnim] = useState(() => new Animated.Value(0));
+  const [opacityAnim] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     const target = maxCount > 0 ? (count / maxCount) * MAX_BAR_WIDTH : 0;

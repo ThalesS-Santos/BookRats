@@ -10,11 +10,6 @@ import AuthScreen from '@ui/screens/AuthScreen';
 
 import { usePopupStore } from '../../src/store/usePopupStore';
 
-// Wrapper for components using context
-const componentWrapper = ({ children }) => (
-  <NavigationContainer>{children}</NavigationContainer>
-);
-
 describe('Popup Integration Flow', () => {
   beforeEach(() => {
     // Isolated State Clean-up

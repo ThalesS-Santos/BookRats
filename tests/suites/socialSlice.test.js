@@ -1,12 +1,4 @@
-import {
-  collection,
-  onSnapshot,
-  query,
-  orderBy,
-  limit,
-  serverTimestamp,
-  addDoc,
-} from 'firebase/firestore';
+import { onSnapshot, limit, addDoc } from 'firebase/firestore';
 
 import {
   subscribeToNotifications,
@@ -19,7 +11,6 @@ import {
   sendFriendRequest,
   getUsersByIds,
 } from '@core/api/social';
-import { db } from '@core/firebase/firebase';
 import { NotificationService } from '@core/services/NotificationService';
 import { selectUnreadCount } from '@core/store/selectors';
 import { createSocialSlice } from '@core/store/slices/socialSlice';

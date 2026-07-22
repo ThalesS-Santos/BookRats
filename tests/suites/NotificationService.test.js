@@ -1,12 +1,4 @@
-import {
-  collection,
-  addDoc,
-  serverTimestamp,
-  query,
-  where,
-  getDocs,
-  writeBatch,
-} from 'firebase/firestore';
+import { collection, addDoc, getDocs, writeBatch } from 'firebase/firestore';
 
 import { NotificationService } from '../../src/core/services/NotificationService';
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import {
   View,
@@ -12,8 +12,8 @@ import {
 const MAX_HEIGHT = 110;
 
 function Bar({ pages, maxPages, label, isDarkMode, delay, accentColor }) {
-  const heightAnim = useRef(new Animated.Value(0)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
+  const [heightAnim] = useState(() => new Animated.Value(0));
+  const [opacityAnim] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     const target = maxPages > 0 ? (pages / maxPages) * MAX_HEIGHT : 0;

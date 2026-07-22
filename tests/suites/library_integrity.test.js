@@ -1,7 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BookFactory } from '@tests/factories/BookFactory';
 import { UserFactory } from '@tests/factories/UserFactory';
-import { act } from 'react-test-renderer/shallow'; // Not needed for Zustand but good practice for some hooks
 
 import * as api from '@core/api/books';
 import { useMainStore } from '@core/store';
@@ -45,7 +44,7 @@ describe('Library Integrity Validation', () => {
         .addBook(bookTitle, 400, bookId, '', {}, 'lendo');
 
       // Manually simulate the state update that would normally come from Firestore listener
-      useMainStore.setState(state => ({
+      useMainStore.setState(() => ({
         books: [
           BookFactory.create({ id: bookId, title: bookTitle, pageCount: 400 }),
         ],
@@ -80,7 +79,7 @@ describe('Library Integrity Validation', () => {
         .addBook('Test Book', 100, bookId, '', {}, 'quero_ler');
 
       // Manually update state to trigger persistence update if not immediate
-      useMainStore.setState(state => ({
+      useMainStore.setState(() => ({
         books: [
           BookFactory.create({
             id: bookId,

@@ -15,7 +15,6 @@ import { render, fireEvent } from '@testing-library/react-native';
 
 import { BOOK_STATUS } from '@core/constants/bookStatus';
 import { useMainStore } from '@core/store';
-
 import StatsScreen from '@ui/screens/StatsScreen';
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
@@ -228,7 +227,10 @@ describe('StatsScreen', () => {
     it('hides "Padrão Semanal" when there are no logs', () => {
       mockStore({
         ...WITH_DATA_STATE,
-        books: [{ ...READING_BOOK, logs: [] }, { ...READ_BOOK, logs: [] }],
+        books: [
+          { ...READING_BOOK, logs: [] },
+          { ...READ_BOOK, logs: [] },
+        ],
       });
       const { queryByText } = render(<StatsScreen />);
       expect(queryByText('Padrão Semanal')).toBeNull();

@@ -42,9 +42,7 @@ describe('StatCard', () => {
   });
 
   it('shows em-dash displayValue for zero speed', () => {
-    const { getByText } = render(
-      <StatCard {...base} displayValue="—" />,
-    );
+    const { getByText } = render(<StatCard {...base} displayValue="—" />);
     expect(getByText('—')).toBeTruthy();
   });
 
@@ -78,7 +76,7 @@ describe('BarChart', () => {
   const baseData = [
     { label: 'Seg', shortLabel: 'S', pages: 10, key: '2026-06-12' },
     { label: 'Ter', shortLabel: 'T', pages: 30, key: '2026-06-13' },
-    { label: 'Qua', shortLabel: 'Q', pages: 0,  key: '2026-06-14' },
+    { label: 'Qua', shortLabel: 'Q', pages: 0, key: '2026-06-14' },
   ];
 
   it('returns null for empty data array', () => {
@@ -122,7 +120,9 @@ describe('BarChart', () => {
   });
 
   it('formats pages >= 1000 as K notation', () => {
-    const data = [{ label: 'Jan', shortLabel: 'J', pages: 1500, key: '2026-01-15' }];
+    const data = [
+      { label: 'Jan', shortLabel: 'J', pages: 1500, key: '2026-01-15' },
+    ];
     const { getByText } = render(
       <BarChart data={data} isDarkMode={false} accentColor="#5B8C5A" />,
     );
@@ -141,31 +141,23 @@ describe('BarChart', () => {
 // ── HeatCalendar ─────────────────────────────────────────────────────────────
 describe('HeatCalendar', () => {
   it('renders without crashing', () => {
-    const { toJSON } = render(
-      <HeatCalendar data={{}} isDarkMode={false} />,
-    );
+    const { toJSON } = render(<HeatCalendar data={{}} isDarkMode={false} />);
     expect(toJSON()).not.toBeNull();
   });
 
   it('shows legend labels Menos and Mais', () => {
-    const { getByText } = render(
-      <HeatCalendar data={{}} isDarkMode={false} />,
-    );
+    const { getByText } = render(<HeatCalendar data={{}} isDarkMode={false} />);
     expect(getByText('Menos')).toBeTruthy();
     expect(getByText('Mais')).toBeTruthy();
   });
 
   it('renders in dark mode', () => {
-    const { getByText } = render(
-      <HeatCalendar data={{}} isDarkMode={true} />,
-    );
+    const { getByText } = render(<HeatCalendar data={{}} isDarkMode={true} />);
     expect(getByText('Menos')).toBeTruthy();
   });
 
   it('handles null data gracefully', () => {
-    const { toJSON } = render(
-      <HeatCalendar data={null} isDarkMode={false} />,
-    );
+    const { toJSON } = render(<HeatCalendar data={null} isDarkMode={false} />);
     expect(toJSON()).not.toBeNull();
   });
 
@@ -192,9 +184,7 @@ describe('GenreBreakdown', () => {
   ];
 
   it('returns null when data is empty', () => {
-    const { toJSON } = render(
-      <GenreBreakdown data={[]} isDarkMode={false} />,
-    );
+    const { toJSON } = render(<GenreBreakdown data={[]} isDarkMode={false} />);
     expect(toJSON()).toBeNull();
   });
 
@@ -232,10 +222,22 @@ describe('GenreBreakdown', () => {
 // ── LibrarySnapshot ───────────────────────────────────────────────────────────
 describe('LibrarySnapshot', () => {
   const emptySnapshot = {
-    reading: 0, read: 0, wantToRead: 0, dropped: 0, bought: 0, recommended: 0, total: 0,
+    reading: 0,
+    read: 0,
+    wantToRead: 0,
+    dropped: 0,
+    bought: 0,
+    recommended: 0,
+    total: 0,
   };
   const fullSnapshot = {
-    reading: 3, read: 10, wantToRead: 5, dropped: 1, bought: 2, recommended: 0, total: 21,
+    reading: 3,
+    read: 10,
+    wantToRead: 5,
+    dropped: 1,
+    bought: 2,
+    recommended: 0,
+    total: 21,
   };
 
   it('shows empty message when all counts are 0', () => {
@@ -284,8 +286,8 @@ describe('LibrarySnapshot', () => {
 // ── SessionInsights ───────────────────────────────────────────────────────────
 describe('SessionInsights', () => {
   const metrics = {
-    avgDuration: 1800,  // 30min
-    maxDuration: 3600,  // 1h
+    avgDuration: 1800, // 30min
+    maxDuration: 3600, // 1h
     totalSessions: 5,
     totalTimeSeconds: 9000,
   };
@@ -303,56 +305,88 @@ describe('SessionInsights', () => {
 
   it('returns null when metrics is null', () => {
     const { toJSON } = render(
-      <SessionInsights metrics={null} accentColor="#5B8C5A" isDarkMode={false} />,
+      <SessionInsights
+        metrics={null}
+        accentColor="#5B8C5A"
+        isDarkMode={false}
+      />,
     );
     expect(toJSON()).toBeNull();
   });
 
   it('shows Sessão Média label', () => {
     const { getByText } = render(
-      <SessionInsights metrics={metrics} accentColor="#5B8C5A" isDarkMode={false} />,
+      <SessionInsights
+        metrics={metrics}
+        accentColor="#5B8C5A"
+        isDarkMode={false}
+      />,
     );
     expect(getByText('Sessão Média')).toBeTruthy();
   });
 
   it('shows Recorde label', () => {
     const { getByText } = render(
-      <SessionInsights metrics={metrics} accentColor="#5B8C5A" isDarkMode={false} />,
+      <SessionInsights
+        metrics={metrics}
+        accentColor="#5B8C5A"
+        isDarkMode={false}
+      />,
     );
     expect(getByText('Recorde')).toBeTruthy();
   });
 
   it('shows Sessões Total label', () => {
     const { getByText } = render(
-      <SessionInsights metrics={metrics} accentColor="#5B8C5A" isDarkMode={false} />,
+      <SessionInsights
+        metrics={metrics}
+        accentColor="#5B8C5A"
+        isDarkMode={false}
+      />,
     );
     expect(getByText('Sessões Total')).toBeTruthy();
   });
 
   it('formats avgDuration with formatDuration (30min)', () => {
     const { getByText } = render(
-      <SessionInsights metrics={metrics} accentColor="#5B8C5A" isDarkMode={false} />,
+      <SessionInsights
+        metrics={metrics}
+        accentColor="#5B8C5A"
+        isDarkMode={false}
+      />,
     );
     expect(getByText('30min')).toBeTruthy();
   });
 
   it('formats maxDuration with formatDuration (1h)', () => {
     const { getByText } = render(
-      <SessionInsights metrics={metrics} accentColor="#5B8C5A" isDarkMode={false} />,
+      <SessionInsights
+        metrics={metrics}
+        accentColor="#5B8C5A"
+        isDarkMode={false}
+      />,
     );
     expect(getByText('1h')).toBeTruthy();
   });
 
   it('shows totalSessions as a plain string', () => {
     const { getByText } = render(
-      <SessionInsights metrics={metrics} accentColor="#5B8C5A" isDarkMode={false} />,
+      <SessionInsights
+        metrics={metrics}
+        accentColor="#5B8C5A"
+        isDarkMode={false}
+      />,
     );
     expect(getByText('5')).toBeTruthy();
   });
 
   it('renders in dark mode without crashing', () => {
     const { getByText } = render(
-      <SessionInsights metrics={metrics} accentColor="#5B8C5A" isDarkMode={true} />,
+      <SessionInsights
+        metrics={metrics}
+        accentColor="#5B8C5A"
+        isDarkMode={true}
+      />,
     );
     expect(getByText('Sessão Média')).toBeTruthy();
   });

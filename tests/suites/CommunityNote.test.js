@@ -85,9 +85,7 @@ describe('CommunityNote Component', () => {
       ...mockNote,
       userMetadata: { ...mockNote.userMetadata, isInfluencer: false },
     };
-    const { queryByTestId } = render(
-      <CommunityNote note={note} onClap={mockOnClap} COLORS={COLORS} />,
-    );
+    render(<CommunityNote note={note} onClap={mockOnClap} COLORS={COLORS} />);
     // Should render fine
     expect(true).toBe(true);
   });

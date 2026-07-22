@@ -1,7 +1,20 @@
 import { BOOK_STATUS } from '@core/constants/bookStatus';
 
-const MONTHS_PT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-export const DAYS_PT = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+const MONTHS_PT = [
+  'Jan',
+  'Fev',
+  'Mar',
+  'Abr',
+  'Mai',
+  'Jun',
+  'Jul',
+  'Ago',
+  'Set',
+  'Out',
+  'Nov',
+  'Dez',
+];
+export const DAYS_PT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 export function dateKey(date) {
   const d = date instanceof Date ? date : new Date(date + 'T12:00:00');
@@ -11,9 +24,21 @@ export function dateKey(date) {
 export function getPeriodCutoff(period) {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
-  if (period === 'semana') { const d = new Date(now); d.setDate(now.getDate() - 6); return d; }
-  if (period === 'mes') { const d = new Date(now); d.setDate(now.getDate() - 29); return d; }
-  if (period === 'trimestre') { const d = new Date(now); d.setDate(now.getDate() - 89); return d; }
+  if (period === 'semana') {
+    const d = new Date(now);
+    d.setDate(now.getDate() - 6);
+    return d;
+  }
+  if (period === 'mes') {
+    const d = new Date(now);
+    d.setDate(now.getDate() - 29);
+    return d;
+  }
+  if (period === 'trimestre') {
+    const d = new Date(now);
+    d.setDate(now.getDate() - 89);
+    return d;
+  }
   return new Date(0);
 }
 
@@ -39,7 +64,12 @@ export function computeDailyPages(allLogs, days) {
     const pages = allLogs
       .filter(l => l.date === key)
       .reduce((s, l) => s + (l.pagesRead || 0), 0);
-    return { label: DAYS_PT[d.getDay()], shortLabel: DAYS_PT[d.getDay()][0], pages, key };
+    return {
+      label: DAYS_PT[d.getDay()],
+      shortLabel: DAYS_PT[d.getDay()][0],
+      pages,
+      key,
+    };
   });
 }
 
@@ -59,7 +89,10 @@ export function computeWeeklyPages(allLogs, weeksCount) {
         return ld >= weekStart && ld <= weekEnd;
       })
       .reduce((s, l) => s + (l.pagesRead || 0), 0);
-    return { label: `${weekStart.getDate()}/${MONTHS_PT[weekStart.getMonth()]}`, pages };
+    return {
+      label: `${weekStart.getDate()}/${MONTHS_PT[weekStart.getMonth()]}`,
+      pages,
+    };
   });
 }
 
@@ -69,7 +102,10 @@ export function computeMonthlyPages(allLogs, monthsCount) {
     const offset = monthsCount - 1 - i;
     let monthIdx = today.getMonth() - offset;
     let yr = today.getFullYear();
-    while (monthIdx < 0) { monthIdx += 12; yr -= 1; }
+    while (monthIdx < 0) {
+      monthIdx += 12;
+      yr -= 1;
+    }
     const pages = allLogs
       .filter(l => {
         const d = new Date(l.date + 'T12:00:00');
@@ -114,7 +150,10 @@ export function computeGenreDistribution(books) {
 export function computeAverageSpeed(logs) {
   const valid = logs.filter(l => l.pagesRead > 0 && l.timeSeconds > 60);
   if (!valid.length) return 0;
-  const total = valid.reduce((sum, l) => sum + (l.pagesRead / l.timeSeconds) * 3600, 0);
+  const total = valid.reduce(
+    (sum, l) => sum + (l.pagesRead / l.timeSeconds) * 3600,
+    0,
+  );
   return Math.round(total / valid.length);
 }
 
@@ -127,7 +166,12 @@ export function computeAvgPagesPerDay(logs, days) {
 export function computeSessionMetrics(allLogs) {
   const valid = allLogs.filter(l => l.timeSeconds > 0);
   if (!valid.length) {
-    return { avgDuration: 0, maxDuration: 0, totalSessions: 0, totalTimeSeconds: 0 };
+    return {
+      avgDuration: 0,
+      maxDuration: 0,
+      totalSessions: 0,
+      totalTimeSeconds: 0,
+    };
   }
   const totalTime = valid.reduce((s, l) => s + l.timeSeconds, 0);
   return {
@@ -179,11 +223,14 @@ export function computeLibrarySnapshot(books) {
     [BOOK_STATUS.BOUGHT]: 0,
     [BOOK_STATUS.RECOMMENDED]: 0,
   };
-  books.forEach(b => { if (counts[b.status] !== undefined) counts[b.status]++; });
+  books.forEach(b => {
+    if (counts[b.status] !== undefined) counts[b.status]++;
+  });
   return {
     reading: counts[BOOK_STATUS.READING],
     read: counts[BOOK_STATUS.READ],
-    wantToRead: counts[BOOK_STATUS.WANT_TO_READ] + counts[BOOK_STATUS.WISH_LIST],
+    wantToRead:
+      counts[BOOK_STATUS.WANT_TO_READ] + counts[BOOK_STATUS.WISH_LIST],
     dropped: counts[BOOK_STATUS.DROPPED],
     bought: counts[BOOK_STATUS.BOUGHT],
     recommended: counts[BOOK_STATUS.RECOMMENDED],

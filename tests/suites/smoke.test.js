@@ -10,7 +10,7 @@ describe('Smoke Test', () => {
   });
 
   it('should render LoadingScreen without crashing', () => {
-    const { getByTestId } = render(<LoadingScreen />);
+    render(<LoadingScreen />);
     // Basic render check - if it doesn't throw, it's operational for a smoke test
   });
 });

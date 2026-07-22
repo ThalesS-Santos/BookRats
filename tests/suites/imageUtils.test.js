@@ -73,7 +73,8 @@ describe('extractUri', () => {
 
 // ── optimizeCoverUrl ──────────────────────────────────────────────────────────
 describe('optimizeCoverUrl', () => {
-  const GOOGLE_URL = 'https://books.google.com/books/content?id=abc&printsec=frontcover&img=1&zoom=1&edge=curl&source=gbs_api';
+  const GOOGLE_URL =
+    'https://books.google.com/books/content?id=abc&printsec=frontcover&img=1&zoom=1&edge=curl&source=gbs_api';
 
   it('removes &edge=curl from Google Books URLs', () => {
     const result = optimizeCoverUrl({ uri: GOOGLE_URL });
@@ -103,7 +104,9 @@ describe('optimizeCoverUrl', () => {
   it('handles URL without edge=curl gracefully (no duplication)', () => {
     const url = 'https://books.google.com/books/content?id=xyz&zoom=1';
     const result = optimizeCoverUrl({ uri: url });
-    expect(result.uri).toBe('https://books.google.com/books/content?id=xyz&zoom=2');
+    expect(result.uri).toBe(
+      'https://books.google.com/books/content?id=xyz&zoom=2',
+    );
   });
 
   it('handles URL without zoom parameter gracefully', () => {

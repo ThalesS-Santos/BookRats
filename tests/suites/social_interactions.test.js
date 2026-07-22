@@ -14,12 +14,7 @@ import {
   getDocs,
   getDoc,
   onSnapshot,
-  orderBy,
-  limit,
-  query,
-  serverTimestamp,
   updateDoc,
-  where,
 } from 'firebase/firestore';
 
 import {
@@ -107,10 +102,9 @@ describe('Social Interactions — Fluxos Ponta a Ponta', () => {
 
       await acceptFriendRequest(REQUEST_ID, BOB.uid, BOB.name, BOB.avatar);
 
-      expect(updateDoc).toHaveBeenCalledWith(
-        expect.anything(),
-        { status: 'accepted' },
-      );
+      expect(updateDoc).toHaveBeenCalledWith(expect.anything(), {
+        status: 'accepted',
+      });
     });
 
     it('aceite envia notificação para o solicitante', async () => {
@@ -151,10 +145,9 @@ describe('Social Interactions — Fluxos Ponta a Ponta', () => {
       await acceptFriendRequest(REQUEST_ID, BOB.uid, BOB.name, BOB.avatar);
 
       expect(updateDoc).toHaveBeenCalledTimes(1);
-      expect(updateDoc).toHaveBeenCalledWith(
-        expect.anything(),
-        { status: 'accepted' },
-      );
+      expect(updateDoc).toHaveBeenCalledWith(expect.anything(), {
+        status: 'accepted',
+      });
     });
 
     it('aceite retorna silenciosamente se documento não existe', async () => {
@@ -173,10 +166,9 @@ describe('Social Interactions — Fluxos Ponta a Ponta', () => {
     it('rejeita pedido atualizando status para rejected', async () => {
       await rejectFriendRequest(REQUEST_ID);
 
-      expect(updateDoc).toHaveBeenCalledWith(
-        expect.anything(),
-        { status: 'rejected' },
-      );
+      expect(updateDoc).toHaveBeenCalledWith(expect.anything(), {
+        status: 'rejected',
+      });
     });
 
     it('rejeição não cria notificação', async () => {
@@ -353,7 +345,12 @@ describe('Social Interactions — Fluxos Ponta a Ponta', () => {
       const unsub = subscribeToNotifications(ALICE.uid, onUpdate);
 
       expect(onUpdate).toHaveBeenCalledWith([
-        { id: 'notif-001', type: 'FRIEND_ACCEPT', senderId: BOB.uid, read: false },
+        {
+          id: 'notif-001',
+          type: 'FRIEND_ACCEPT',
+          senderId: BOB.uid,
+          read: false,
+        },
       ]);
       expect(typeof unsub).toBe('function');
     });
@@ -361,10 +358,7 @@ describe('Social Interactions — Fluxos Ponta a Ponta', () => {
     it('markNotificationAsRead atualiza flag read para true', async () => {
       await markNotificationAsRead(ALICE.uid, 'notif-001');
 
-      expect(updateDoc).toHaveBeenCalledWith(
-        expect.anything(),
-        { read: true },
-      );
+      expect(updateDoc).toHaveBeenCalledWith(expect.anything(), { read: true });
     });
 
     it('createNotification salva documento na sub-collection do usuário', async () => {
@@ -434,10 +428,9 @@ describe('Social Interactions — Fluxos Ponta a Ponta', () => {
       });
       await acceptFriendRequest(REQUEST_ID, BOB.uid, BOB.name, BOB.avatar);
 
-      expect(updateDoc).toHaveBeenCalledWith(
-        expect.anything(),
-        { status: 'accepted' },
-      );
+      expect(updateDoc).toHaveBeenCalledWith(expect.anything(), {
+        status: 'accepted',
+      });
 
       // FASE 4 — Alice recebe notificação de aceite via listener
       const notifications = [];
@@ -456,9 +449,7 @@ describe('Social Interactions — Fluxos Ponta a Ponta', () => {
         });
         return jest.fn();
       });
-      subscribeToNotifications(ALICE.uid, data =>
-        notifications.push(...data),
-      );
+      subscribeToNotifications(ALICE.uid, data => notifications.push(...data));
 
       expect(notifications).toHaveLength(1);
       expect(notifications[0]).toMatchObject({
@@ -473,10 +464,7 @@ describe('Social Interactions — Fluxos Ponta a Ponta', () => {
 
       await markNotificationAsRead(ALICE.uid, 'notif-accept');
 
-      expect(updateDoc).toHaveBeenCalledWith(
-        expect.anything(),
-        { read: true },
-      );
+      expect(updateDoc).toHaveBeenCalledWith(expect.anything(), { read: true });
     });
 
     it('cenário de rejeição: Bob rejeita pedido de Alice sem notificação', async () => {
@@ -491,10 +479,9 @@ describe('Social Interactions — Fluxos Ponta a Ponta', () => {
       // FASE 2 — Bob rejeita
       await rejectFriendRequest(REQUEST_ID);
 
-      expect(updateDoc).toHaveBeenCalledWith(
-        expect.anything(),
-        { status: 'rejected' },
-      );
+      expect(updateDoc).toHaveBeenCalledWith(expect.anything(), {
+        status: 'rejected',
+      });
       // Sem notificação na rejeição
       expect(addDoc).not.toHaveBeenCalled();
     });

@@ -1,7 +1,7 @@
 import React from 'react';
 
 import { useIsFocused } from '@react-navigation/native';
-import { render, fireEvent, act, waitFor } from '@testing-library/react-native';
+import { render, fireEvent, act } from '@testing-library/react-native';
 import { InteractionManager } from 'react-native';
 
 import { useMainStore } from '../../src/core/store';

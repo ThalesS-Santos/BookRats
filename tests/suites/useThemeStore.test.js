@@ -1,5 +1,3 @@
-import { persist } from 'zustand/middleware';
-
 import { useThemeStore } from '../../src/store/useThemeStore';
 
 jest.mock('zustand/middleware', () => ({

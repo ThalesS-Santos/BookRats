@@ -158,7 +158,7 @@ describe('ApiClient Interceptors & Logic', () => {
 
     it('should handle total network failure (fetch throws)', async () => {
       server.use(
-        rest.get('https://api.bookrats.com/network-fail', (req, res, ctx) => {
+        rest.get('https://api.bookrats.com/network-fail', (req, res) => {
           return res.networkError('Failed to connect');
         }),
       );
@@ -273,7 +273,9 @@ describe('ApiClient Interceptors & Logic', () => {
 
       jest.useFakeTimers();
       // Attach .catch immediately so the rejection is never unhandled
-      const caught = apiClient.get('https://api.bookrats.com/503-all').catch(e => e);
+      const caught = apiClient
+        .get('https://api.bookrats.com/503-all')
+        .catch(e => e);
       await jest.runAllTimersAsync();
       const err = await caught;
 
@@ -290,7 +292,9 @@ describe('ApiClient Interceptors & Logic', () => {
       );
 
       jest.useFakeTimers();
-      const caught = apiClient.get('https://api.bookrats.com/503-flag').catch(e => e);
+      const caught = apiClient
+        .get('https://api.bookrats.com/503-flag')
+        .catch(e => e);
       await jest.runAllTimersAsync();
       const err = await caught;
 

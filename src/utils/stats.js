@@ -38,91 +38,91 @@ function _dateKey(date) {
 export const GENRE_ALIAS_MAP = {
   // Science Fiction
   'sci-fi': 'Science Fiction',
-  'scifi': 'Science Fiction',
+  scifi: 'Science Fiction',
   'science-fiction': 'Science Fiction',
-  'sf': 'Science Fiction',
+  sf: 'Science Fiction',
   'ficção científica': 'Science Fiction',
   'ficção cientifica': 'Science Fiction',
   'ciência ficção': 'Science Fiction',
   // Fantasy
-  'fantasia': 'Fantasy',
+  fantasia: 'Fantasy',
   'high fantasy': 'Fantasy',
   'dark fantasy': 'Fantasy',
   'epic fantasy': 'Fantasy',
   // Mystery & Thriller
-  'mystery': 'Mystery & Thriller',
-  'thriller': 'Mystery & Thriller',
-  'suspense': 'Mystery & Thriller',
-  'crime': 'Mystery & Thriller',
+  mystery: 'Mystery & Thriller',
+  thriller: 'Mystery & Thriller',
+  suspense: 'Mystery & Thriller',
+  crime: 'Mystery & Thriller',
   'crime fiction': 'Mystery & Thriller',
-  'mistério': 'Mystery & Thriller',
-  'misterio': 'Mystery & Thriller',
+  mistério: 'Mystery & Thriller',
+  misterio: 'Mystery & Thriller',
   // Romance
-  'romantic': 'Romance',
+  romantic: 'Romance',
   'love story': 'Romance',
   'romance fiction': 'Romance',
   // Non-Fiction
-  'nonfiction': 'Non-Fiction',
+  nonfiction: 'Non-Fiction',
   'non fiction': 'Non-Fiction',
   'não ficção': 'Non-Fiction',
   'nao ficcao': 'Non-Fiction',
   // Self-Help
   'self help': 'Self-Help',
   'self-improvement': 'Self-Help',
-  'autoajuda': 'Self-Help',
+  autoajuda: 'Self-Help',
   'auto ajuda': 'Self-Help',
   'auto-ajuda': 'Self-Help',
   'desenvolvimento pessoal': 'Self-Help',
   // Biography & Memoir
-  'autobiography': 'Biography & Memoir',
-  'memoir': 'Biography & Memoir',
-  'memoirs': 'Biography & Memoir',
-  'biografie': 'Biography & Memoir',
-  'biografia': 'Biography & Memoir',
-  'autobiografia': 'Biography & Memoir',
-  'biography': 'Biography & Memoir',
+  autobiography: 'Biography & Memoir',
+  memoir: 'Biography & Memoir',
+  memoirs: 'Biography & Memoir',
+  biografie: 'Biography & Memoir',
+  biografia: 'Biography & Memoir',
+  autobiografia: 'Biography & Memoir',
+  biography: 'Biography & Memoir',
   // History
-  'história': 'History',
-  'historia': 'History',
-  'historical': 'History',
+  história: 'History',
+  historia: 'History',
+  historical: 'History',
   'historical fiction': 'Historical Fiction',
   'ficção histórica': 'Historical Fiction',
   'ficção historica': 'Historical Fiction',
   // Horror
-  'terror': 'Horror',
+  terror: 'Horror',
   // Young Adult
-  'ya': 'Young Adult',
+  ya: 'Young Adult',
   'young-adult': 'Young Adult',
-  'juvenil': 'Young Adult',
+  juvenil: 'Young Adult',
   // Children's
   "children's": "Children's",
-  'kids': "Children's",
-  'infantil': "Children's",
+  kids: "Children's",
+  infantil: "Children's",
   'infanto-juvenil': "Children's",
   // Business & Economics
-  'negócios': 'Business',
-  'negocios': 'Business',
-  'economia': 'Business & Economics',
-  'economics': 'Business & Economics',
+  negócios: 'Business',
+  negocios: 'Business',
+  economia: 'Business & Economics',
+  economics: 'Business & Economics',
   // Psychology
-  'psicologia': 'Psychology',
+  psicologia: 'Psychology',
   // Philosophy
-  'filosofia': 'Philosophy',
+  filosofia: 'Philosophy',
   // Adventure
-  'aventura': 'Adventure',
+  aventura: 'Adventure',
   // Comics & Graphic Novel
-  'comics': 'Graphic Novel & Comics',
+  comics: 'Graphic Novel & Comics',
   'graphic novel': 'Graphic Novel & Comics',
-  'hq': 'Graphic Novel & Comics',
-  'quadrinhos': 'Graphic Novel & Comics',
+  hq: 'Graphic Novel & Comics',
+  quadrinhos: 'Graphic Novel & Comics',
   // Literary Fiction
-  'literatura': 'Literary Fiction',
-  'literary': 'Literary Fiction',
+  literatura: 'Literary Fiction',
+  literary: 'Literary Fiction',
   // Classics
-  'classic': 'Classics',
+  classic: 'Classics',
   'classic literature': 'Classics',
-  'clássicos': 'Classics',
-  'classicos': 'Classics',
+  clássicos: 'Classics',
+  classicos: 'Classics',
 };
 
 const _CANONICAL_GENRES = [...new Set(Object.values(GENRE_ALIAS_MAP))];
@@ -200,7 +200,9 @@ export function mean(values) {
 export function stddev(values) {
   if (values.length < 2) return 0;
   const m = mean(values);
-  return Math.sqrt(values.reduce((s, v) => s + (v - m) ** 2, 0) / values.length);
+  return Math.sqrt(
+    values.reduce((s, v) => s + (v - m) ** 2, 0) / values.length,
+  );
 }
 
 /**
@@ -242,7 +244,10 @@ export function fitLinearTrend(values) {
     return { slope: 0, intercept: values[0] ?? 0, r2: 0, momentum: 'stable' };
   }
 
-  let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+  let sumX = 0,
+    sumY = 0,
+    sumXY = 0,
+    sumX2 = 0;
   for (let i = 0; i < n; i++) {
     sumX += i;
     sumY += values[i];
@@ -260,7 +265,10 @@ export function fitLinearTrend(values) {
 
   const yMean = sumY / n;
   const ssTot = values.reduce((s, y) => s + (y - yMean) ** 2, 0);
-  const ssRes = values.reduce((s, y, i) => s + (y - (slope * i + intercept)) ** 2, 0);
+  const ssRes = values.reduce(
+    (s, y, i) => s + (y - (slope * i + intercept)) ** 2,
+    0,
+  );
   const r2 = ssTot === 0 ? 1 : Math.max(0, 1 - ssRes / ssTot);
 
   const momentum =
@@ -364,7 +372,9 @@ export function computeConsistencyScore(logs, days = 30) {
     }),
   );
 
-  const activeDays = new Set(logs.map(l => l.date).filter(d => windowSet.has(d)));
+  const activeDays = new Set(
+    logs.map(l => l.date).filter(d => windowSet.has(d)),
+  );
   return Math.round((activeDays.size / days) * 100);
 }
 
@@ -471,7 +481,9 @@ export function comparePeriods(logs, periodDays) {
   const delta = currentPages - previousPages;
   const deltaPercent =
     previousPages === 0
-      ? currentPages > 0 ? 100 : 0
+      ? currentPages > 0
+        ? 100
+        : 0
       : Math.round((delta / previousPages) * 100);
 
   return {
@@ -509,7 +521,12 @@ function _buildDailyPageMap(logs, lookbackDays) {
  *   EMA gives more weight to recent sessions, adapting faster after a rest
  *   period or a reading burst than a simple window average would.
  */
-export function forecastPagesNextN(logs, nDays = 7, lookback = 30, alpha = 0.3) {
+export function forecastPagesNextN(
+  logs,
+  nDays = 7,
+  lookback = 30,
+  alpha = 0.3,
+) {
   if (!logs.length) {
     return Array.from({ length: nDays }, (_, i) => ({
       daysFromNow: i + 1,
@@ -540,13 +557,20 @@ export function forecastPagesNextN(logs, nDays = 7, lookback = 30, alpha = 0.3) 
  *     { yearlyGoal, completedBooks, expectedAtPace, onPace,
  *       deficit, surplus, projectedYearEnd, percentComplete, dayOfYear }
  */
-export function computeGoalProgress(yearlyGoal, completedBooks, todayDate = new Date()) {
+export function computeGoalProgress(
+  yearlyGoal,
+  completedBooks,
+  todayDate = new Date(),
+) {
   if (!yearlyGoal || yearlyGoal <= 0) return null;
 
   const startOfYear = new Date(todayDate.getFullYear(), 0, 1);
   const endOfYear = new Date(todayDate.getFullYear() + 1, 0, 1);
   const totalDays = (endOfYear - startOfYear) / 86_400_000;
-  const dayOfYear = Math.max(1, Math.ceil((todayDate - startOfYear) / 86_400_000));
+  const dayOfYear = Math.max(
+    1,
+    Math.ceil((todayDate - startOfYear) / 86_400_000),
+  );
 
   const expectedAtPace = (dayOfYear / totalDays) * yearlyGoal;
   const onPace = completedBooks >= expectedAtPace;
@@ -575,7 +599,9 @@ export function computeGoalProgress(yearlyGoal, completedBooks, todayDate = new 
  */
 export function computeAbandonmentRate(books) {
   const started = books.filter(b =>
-    [BOOK_STATUS.READING, BOOK_STATUS.READ, BOOK_STATUS.DROPPED].includes(b.status),
+    [BOOK_STATUS.READING, BOOK_STATUS.READ, BOOK_STATUS.DROPPED].includes(
+      b.status,
+    ),
   ).length;
   if (started === 0) return 0;
   const dropped = books.filter(b => b.status === BOOK_STATUS.DROPPED).length;
@@ -694,8 +720,18 @@ export function calculateReadingSpeed(sessions) {
  */
 export function aggregatePagesByMonth(sessions) {
   const MONTHS_PT = [
-    'Jan','Fev','Mar','Abr','Mai','Jun',
-    'Jul','Ago','Set','Out','Nov','Dez',
+    'Jan',
+    'Fev',
+    'Mar',
+    'Abr',
+    'Mai',
+    'Jun',
+    'Jul',
+    'Ago',
+    'Set',
+    'Out',
+    'Nov',
+    'Dez',
   ];
   const result = {};
   (sessions || []).forEach(s => {

@@ -4,10 +4,8 @@ import {
   collection,
   setDoc,
   arrayUnion,
-  serverTimestamp,
   getDocs,
   addDoc,
-  increment,
 } from 'firebase/firestore';
 
 import {
@@ -67,7 +65,7 @@ describe('Books API Methods', () => {
       doc.mockReturnValue('doc-ref');
       setDoc.mockResolvedValueOnce();
 
-      const result = await addBook(
+      await addBook(
         'u1',
         'New Book',
         300,

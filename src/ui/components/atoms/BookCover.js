@@ -22,8 +22,12 @@ import React, { memo, useState, useMemo } from 'react';
 
 import { Image } from 'expo-image';
 
+import {
+  DEFAULT_BOOK_BLURHASH,
+  isRemoteSource,
+  optimizeCoverUrl,
+} from '@core/utils/imageUtils';
 import { PixelBook } from '@ui/assets';
-import { DEFAULT_BOOK_BLURHASH, isRemoteSource, optimizeCoverUrl } from '@core/utils/imageUtils';
 
 /**
  * @param {object}  props
@@ -53,7 +57,7 @@ const BookCover = memo(function BookCover({
 
   // Apply URL optimisation once per source reference change
   const optimizedSource = useMemo(
-    () => (hasError ? PixelBook : optimizeCoverUrl(source) ?? PixelBook),
+    () => (hasError ? PixelBook : (optimizeCoverUrl(source) ?? PixelBook)),
     [source, hasError],
   );
 
@@ -82,7 +86,9 @@ const BookCover = memo(function BookCover({
       source={optimizedSource}
       // Blurhash shows immediately while disk/network load resolves.
       // Skipped for local assets — they're already instantaneous.
-      placeholder={isRemote && !hasError ? { blurhash: DEFAULT_BOOK_BLURHASH } : undefined}
+      placeholder={
+        isRemote && !hasError ? { blurhash: DEFAULT_BOOK_BLURHASH } : undefined
+      }
       contentFit={contentFit}
       // memory-disk: memory for instant re-display after navigation,
       // disk for persistence across app restarts — strictly better than disk-only.

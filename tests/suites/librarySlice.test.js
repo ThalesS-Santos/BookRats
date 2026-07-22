@@ -399,7 +399,6 @@ describe('Library Slice', () => {
     });
 
     it('should fail-fast if status is missing', async () => {
-      const loggerSpy = require('@core/store/slices/librarySlice').Logger;
       const errorSpy = jest.spyOn(console, 'error').mockImplementation();
 
       await state.addBook('My Book', 300); // Missing status

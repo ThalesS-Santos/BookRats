@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { render, fireEvent, act, waitFor } from '@testing-library/react-native';
+import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import * as Google from 'expo-auth-session/providers/google';
 
 import { useMainStore } from '../../src/core/store';

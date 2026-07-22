@@ -15,8 +15,8 @@ function StatCard({
   isDarkMode,
 }) {
   const [counted, setCounted] = useState(0);
-  const scaleAnim = useRef(new Animated.Value(0.85)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
+  const [scaleAnim] = useState(() => new Animated.Value(0.85));
+  const [opacityAnim] = useState(() => new Animated.Value(0));
   const animRef = useRef(null);
 
   useEffect(() => {

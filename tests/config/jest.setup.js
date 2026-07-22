@@ -96,7 +96,6 @@ jest.mock('react-native-worklets-core', () => ({
 }));
 
 jest.mock('react-native-reanimated', () => {
-  const React = require('react');
   const { View } = require('react-native');
 
   return {
@@ -127,7 +126,7 @@ jest.mock('react-native-reanimated', () => {
     makeMutable: v => ({ value: v }),
     Extrapolate: { CLAMP: 'clamp', IDENTITY: 'identity', EXTEND: 'extend' },
     Extrapolation: { CLAMP: 'clamp', IDENTITY: 'identity', EXTEND: 'extend' },
-    interpolate: (value, inputRange, outputRange) => value,
+    interpolate: value => value,
     Easing: {
       linear: x => x,
       ease: x => x,

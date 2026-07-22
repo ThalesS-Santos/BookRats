@@ -40,7 +40,7 @@ describe('FastAvatar Component', () => {
     // Check if the online indicator View exists
     const indicators = UNSAFE_getAllByProps({
       className:
-        'absolute bottom-0.5 right-0.5 bg-green-500 border-2 border-white dark:border-surface-dark',
+        'absolute bottom-0.5 right-0.5 bg-green-500 border-2 border-card-light dark:border-card-dark',
     });
     expect(indicators.length).toBeGreaterThan(0);
   });

@@ -2,7 +2,6 @@ import React from 'react';
 
 import { useNavigation } from '@react-navigation/native';
 import { render, fireEvent, act, waitFor } from '@testing-library/react-native';
-import { Animated } from 'react-native';
 
 import { getPublicEchoes, addRatClap } from '../../src/core/api/social';
 import { useMainStore } from '../../src/core/store';

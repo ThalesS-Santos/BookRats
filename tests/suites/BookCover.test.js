@@ -7,6 +7,7 @@
  */
 
 import React from 'react';
+
 import { render, fireEvent } from '@testing-library/react-native';
 
 // ── expo-image mock ───────────────────────────────────────────────────────────
@@ -21,7 +22,7 @@ jest.mock('expo-image', () => {
       contentFit,
       cachePolicy,
       priority,
-      transition,
+      transition: _transition,
       recyclingKey,
       placeholder,
       onError,
@@ -60,16 +61,14 @@ jest.mock('@ui/assets', () => ({
 import BookCover from '@ui/components/atoms/BookCover';
 
 // ── fixtures ──────────────────────────────────────────────────────────────────
-const REMOTE = { uri: 'https://books.google.com/books?id=abc&zoom=1&edge=curl' };
-const LOCAL  = 1; // static require() simulation (PixelBook)
+const REMOTE = {
+  uri: 'https://books.google.com/books?id=abc&zoom=1&edge=curl',
+};
+const LOCAL = 1; // static require() simulation (PixelBook)
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 function renderCover(props = {}) {
   return render(<BookCover source={REMOTE} {...props} />);
-}
-
-function getLabel(wrapper) {
-  return wrapper.getByTestId('book-cover-image').props.accessibilityLabel;
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -228,7 +227,9 @@ describe('BookCover — size props', () => {
   it('applies explicit width and height to the style', () => {
     const { getByTestId } = renderCover({ width: 80, height: 120 });
     const style = getByTestId('book-cover-image').props.style;
-    const flat = Array.isArray(style) ? Object.assign({}, ...style.filter(Boolean)) : style;
+    const flat = Array.isArray(style)
+      ? Object.assign({}, ...style.filter(Boolean))
+      : style;
     expect(flat.width).toBe(80);
     expect(flat.height).toBe(120);
   });
@@ -240,7 +241,9 @@ describe('BookCover — size props', () => {
       style: { borderRadius: 8 },
     });
     const style = getByTestId('book-cover-image').props.style;
-    const flat = Array.isArray(style) ? Object.assign({}, ...style.filter(Boolean)) : style;
+    const flat = Array.isArray(style)
+      ? Object.assign({}, ...style.filter(Boolean))
+      : style;
     expect(flat.borderRadius).toBe(8);
   });
 });

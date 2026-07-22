@@ -22,7 +22,7 @@ import { ImageCacheService } from '@core/services/ImageCacheService';
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 const GOOGLE_COVER = uri => ({ thumbnail: { uri } });
-const LOCAL_COVER  = pixelBook => ({ thumbnail: pixelBook });
+const LOCAL_COVER = pixelBook => ({ thumbnail: pixelBook });
 
 const REMOTE_A = 'https://books.google.com/books?id=a&zoom=1&edge=curl';
 const REMOTE_B = 'https://books.google.com/books?id=b&zoom=1';
@@ -83,7 +83,11 @@ describe('ImageCacheService.warmLibrary', () => {
       .mockRejectedValueOnce(new Error('net error'))
       .mockResolvedValue(true);
 
-    const books = [GOOGLE_COVER(REMOTE_A), GOOGLE_COVER(REMOTE_B), GOOGLE_COVER(REMOTE_C)];
+    const books = [
+      GOOGLE_COVER(REMOTE_A),
+      GOOGLE_COVER(REMOTE_B),
+      GOOGLE_COVER(REMOTE_C),
+    ];
     // Should not throw even though one failed
     await expect(ImageCacheService.warmLibrary(books)).resolves.toBeUndefined();
     expect(mockPrefetch).toHaveBeenCalledTimes(3);
@@ -121,7 +125,9 @@ describe('ImageCacheService.warmTopPriority', () => {
   it('handles prefetch failure without throwing', async () => {
     mockPrefetch.mockRejectedValueOnce(new Error('offline'));
     const books = [GOOGLE_COVER(REMOTE_A)];
-    await expect(ImageCacheService.warmTopPriority(books)).resolves.toBeUndefined();
+    await expect(
+      ImageCacheService.warmTopPriority(books),
+    ).resolves.toBeUndefined();
   });
 });
 
