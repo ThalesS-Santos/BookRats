@@ -48,12 +48,27 @@ Comando:
 npm run audit:high
 ```
 
-Estado atual:
+Estado atual (2026-07-28):
 
-- sem `high` e sem `critical`
-- existem pendencias `low/moderate` que dependem de upgrades maiores (ex: Expo/MSW)
+- **regressao aberta**: `firebase@12.10.0` traz `websocket-driver` com 1 `critical` + 3 `high`
+  (cadeia `@firebase/database` → `faye-websocket` → `websocket-driver`). Correcao
+  nao-destrutiva disponivel via `npm audit fix` (sem `--force`) — ainda nao aplicada,
+  ver `docs/project_status.md`.
+- `functions/` (projeto separado) tem 12 vulnerabilidades `high`/`moderate` aceitas,
+  cadeia `google-gax`/`firebase-admin` — ver `CLAUDE.md`.
+- existem pendencias `low/moderate` adicionais que dependem de upgrades maiores (ex:
+  Expo/MSW)
 
-## 5. Logging Seguro
+## 5. Fronteira de autenticacao em escritas assincronas
+
+Padrao a seguir em qualquer escrita que possa disparar depois de um `signOut` (cleanup de
+efeito React, listener assincrono, callback atrasado): validar `auth.currentUser?.uid`
+contra o uid alvo **antes** de escrever, mesmo que a regra do Firestore ja bloqueie —
+evita erro `permission-denied` ruidoso (nivel ERROR) por uma tentativa que nunca deveria
+ter sido feita. Exemplo: `updatePresence` em `src/core/api/auth.js` (corrigido
+2026-07-28 — ver `CLAUDE.md`).
+
+## 6. Logging Seguro
 
 Arquivo: `src/core/services/Logger.js`
 

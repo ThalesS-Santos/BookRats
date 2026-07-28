@@ -2,6 +2,8 @@
 
 Este documento detalha o projeto de engenharia, negócios e UX para a implementação de assinaturas recorrentes (mensais e anuais) no **BookRats**, utilizando padrões de nível enterprise aplicados por gigantes como Spotify, Duolingo e Netflix.
 
+> **Status de implementação (2026-07-28)**: o SDK do RevenueCat e a tela de paywall **já estão implementados**, mas divergem do exemplo de código abaixo (que era um esboço de planejamento, escrito antes da implementação). O código real está em `src/ui/screens/PaywallScreen.js`, `src/ui/components/molecules/PlanCard.js`, `src/ui/hooks/usePaywallPlans.js` e `src/core/api/monetization.js`/`src/core/store/slices/monetizationSlice.js`. Principais diferenças: (1) paywall próprio em vez do template hospedado `RevenueCatUI`, com animações Reanimated (perspective/rotateX, sem gradientes — o projeto não tem `expo-linear-gradient`); (2) `isPremium`/`isPro` é derivado direto do `CustomerInfo` do SDK, não de um doc Firestore espelhado por webhook (Cloud Functions da Fase 2 do roteiro ainda não existem); (3) Termos/Privacidade **não estão preenchidos** (`LEGAL_LINKS` = `null` em `PaywallScreen.js`) porque o BookRats ainda não tem site/domínio — bloqueia publicação nas lojas até resolver. Ver `docs/monetizacao/0_ROADMAP_IMPLEMENTACAO.md` para o status etapa a etapa e `CLAUDE.md` para o resumo executivo.
+
 ---
 
 ## 1. Modelo de Negócios e Diferenciação de Acesso

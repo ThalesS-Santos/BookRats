@@ -18,6 +18,31 @@ SQL. Todo o roteiro abaixo assume Firestore + Cloud Functions como backend.
 
 ---
 
+## Status atual (2026-07-28)
+
+| Fase | Etapas | Status |
+|---|---|---|
+| 0 — Infra externa | 1-5 | 🟡 Parcial: `functions/` scaffold existe (Etapa 3) com lint/test proprio (Etapa 5); conta RevenueCat so tem chave de **teste**; Blaze plan, secrets (Etapa 4) e demais contas (AdMob, Play Console, Apple Developer, BigQuery) **pendentes** — exigem acao manual do usuario (cartao de pagamento). |
+| 1 — Modelagem/regras | 6-13 | ⬜ Nao iniciada. Nenhum schema novo no Firestore, nenhuma regra nova. |
+| 2 — Cloud Functions | 14-21 | ⬜ Nao iniciada. `functions/src/index.js` nao tem logica de negocio. |
+| 3 — Infra client-side | 22-28 | 🟢 Concluida (22-27), exceto Etapa 28 (`monetizationGuards.js`, gatilhos de limite gratuito — pendente). **Divergencia da Etapa 24**: `isPro`/`isPremium` e derivado direto do `CustomerInfo` do SDK RevenueCat, nao de um doc `users/{uid}.subscription` espelhado por webhook (Fase 2 nao existe ainda) — ver ressalva em `docs/backend.md`. |
+| 4 — Paywall | 29-34 | 🟡 Parcial: Etapa 29 concluida **mas com paywall proprio** (nao o template hospedado do roteiro original), Etapa 33 (loading states) concluida, Etapa 34 (testes de regressao) concluida. Etapa 30 (gatilhos de limite/IA/PDF), 31 (`SubscriptionManageScreen`) e 32 (retencao) **pendentes**. |
+| 5-8 — Microtransacoes, ads, afiliados, escala | 35+ | ⬜ Nao iniciadas. |
+
+Arquivos reais da Fase 3/4 (nomes divergem um pouco do roteiro original — refletem o que
+foi de fato implementado): `src/core/constants/products.js`, `src/core/api/monetization.js`,
+`src/core/store/slices/monetizationSlice.js`, `src/ui/screens/PaywallScreen.js`,
+`src/ui/components/molecules/PlanCard.js`, `src/ui/hooks/usePaywallPlans.js`. Testes:
+`tests/suites/monetizationSlice.test.js`, `tests/suites/monetizationEnvGuard.test.js`,
+`tests/suites/paywall.test.js`.
+
+**Bloqueador para publicar nas lojas** (fora do roteiro numerado, mas critico): `PaywallScreen.js`
+tem `LEGAL_LINKS = { terms: null, privacy: null }` — o BookRats ainda nao tem site/dominio
+para hospedar Termos de Uso e Politica de Privacidade. Sem essas URLs a Apple/Google
+rejeitam o app no review (o roteiro ja previa isso na Etapa 29).
+
+---
+
 ## Principio arquitetural nao-negociavel
 
 > **O cliente (app) nunca escreve diretamente em campos financeiros/premium.**

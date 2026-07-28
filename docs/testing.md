@@ -13,9 +13,9 @@
 - `tests/factories`: fixtures e builders para dados de usuários, livros e interações sociais
 - `tests/config`: setup e configuração global do ambiente de teste Jest
 
-## Estado Atual Validado (2026-06-27)
+## Estado Atual Validado (2026-07-28)
 
-- **Testes**: Execução completa local com `69/69` suítes e `893/893` testes unitários/integração 100% aprovados.
+- **Testes**: Execução completa local com `75/75` suítes e `966/966` testes unitários/integração 100% aprovados.
 - **Ambiente**: Testes executam em modo sequencial com o comando `npm test -- --runInBand` para evitar colisões de estado nos mocks de banco.
 - **Ponto de Atenção**: O linter de código (`eslint .`) reporta problemas estéticos e de formatação legados. Os testes passam perfeitamente, mas a esteira de CI exige o saneamento prévio de lint.
 
