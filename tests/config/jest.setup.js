@@ -127,6 +127,10 @@ jest.mock('react-native-reanimated', () => {
     Extrapolate: { CLAMP: 'clamp', IDENTITY: 'identity', EXTEND: 'extend' },
     Extrapolation: { CLAMP: 'clamp', IDENTITY: 'identity', EXTEND: 'extend' },
     interpolate: value => value,
+    // Devolve a primeira cor do range: basta para o teste renderizar sem erro,
+    // já que asserções visuais de cor não são feitas em unit test.
+    interpolateColor: (value, input, output) =>
+      Array.isArray(output) ? output[0] : output,
     Easing: {
       linear: x => x,
       ease: x => x,
@@ -157,6 +161,63 @@ jest.mock('react-native-reanimated', () => {
     FadeOut: { duration: () => {} },
   };
 });
+
+// Presença dos módulos nativos do RevenueCat. `core/api/monetization.js` faz uma
+// checagem de capacidade em `NativeModules` (mesma dos SDKs) para virar NO-OP em
+// Expo Go/web; sob o Jest o bridge é vazio, então declaramos os módulos como
+// presentes para que os testes exercitem o caminho "suportado" (mesma intenção do
+// mock de expo-constants forçando ambiente standalone).
+const { NativeModules } = require('react-native');
+NativeModules.RNPurchases = NativeModules.RNPurchases || {};
+NativeModules.RNPaywalls = NativeModules.RNPaywalls || {};
+NativeModules.RNCustomerCenter = NativeModules.RNCustomerCenter || {};
+
+// Mock RevenueCat SDK (native module — no bridge available under Jest)
+jest.mock('react-native-purchases', () => ({
+  __esModule: true,
+  default: {
+    configure: jest.fn(),
+    setLogLevel: jest.fn(),
+    logIn: jest.fn(() =>
+      Promise.resolve({
+        customerInfo: { entitlements: { active: {} } },
+        created: false,
+      }),
+    ),
+    logOut: jest.fn(() => Promise.resolve()),
+    getCustomerInfo: jest.fn(() =>
+      Promise.resolve({ entitlements: { active: {} } }),
+    ),
+    getOfferings: jest.fn(() => Promise.resolve({ current: null, all: {} })),
+    purchasePackage: jest.fn(() =>
+      Promise.resolve({ customerInfo: { entitlements: { active: {} } } }),
+    ),
+    restorePurchases: jest.fn(() =>
+      Promise.resolve({ entitlements: { active: {} } }),
+    ),
+    addCustomerInfoUpdateListener: jest.fn(),
+    removeCustomerInfoUpdateListener: jest.fn(),
+  },
+  LOG_LEVEL: { DEBUG: 'DEBUG', INFO: 'INFO', WARN: 'WARN', ERROR: 'ERROR' },
+}));
+
+jest.mock('react-native-purchases-ui', () => ({
+  __esModule: true,
+  default: {
+    presentPaywall: jest.fn(() => Promise.resolve('NOT_PRESENTED')),
+    presentPaywallIfNeeded: jest.fn(() => Promise.resolve('NOT_PRESENTED')),
+    presentCustomerCenter: jest.fn(() => Promise.resolve()),
+    CustomerCenterView: 'CustomerCenterView',
+    Paywall: 'Paywall',
+  },
+  PAYWALL_RESULT: {
+    NOT_PRESENTED: 'NOT_PRESENTED',
+    ERROR: 'ERROR',
+    CANCELLED: 'CANCELLED',
+    PURCHASED: 'PURCHASED',
+    RESTORED: 'RESTORED',
+  },
+}));
 
 // --- Firebase Simulation ---
 

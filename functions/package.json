@@ -1,0 +1,27 @@
+{
+  "name": "bookrats-functions",
+  "description": "Cloud Functions do BookRats — webhooks de pagamento, callables de wallet/afiliados e jobs agendados. Projeto Node separado do app mobile (ver docs/monetizacao/0_ROADMAP_IMPLEMENTACAO.md).",
+  "private": true,
+  "main": "src/index.js",
+  "engines": {
+    "node": "20"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "test": "jest",
+    "serve": "firebase emulators:start --only functions,firestore",
+    "shell": "firebase functions:shell",
+    "deploy": "firebase deploy --only functions"
+  },
+  "dependencies": {
+    "firebase-admin": "^14.2.0",
+    "firebase-functions": "7.3.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^10.1.8",
+    "jest": "^29.7.0",
+    "prettier": "^3.8.3"
+  }
+}

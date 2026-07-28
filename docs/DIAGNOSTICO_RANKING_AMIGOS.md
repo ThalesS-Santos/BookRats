@@ -9,10 +9,12 @@
 ## Sumário Executivo
 
 O app crashava com `"Couldn't find a navigation context. Have you wrapped your app with 'NavigationContainer'?"` quando o usuário:
+
 1. Abria a aba de Ranking
 2. Pressionava o botão "Amigos" para alternar entre Global e Amigos
 
 **Causa raiz:** Dois bugs distintos, identificados e corrigidos em sequência:
+
 1. **Zustand v5 selector instável** → infinite render loop
 2. **NativeWind css-interop upgrade warning** → unsafe JSON.stringify que atinge getters do react-navigation
 
@@ -23,6 +25,7 @@ O app crashava com `"Couldn't find a navigation context. Have you wrapped your a
 ### 1.1 Análise Inicial (O que o usuário viu)
 
 **Erro em Dev:**
+
 ```
 ERROR  [Error: Couldn't find a navigation context. Have you wrapped your app with 'NavigationContainer'? ...]
 ERROR  💀 FATAL 21:04:05.794  ui.ErrorBoundary › componentDidCatch  [BR_UNKNOWN]
@@ -31,6 +34,7 @@ ERROR  💀 FATAL 21:04:05.794  ui.ErrorBoundary › componentDidCatch  [BR_UNKN
 ```
 
 **Stack trace (truncado):**
+
 ```
 at get getKey (http://192.168.1.100:8081/...155611:22)
 at entries (native)
@@ -39,6 +43,7 @@ at replace (http://192.168.1.100:8081/...24140:37)  ← recursivo x4
 ```
 
 **Interpretação inicial:** O erro parecia de navegação (NavigationContainer), mas o stack mostra:
+
 - `get getKey` ← um getter sendo invocado
 - `entries` ← `Object.entries()` sendo chamado
 - `replace` recursivo ← um walker profundo (JSON.stringify?)
@@ -50,17 +55,20 @@ at replace (http://192.168.1.100:8081/...24140:37)  ← recursivo x4
 Usei **3 abordagens em paralelo** (um workflow de 3 agentes):
 
 #### **Abordagem 1: Verificação do Código do RankingScreen**
+
 - Li o toggle do scope (RankingScreen.js linhas 232-269)
 - Identifiquei que o botão "Amigos" monta sem `shadow-sm` (false branch)
 - E ganha `shadow-sm` quando pressionado (true branch — pós-montagem)
 
 #### **Abordagem 2: Investigação da Cadeia NativeWind → React Navigation**
+
 - Seguir o rastreamento `get getKey ← entries ← replace`
 - Encontrado: `node_modules/react-native-css-interop/dist/runtime/native/render-component.js:120-140` — `stringify()` com replacer recursivo **sem try/catch**
 - Encontrado: `node_modules/@react-navigation/core/lib/module/NavigationStateContext.js:4-22` — contexto com getters que lançam erro se chamados fora do contexto
 - Compilei o CSS do projeto: `shadow-sm` → `ruleSet.variables: true` (NativeWind emite `--tw-shadow-color`)
 
 #### **Abordagem 3: Análise de Histórico (Ranomizações Anteriores)**
+
 - Você mencionou: "sempre que tentei implementar ranking de amigos ele quebrava... NavigationContainer algo assim"
 - Memória do projeto: você havia tentado `selectFilteredRanking` que retornava um novo array a cada chamada
 - Zustand v5 usa reference equality → nova referência a cada render → infinite loop
@@ -70,6 +78,7 @@ Usei **3 abordagens em paralelo** (um workflow de 3 agentes):
 **Quando:** Diagnóstico inicial (você abriu o app pela primeira vez nessa sessão)
 
 **Como descobri:**
+
 1. Li o `buildFriendsRanking` que eu mesmo havia criado em Etapa 11
 2. Confirmei que era uma função pura (sem estado, sempre novo array)
 3. **Problema:** No início, estava sendo consumida **inline sem memoization**:
@@ -104,9 +113,11 @@ Mesmo com memoização correta, o app crashava quando o usuário pressionava "Am
 Lancei um workflow ultracode em paralelo com **3 subagentes independentes**:
 
 #### **Agent 1: Verificação do Compilador NativeWind**
+
 **Tarefa:** Provar que `shadow-sm` compila com variáveis CSS que disparam a flag `variables: true`.
 
 **Métodos usados:**
+
 1. Leitura de `node_modules/nativewind/dist/tailwind/native.js` — confirmei que desabilita o preset core de box-shadow e registra seu próprio
 2. Leitura de `node_modules/nativewind/dist/tailwind/shadows.js` — confirmei que cada `shadow-*` emite `--tw-shadow-color` + `var(--tw-shadow-color)`
 3. **Empiricamente:** Compilei o CSS real do projeto:
@@ -120,9 +131,11 @@ Lancei um workflow ultracode em paralelo com **3 subagentes independentes**:
    ```
 
 #### **Agent 2: Varredura de Sites Vulneráveis**
+
 **Tarefa:** Encontrar TODOS os className condicionais que ganham uma classe de gatilho após a montagem.
 
 **Métodos:**
+
 1. Ripgrep sobre `src/ui` buscando padrões de upgrade-trigger (shadow, ring, transform, gradient, animation)
 2. Para cada ocorrência condicional, li o código e determinei: "pode essa condição virar true após o primeiro render?"
 3. Classificação de "dangerous" vs "safe":
@@ -130,9 +143,11 @@ Lancei um workflow ultracode em paralelo com **3 subagentes independentes**:
    - ✅ **Safe:** SearchScreen filter button (shadow sempre no side false, que é o default)
 
 #### **Agent 3: Teste Adversarial**
+
 **Tarefa:** Tentar refutar a teoria e encontrar hipóteses alternativas.
 
 **Hipóteses testadas:**
+
 - (a) `buildFriendsRanking` contém objeto de navegação? → Refutado (dados são primitivos)
 - (b) Novo footer message crasha? → Refutado (renderiza Views/Texts estáticas)
 - (c) FastAvatar com profilePic indefinido? → Refutado (fallback seguro)
@@ -142,7 +157,7 @@ Lancei um workflow ultracode em paralelo com **3 subagentes independentes**:
 
 ### 2.3 O Fluxo de Crash Completo
 
-```
+````
 1. RankingScreen monta, botão "Amigos" tem className={`... ${isFriendsScope ? 'bg-card-light dark:bg-card-dark shadow-sm' : ''}`}
    ↓
 2. isFriendsScope = false inicialmente (useState('global'))
@@ -167,15 +182,15 @@ Lancei um workflow ultracode em paralelo com **3 subagentes independentes**:
        newValue[key] = replace(key, val);  // Recursivo
      }
    })
-   ```
-   ↓
-8. originalProps.children (React elements) contém referências a contextos
-   → Object.entries recursivamente atinge NavigationStateContext.default value
-   → Invoca getter getKey()
-   → Getter lança: "Couldn't find a navigation context..."
-   ↓
-9. Exceção durante render → ErrorBoundary.componentDidCatch() → CRASH
-```
+````
+
+↓ 8. originalProps.children (React elements) contém referências a contextos
+→ Object.entries recursivamente atinge NavigationStateContext.default value
+→ Invoca getter getKey()
+→ Getter lança: "Couldn't find a navigation context..."
+↓ 9. Exceção durante render → ErrorBoundary.componentDidCatch() → CRASH
+
+````
 
 ### 2.4 Validação da Teoria
 
@@ -192,7 +207,7 @@ npx jest --config tests/config/jest.config.js tests/suites/classNameStability.te
 × has no upgrade-triggering Tailwind class inside a conditional className branch
   Found 1 conditional upgrade-triggering class(es)
   screens\RankingScreen.js → [shadow-sm] in: ? 'bg-card-light dark:bg-card-dark shadow-sm' : ''
-```
+````
 
 ✅ **O teste capturou a bug com precisão.**
 
@@ -205,6 +220,7 @@ npx jest --config tests/config/jest.config.js tests/suites/classNameStability.te
 **Arquivo:** `src/ui/screens/RankingScreen.js`
 
 **Código:**
+
 ```javascript
 // Importar o helper puro (nunca um seletor vivo)
 import { buildFriendsRanking } from '@core/store/selectors';
@@ -246,6 +262,7 @@ export default function RankingScreen({ navigation }) {
 ```
 
 **Por que funciona:**
+
 - `buildFriendsRanking` é pura (não acessa store diretamente)
 - Retorna um novo array cada vez que chamada
 - Mas `useMemo` compara deps (`user`, `friends`, `myStats`) por valor
@@ -257,6 +274,7 @@ export default function RankingScreen({ navigation }) {
 **Arquivo:** `src/ui/screens/RankingScreen.js` (RankingHeader component)
 
 **Antes (❌ PERIGOSO):**
+
 ```javascript
 <TouchableOpacity
   className={`flex-1 py-2.5 rounded-xl items-center justify-center ${
@@ -267,6 +285,7 @@ export default function RankingScreen({ navigation }) {
 ```
 
 **Depois (✅ SEGURO):**
+
 ```javascript
 <TouchableOpacity
   className={`flex-1 py-2.5 rounded-xl items-center justify-center ${
@@ -276,6 +295,7 @@ export default function RankingScreen({ navigation }) {
 ```
 
 **Aplicado em 8 sites:**
+
 1. RankingScreen (linhas 240, 257) — toggle buttons
 2. HomeScreen (linha 147) — filter chips
 3. GroupDetailsScreen (linha 201) — first-member card
@@ -289,42 +309,45 @@ export default function RankingScreen({ navigation }) {
 **Arquivo:** `tests/suites/classNameStability.test.js`
 
 **Lógica:**
+
 1. Escaneia todos os `.js` em `src/ui`
 2. Para cada className condicional (ternário ou &&), extrai as classes
 3. Identifica "classes gatilho" (shadow, ring, transition, animate, etc)
 4. Falha se uma classe gatilho aparece em **só um branch** (um lado da condição)
 
 **Implementação:**
+
 ```javascript
 const TRIGGER_PATTERN =
   /^(shadow($|-)|ring($|-)|transition($|-)|animate-|translate-|rotate-|scale-|skew-|from-|via-|to-|duration-|delay-|ease-)/;
 
 const findViolations = source => {
   const violations = [];
-  
+
   // Ternários: cond ? 'a b c' : 'd e f'
   const ternary = /\?\s*(['"`])([^'"`]*)\1\s*:\s*(['"`])([^'"`]*)\3/g;
   let match;
   while ((match = ternary.exec(source)) !== null) {
-    const inTrue = triggerClassesIn(match[2]);   // Classes no branch true
-    const inFalse = triggerClassesIn(match[4]);  // Classes no branch false
-    
+    const inTrue = triggerClassesIn(match[2]); // Classes no branch true
+    const inFalse = triggerClassesIn(match[4]); // Classes no branch false
+
     // Classes que aparecem em SÓ um branch
     const oneBranch = [
       ...inTrue.filter(c => !inFalse.includes(c)),
       ...inFalse.filter(c => !inTrue.includes(c)),
     ];
-    
+
     if (oneBranch.length > 0) {
       violations.push({ snippet: match[0], classes: oneBranch });
     }
   }
-  
+
   return violations;
 };
 ```
 
 **Validação do guarda:**
+
 ```bash
 # Teste passa (sem violations)
 npx jest tests/suites/classNameStability.test.js
@@ -345,11 +368,13 @@ isFriendsScope ? 'bg-card-light dark:bg-card-dark shadow-sm' : ''
 ### 4.1 Resultados
 
 **Antes:**
+
 - ❌ App crasha ao pressionar "Amigos" em dev
 - ❌ Ranking de amigos não funciona (nem teria se o toggle não crashasse)
 - ❌ Sem guarda contra regressions similares
 
 **Depois:**
+
 - ✅ Toggle Global/Amigos funciona sem crashes
 - ✅ Ranking de amigos renderiza corretamente (friends + current user, sorted)
 - ✅ Teste arquitetura previne reintrodução de classes condicionais de gatilho
@@ -357,13 +382,13 @@ isFriendsScope ? 'bg-card-light dark:bg-card-dark shadow-sm' : ''
 
 ### 4.2 Testes Novos/Atualizados
 
-| Arquivo | O quê | Resultado |
-|---------|-------|-----------|
-| `RankingScreen.test.js` | 5 testes: mount, global default, toggle amigos, sort, empty friends | ✅ PASS |
-| `classNameStability.test.js` | 2 testes: scan UI files, no violations | ✅ PASS (validado com bug reintroduzido) |
-| `useHomeLogic.test.js` | 3 testes: mount, stable refs, counts map | ✅ PASS |
-| `useBadgeWall.test.js` | 8 testes: filtering, pagination, unlock handling | ✅ PASS |
-| `socialSlice.test.js` | Removidos testes de `selectFilteredRanking` (selector removido) | Reduzido |
+| Arquivo                      | O quê                                                               | Resultado                                |
+| ---------------------------- | ------------------------------------------------------------------- | ---------------------------------------- |
+| `RankingScreen.test.js`      | 5 testes: mount, global default, toggle amigos, sort, empty friends | ✅ PASS                                  |
+| `classNameStability.test.js` | 2 testes: scan UI files, no violations                              | ✅ PASS (validado com bug reintroduzido) |
+| `useHomeLogic.test.js`       | 3 testes: mount, stable refs, counts map                            | ✅ PASS                                  |
+| `useBadgeWall.test.js`       | 8 testes: filtering, pagination, unlock handling                    | ✅ PASS                                  |
+| `socialSlice.test.js`        | Removidos testes de `selectFilteredRanking` (selector removido)     | Reduzido                                 |
 
 ### 4.3 Números
 
@@ -385,6 +410,7 @@ Lint errors:        0
 ### 5.1 Dois Mecanismos, Uma Assinatura
 
 Ambos resultaram em `"Couldn't find a navigation context"`, mas:
+
 - **Zustand issue:** Infinite render loop → NavigationContainer error unwinding tree
 - **NativeWind issue:** Unsafe JSON.stringify → getter throw during render → ErrorBoundary fatal
 
@@ -410,6 +436,7 @@ const buildFriendsRanking = (user, friends, myStats) => {
 Classes que definem **variáveis CSS** (`shadow-*`, `ring-*`, `translate-*`, `gradient-stops`, `transition-*`, `animate-*`) **nunca devem ser condicionais** — ganhar essas classes após o primeiro render dispara o upgrade warning.
 
 **Alternativas:**
+
 - Manter estática (ambos os branches)
 - Usar `style` prop em vez de className
 - Usar cores/borders estáticas, não sombra
@@ -421,6 +448,7 @@ Classes que definem **variáveis CSS** (`shadow-*`, `ring-*`, `translate-*`, `gr
 ### Bug #1: Zustand Selector Instável (Histórico)
 
 **Que foi tentado antes (e falhou):**
+
 ```javascript
 // ❌ socialSlice.js (removido)
 selectFilteredRanking: scope => state => {
@@ -432,6 +460,7 @@ selectFilteredRanking: scope => state => {
 ```
 
 **Solução implementada:**
+
 ```javascript
 // ✅ src/core/store/selectors.js (novo)
 export const buildFriendsRanking = (user, friends, myStats) => {
@@ -456,6 +485,7 @@ const friendsRanking = useMemo(
 ### Bug #2: NativeWind CSS-Interop Upgrade Warning
 
 **Compilação verificada:**
+
 ```bash
 $ NATIVEWIND_OS=android npx tailwindcss -c tailwind.config.js ...
 # shadow-sm compila com: --tw-shadow-color, -rn-shadow-color: var(--tw-shadow-color)
@@ -465,6 +495,7 @@ $ node -e "const { cssToReactNativeRuntime } = require('react-native-css-interop
 ```
 
 **Stack da crash:**
+
 ```
 render-component.js:80
   if (shouldWarn && state.variables === SHOULD_UPGRADE)
@@ -491,13 +522,13 @@ react-navigation NavigationStateContext.js
 
 ## Sumário Final
 
-| Aspecto | Descrição |
-|---------|-----------|
-| **Problema Relatado** | App crasha ao pressionar "Amigos" no ranking |
-| **Root Causes** | 2: (1) Zustand v5 selector instável, (2) NativeWind unsafe stringify |
+| Aspecto                   | Descrição                                                                |
+| ------------------------- | ------------------------------------------------------------------------ |
+| **Problema Relatado**     | App crasha ao pressionar "Amigos" no ranking                             |
+| **Root Causes**           | 2: (1) Zustand v5 selector instável, (2) NativeWind unsafe stringify     |
 | **Método de Diagnóstico** | Workflow paralelo de 3 agentes + compilação empírica + teste adversarial |
-| **Solução** | Memoizar selector puro + remover 8 className condicionais de gatilho |
-| **Validação** | classNameStability test guard + 5 novos testes + 568 tests green |
-| **Tempo Total** | ~2h diagnóstico + 1h implementação + 30min testes |
+| **Solução**               | Memoizar selector puro + remover 8 className condicionais de gatilho     |
+| **Validação**             | classNameStability test guard + 5 novos testes + 568 tests green         |
+| **Tempo Total**           | ~2h diagnóstico + 1h implementação + 30min testes                        |
 
 **O ranking de amigos está agora funcional, estável e protegido contra regressions.**

@@ -12,6 +12,7 @@ import GalleryScreen from '@ui/screens/GalleryScreen';
 import GroupChatScreen from '@ui/screens/GroupChatScreen';
 import GroupDetailsScreen from '@ui/screens/GroupDetailsScreen';
 import NotificationsScreen from '@ui/screens/NotificationsScreen';
+import PaywallScreen from '@ui/screens/PaywallScreen';
 import SearchScreen from '@ui/screens/SearchScreen';
 import TimerScreen from '@ui/screens/TimerScreen';
 import UserProfileScreen from '@ui/screens/UserProfileScreen';
@@ -54,6 +55,11 @@ export default function AppNavigator() {
             name="Timer"
             component={TimerScreen}
             options={{ presentation: 'fullScreenModal' }}
+          />
+          <Stack.Screen
+            name="Paywall"
+            component={PaywallScreen}
+            options={{ presentation: 'modal' }}
           />
           <Stack.Screen name="GroupChat" component={GroupChatScreen} />
           <Stack.Screen name="GroupDetails" component={GroupDetailsScreen} />

@@ -1,0 +1,17 @@
+# dependencies
+node_modules/
+
+# local env files (nunca commitar secrets reais)
+.env
+.env.*
+!.env.example
+
+# logs
+*.log
+npm-debug.*
+
+# firebase emulator data
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log

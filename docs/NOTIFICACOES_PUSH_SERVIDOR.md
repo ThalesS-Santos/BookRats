@@ -47,14 +47,14 @@ servidor** e envie a notificação para o dispositivo certo.
 
 ### 2.1 Local vs Remoto — regra de decisão
 
-| Critério | Local (`expo-notifications`) | Remoto (Expo Push / FCM) |
-|---|---|---|
-| Gatilho nasce no aparelho | ✅ | — |
-| Gatilho nasce no servidor (outro usuário, cron) | ❌ | ✅ |
-| Funciona offline | ✅ | ❌ (precisa de rede no envio) |
-| Precisa de backend | Não | Sim (Cloud Functions) |
-| Precisa de token de dispositivo | Não | Sim |
-| Custo | Zero | ~Zero (Expo Push grátis; Functions tem cota) |
+| Critério                                        | Local (`expo-notifications`) | Remoto (Expo Push / FCM)                     |
+| ----------------------------------------------- | ---------------------------- | -------------------------------------------- |
+| Gatilho nasce no aparelho                       | ✅                           | —                                            |
+| Gatilho nasce no servidor (outro usuário, cron) | ❌                           | ✅                                           |
+| Funciona offline                                | ✅                           | ❌ (precisa de rede no envio)                |
+| Precisa de backend                              | Não                          | Sim (Cloud Functions)                        |
+| Precisa de token de dispositivo                 | Não                          | Sim                                          |
+| Custo                                           | Zero                         | ~Zero (Expo Push grátis; Functions tem cota) |
 
 Regra prática: **continue usando local para tudo que o app consegue detectar
 sozinho**; use remoto **apenas** para eventos server-side. Não duplicar o mesmo
@@ -314,7 +314,7 @@ async function handleReceipts(ticketIds) {
 ```js
 exports.onFriendshipAccepted = functions.firestore
   .document('friendships/{id}')
-  .onUpdate(async (change) => {
+  .onUpdate(async change => {
     const before = change.before.data();
     const after = change.after.data();
     if (before.status !== 'accepted' && after.status === 'accepted') {
@@ -506,16 +506,16 @@ match /users/{userId}/notificationPrefs {
 
 ## 15. Roadmap faseado de implementação
 
-| Fase | Entrega | Depende de |
-|---|---|---|
-| 0 | (Feito) Notificações locais | — |
-| 1 | Registro de token + `pushTokens` no Firestore | EAS projectId |
-| 2 | Cloud Function "espelho" de `users/{uid}/notifications` → push | Fase 1 + Blaze |
-| 3 | Deep-linking no app ao tocar a notificação | Fase 2 |
-| 4 | Preferências granulares (`notificationPrefs`) + tela de Ajustes | Fase 2 |
-| 5 | Gatilho agendado de ranking ("foi ultrapassado") | Fase 2 |
-| 6 | Recibos + limpeza de tokens inválidos | Fase 2 |
-| 7 | Canais Android por tipo + segmentação | Fases 2–5 |
+| Fase | Entrega                                                         | Depende de     |
+| ---- | --------------------------------------------------------------- | -------------- |
+| 0    | (Feito) Notificações locais                                     | —              |
+| 1    | Registro de token + `pushTokens` no Firestore                   | EAS projectId  |
+| 2    | Cloud Function "espelho" de `users/{uid}/notifications` → push  | Fase 1 + Blaze |
+| 3    | Deep-linking no app ao tocar a notificação                      | Fase 2         |
+| 4    | Preferências granulares (`notificationPrefs`) + tela de Ajustes | Fase 2         |
+| 5    | Gatilho agendado de ranking ("foi ultrapassado")                | Fase 2         |
+| 6    | Recibos + limpeza de tokens inválidos                           | Fase 2         |
+| 7    | Canais Android por tipo + segmentação                           | Fases 2–5      |
 
 Recomendação: implementar **Fase 1 → 2 → 3** primeiro (entrega o push social
 real reaproveitando a infra in-app existente), depois 4–7.
@@ -548,6 +548,7 @@ real reaproveitando a infra in-app existente), depois 4–7.
 ---
 
 _Arquivos relacionados no projeto:_
+
 - `src/core/services/PushNotificationService.js` — notificações **locais** (já feito).
 - `src/core/services/NotificationService.js` — notificações **in-app** (Firestore) — fonte natural do "espelho" para push.
 - `src/ui/navigation/TabNavigator.js` — suporta `params.tabIndex` para deep-link entre abas.

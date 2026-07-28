@@ -1,7 +1,14 @@
 import React, { useState, useMemo } from 'react';
 
 import { Ionicons } from '@expo/vector-icons';
-import { View, Text, Switch, TouchableOpacity, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  Switch,
+  TouchableOpacity,
+  ScrollView,
+  ActivityIndicator,
+} from 'react-native';
 
 import { ALL_BADGES } from '@constants/badges';
 import { COLORS } from '@constants/colors'; // ✅ FIX #3: import no topo, fora do componente
@@ -71,7 +78,14 @@ export default function ProfileScreen({ navigation }) {
   const unreadCount = useMainStore(selectUnreadCount);
   const totalBooksCompleted = useMainStore(state => state.totalBooksCompleted);
   const signOut = useMainStore(state => state.signOut);
+  const isPro = useMainStore(state => state.isPro);
+  const presentCustomerCenter = useMainStore(
+    state => state.presentCustomerCenter,
+  );
+  const purchasesSupported = useMainStore(state => state.purchasesSupported);
   const { showPopup } = usePopupStore();
+  const [subscriptionActionLoading, setSubscriptionActionLoading] =
+    useState(false);
 
   const [showTrophyWall, setShowTrophyWall] = useState(false);
 
@@ -114,6 +128,45 @@ export default function ProfileScreen({ navigation }) {
       type: 'confirm',
       onConfirm: signOut,
     });
+  };
+
+  const handleSubscriptionPress = async () => {
+    // Informativo, não erro: no Expo Go a ausência do módulo nativo é esperada.
+    if (!purchasesSupported) {
+      showPopup({
+        title: 'Disponível no app instalado',
+        message:
+          'As telas de assinatura usam módulos nativos que o Expo Go não inclui. Elas funcionam normalmente no app compilado.',
+        type: 'info',
+      });
+      return;
+    }
+
+    // Paywall é tela própria (PaywallScreen) — navegação instantânea, sem
+    // esperar a RevenueCatUI baixar template e imagens. Só o Customer Center
+    // segue nativo: reembolso/gerenciamento de assinatura da loja não vale
+    // reconstruir.
+    if (!isPro) {
+      navigation.navigate('Paywall');
+      return;
+    }
+
+    if (subscriptionActionLoading) return;
+
+    setSubscriptionActionLoading(true);
+    try {
+      await presentCustomerCenter();
+    } catch (error) {
+      showPopup({
+        title: 'Não foi possível abrir',
+        message:
+          error?.userMessage ||
+          'Tente novamente em instantes. Se persistir, verifique sua conexão.',
+        type: 'error',
+      });
+    } finally {
+      setSubscriptionActionLoading(false);
+    }
   };
 
   return (
@@ -167,6 +220,34 @@ export default function ProfileScreen({ navigation }) {
             Streak: {streak} dias
           </Text>
         </View>
+      </View>
+
+      <View className="mb-10">
+        <Text className="text-text-muted-light dark:text-text-muted-dark uppercase tracking-widest text-xs font-bold mb-4 ml-2">
+          Assinatura
+        </Text>
+        <TouchableOpacity
+          onPress={handleSubscriptionPress}
+          disabled={subscriptionActionLoading}
+          className={`flex-row items-center justify-between p-5 bg-card-light dark:bg-card-dark rounded-2xl border border-border-light dark:border-border-dark ${subscriptionActionLoading ? 'opacity-60' : ''}`}>
+          <View className="flex-row items-center">
+            <View className="bg-primary/10 dark:bg-primary-dark/10 p-2 rounded-lg mr-4">
+              <Ionicons
+                name={isPro ? 'settings-outline' : 'star-outline'}
+                size={22}
+                color={accentColor}
+              />
+            </View>
+            <Text className="text-text-light dark:text-text-dark font-serif font-bold text-lg">
+              {isPro ? 'Gerenciar Assinatura' : 'Seja BookRats Pro'}
+            </Text>
+          </View>
+          {subscriptionActionLoading ? (
+            <ActivityIndicator size="small" color={accentColor} />
+          ) : (
+            <Ionicons name="chevron-forward" size={18} color={accentColor} />
+          )}
+        </TouchableOpacity>
       </View>
 
       <View className="mb-10">

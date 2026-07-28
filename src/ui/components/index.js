@@ -10,6 +10,7 @@ export { default as SearchPreview } from './molecules/SearchPreview';
 export { default as BadgeUnlockPopup } from './molecules/BadgeUnlockPopup';
 export { default as FriendActionButton } from './molecules/FriendActionButton';
 export { default as FriendRequestCard } from './molecules/FriendRequestCard';
+export { default as PlanCard } from './molecules/PlanCard';
 export { default as ProgressBookCard } from './molecules/ProgressBookCard';
 export { default as StatusSelector } from './molecules/StatusSelector';
 

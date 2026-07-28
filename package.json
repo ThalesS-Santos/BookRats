@@ -13,7 +13,11 @@
     "format": "prettier --write .",
     "audit:high": "npm audit --audit-level=high",
     "check": "npm run lint && npm test -- --runInBand",
-    "check:gate": "npm run lint && npm test -- --runInBand && npm run audit:high"
+    "check:gate": "npm run lint && npm test -- --runInBand && npm run audit:high",
+    "functions:lint": "npm --prefix functions run lint",
+    "functions:test": "npm --prefix functions run test",
+    "functions:check": "npm run functions:lint && npm run functions:test",
+    "check:gate:all": "npm run check:gate && npm run functions:check"
   },
   "dependencies": {
     "@expo/metro-runtime": "6.1.2",
@@ -46,6 +50,8 @@
     "react-native": "0.81.5",
     "react-native-gesture-handler": "2.28.0",
     "react-native-pager-view": "6.9.1",
+    "react-native-purchases": "^10.4.4",
+    "react-native-purchases-ui": "^10.4.4",
     "react-native-reanimated": "4.1.6",
     "react-native-safe-area-context": "5.6.2",
     "react-native-screens": "4.16.0",

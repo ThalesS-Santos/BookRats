@@ -66,7 +66,18 @@ export const createAuthSlice = (set, get) => ({
         unsubNotifications: unsubNotifs,
         unsubSocialListeners: unsubSocial,
       });
+
+      // 💳 Vincula o SDK do RevenueCat ao uid do Firebase (histórico de compras
+      // segue o usuário entre dispositivos). Não bloqueia o resto do login.
+      if (get().initializeMonetization) {
+        get().initializeMonetization(user.uid);
+      }
     } else {
+      // 💳 Desvincula o RevenueCat antes do reset geral abaixo.
+      if (get().teardownMonetization) {
+        get().teardownMonetization();
+      }
+
       // 🧹 Full reset on logout (listeners already torn down above).
       set({
         books: [],

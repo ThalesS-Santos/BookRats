@@ -30,5 +30,6 @@
    - `ErrorBoundary` global cobrindo toda a árvore de renderização do aplicativo com logs de erro automatizados.
 
 ## Próximos Desafios
+
 - Saneamento completo de regras estéticas do ESLint em componentes legados de UI.
 - Início de automação de fluxo de visualização (testes visuais de snapshot).

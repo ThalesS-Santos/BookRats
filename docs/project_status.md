@@ -16,14 +16,17 @@ Data de referência: 2026-06-27
 ## Indicadores
 
 1. Testes
+
 - `69/69` suítes aprovadas
 - `893/893` testes individuais aprovados
 - Cobertura expandida para os novos módulos de estatísticas e gamificação.
 
 2. Segurança de Dependência
+
 - `npm audit --audit-level=high` sem vulnerabilidades `high` ou `critical` (vulnerabilidade `shell-quote` corrigida via npm audit fix).
 
 3. Governança e Qualidade
+
 - Scripts locais de gate (`npm run check:gate`) configurados.
 - Integração contínua (CI) desativada temporariamente para saneamento de linting do backlog de arquivos legados.
 

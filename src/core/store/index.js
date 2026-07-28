@@ -9,6 +9,7 @@ import {
 import { createAuthSlice } from './slices/authSlice';
 import { createGamificationSlice } from './slices/gamificationSlice';
 import { createLibrarySlice } from './slices/librarySlice';
+import { createMonetizationSlice } from './slices/monetizationSlice';
 import { createSocialSlice } from './slices/socialSlice';
 
 /**
@@ -39,6 +40,7 @@ export const useMainStore = create(
         ...createLibrarySlice(set, get),
         ...createGamificationSlice(set, get),
         ...createSocialSlice(set, get),
+        ...createMonetizationSlice(set, get),
       }),
       {
         name: 'bookrats-main-storage',
@@ -79,7 +81,9 @@ export const useMainStore = create(
           totalClaps: state.totalClaps,
           unlockedBadges: state.unlockedBadges,
 
-          // ⚠️ Nota: authSlice (tokens/sessão) e socialSlice (chat/notificações efêmeras) NÃO são persistidos aqui.
+          // ⚠️ Nota: authSlice (tokens/sessão), socialSlice (chat/notificações
+          // efêmeras) e monetizationSlice (customerInfo/isPro — re-hidratado pelo
+          // listener do RevenueCat a cada login) NÃO são persistidos aqui.
         }),
       },
     ),
