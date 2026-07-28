@@ -22,9 +22,10 @@ Data de referência: 2026-07-28
 - `966/966` testes individuais aprovados
 - Cobertura nova: `monetizationSlice`, guard de ambiente (Expo Go/nativo) do RevenueCat, `PaywallScreen`/`usePaywallPlans`, regressão do fix de `updatePresence`.
 
-2. Segurança de Dependência — **⚠️ regressão detectada em 2026-07-28, não presente na última verificação**
+2. Segurança de Dependência
 
-- `npm audit --audit-level=high` **NÃO está mais limpo**: `firebase@12.10.0` → `@firebase/database` → `faye-websocket` → `websocket-driver@<=0.7.4` traz **1 `critical` + 3 `high`** (21 vulnerabilidades no total, incluindo moderate/low). O npm reporta correção **não-destrutiva disponível** (`npm audit fix`, sem `--force`) — ainda não aplicada nesta sessão porque o pedido era só de documentação; validar e aplicar antes do próximo `check:gate`.
+- **`critical` corrigido**: `npm audit fix` (sem `--force`) resolveu o `websocket-driver` (`firebase@12.10.0` → `@firebase/database` → `faye-websocket`) e mais 6 pacotes bumpados em patch (`brace-expansion`, `shell-quote`, `tar`). Só `package-lock.json` mudou — `package.json` intocado, nenhum breaking change.
+- **`npm run audit:high` ainda não fica limpo**, mas por um motivo pré-existente e já aceito no projeto: depois do fix, o `npm audit` passa a reportar 43 `high` na mesma cadeia `brace-expansion`→`minimatch`→`glob`/`eslint`/`@expo/*` que `functions/` já tinha (o número anterior de "3 high" estava sub-contando por dedupe do npm antes do `fix`; confirmado comparando o audit antes/depois do lockfile — nenhum pacote novo entrou). Toda correção restante exige `--force`, que forçaria downgrade de `eslint-plugin-react`, bump major do `msw`, e **Expo 57** — incompatível com a stack atual (ver Risco 4 abaixo). Não aplicar `--force`.
 - `functions/` mantém as 12 vulnerabilidades `high`/`moderate` já conhecidas (cadeia `google-gax`/`firebase-admin`, aceitas — ver `CLAUDE.md`).
 
 3. Governança e Qualidade
@@ -34,7 +35,7 @@ Data de referência: 2026-07-28
 
 ## Riscos Abertos
 
-1. **Vulnerabilidade `websocket-driver` (novo, 2026-07-28)**: ver item 2 dos Indicadores acima — corrigir com `npm audit fix` (sem `--force`) e rodar a suíte completa antes de confiar no resultado.
+1. **43 `high` residuais no `npm audit`**: exigem `--force` (breaking) — não aplicar até o upgrade gradual do Expo (54→57) planejado no Risco 3 acontecer; ver item 2 dos Indicadores.
 2. **Backlog de Linting**: histórico de problemas reportados pelo ESLint/Prettier no backlog de arquivos legados que precisam ser saneados para restabelecer os bloqueios automáticos de CI.
 3. **Ausência de Testes E2E**: Sem automação de ponta a ponta nativa (Detox/Maestro) e testes visuais de regressão.
 4. **Dependências em Upgrade**: Expo 54 é a versão estável atual — Expo 55+ quebra por conflito `react-native-worklets`/`expo-modules-core`; upgrade planejado gradual (54→55→56→57) só quando a stack estiver mais madura.
@@ -43,8 +44,8 @@ Data de referência: 2026-07-28
 
 ## Próximas Prioridades
 
-1. **Corrigir `websocket-driver`**: `npm audit fix` + rodar suíte completa (`npm test -- --runInBand`) para confirmar que nada quebrou.
-2. **Monetização — Fase 1/2 do roteiro**: modelagem de dados (`users/{uid}.subscription`) e Cloud Function de webhook do RevenueCat, para fechar a lacuna de `isPro` server-side.
-3. **Resolver bloqueio de publicação**: site/domínio mínimo para hospedar Termos de Uso e Política de Privacidade do paywall.
-4. **Saneamento de Linting**: Limpeza em massa dos arquivos de teste e componentes de UI para rodar o gate 100% livre de warnings.
-5. **Automação E2E**: Setup básico do Detox ou Maestro para fluxos críticos de Auth e Registro de Leitura.
+1. **Monetização — Fase 1/2 do roteiro**: modelagem de dados (`users/{uid}.subscription`) e Cloud Function de webhook do RevenueCat, para fechar a lacuna de `isPro` server-side.
+2. **Resolver bloqueio de publicação**: site/domínio mínimo para hospedar Termos de Uso e Política de Privacidade do paywall.
+3. **Saneamento de Linting**: Limpeza em massa dos arquivos de teste e componentes de UI para rodar o gate 100% livre de warnings.
+4. **Automação E2E**: Setup básico do Detox ou Maestro para fluxos críticos de Auth e Registro de Leitura.
+5. **Upgrade gradual do Expo (54→55→56→57)**: única forma segura de aplicar as correções `--force` pendentes do `npm audit` (`eslint-plugin-react`, `msw`, `postcss`/`expo`).
