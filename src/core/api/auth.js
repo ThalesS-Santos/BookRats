@@ -119,6 +119,13 @@ export const signOut = async () => {
 };
 
 export const updatePresence = async (uid, isOnline) => {
+  // Escrever presença exige sessão ativa do próprio dono (regra `isOwner`).
+  // No logout o cleanup do listener de AppState (App.js) roda DEPOIS do
+  // signOut — o token já morreu e a escrita voltava `permission-denied`, que
+  // é ruído: o `isOnline: false` já foi gravado pelo authSlice.signOut, ainda
+  // autenticado, antes de derrubar a sessão.
+  if (auth.currentUser?.uid !== uid) return;
+
   try {
     const userRef = doc(db, 'users', uid);
     await setDoc(

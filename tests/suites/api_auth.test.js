@@ -15,6 +15,7 @@ import {
   updatePresence,
   updateReadingStatus,
 } from '@core/api/auth';
+import { auth } from '@core/firebase/firebase';
 
 jest.mock('firebase/auth', () => ({
   createUserWithEmailAndPassword: jest.fn(),
@@ -195,6 +196,15 @@ describe('Auth API Methods', () => {
   });
 
   describe('updatePresence', () => {
+    // A escrita só é permitida com a sessão do próprio dono ativa (`isOwner`).
+    beforeEach(() => {
+      auth.currentUser = { uid: 'u1' };
+    });
+
+    afterEach(() => {
+      auth.currentUser = null;
+    });
+
     it('should update isOnline status', async () => {
       await updatePresence('u1', true);
       expect(setDoc).toHaveBeenCalledWith(
@@ -213,6 +223,25 @@ describe('Auth API Methods', () => {
       await updatePresence('u1', true);
       expect(consoleSpy).toHaveBeenCalled();
       consoleSpy.mockRestore();
+    });
+
+    // 🛡️ Regressão: ao sair da conta, o cleanup do AppState em App.js dispara
+    // `updatePresence(false)` DEPOIS do signOut. Sem o guard, isso batia nas
+    // regras do Firestore e logava um permission-denied enganoso.
+    it('não escreve quando a sessão já foi encerrada (logout)', async () => {
+      auth.currentUser = null;
+
+      await updatePresence('u1', false);
+
+      expect(setDoc).not.toHaveBeenCalled();
+    });
+
+    it('não escreve presença de um uid diferente do autenticado', async () => {
+      auth.currentUser = { uid: 'outro-usuario' };
+
+      await updatePresence('u1', false);
+
+      expect(setDoc).not.toHaveBeenCalled();
     });
   });
 
